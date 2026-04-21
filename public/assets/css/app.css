@@ -222,14 +222,14 @@ body {
 
 /* --- KÍCH THƯỚC ICON CHUẨN --- */
 .sidebar-wrapper .nav-link-custom svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
 }
 
 .sidebar-logo-container svg {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     flex-shrink: 0;
 }
 
@@ -244,13 +244,13 @@ body {
 }
 
 .toolbar-icon svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
 }
 
 .table-custom svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
 }
 
 /* ========================================= */
@@ -262,49 +262,76 @@ body {
     object-fit: cover;
 }
 
-.btn-custom-outline {
+/* --- NÚT BẤM CHUẨN GOOGLE MATERIAL --- */
+.btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
+    gap: 8px; /* Khoảng cách icon và text chuẩn sidebar */
     font-weight: 500;
-    background: #ffffff;
-    border: 1px solid var(--slate-200);
-    color: var(--slate-700);
-    border-radius: 24px;
-    transition: all 0.2s;
+    font-size: 0.875rem;
+    padding: 0.5rem 1.25rem;
+    border-radius: 24px; /* Bo góc dạng viên thuốc đồng nhất sidebar */
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.btn-custom-outline:hover {
+.btn svg, .btn i {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* Nút Primary (Lưu, Thêm mới) */
+.btn-primary {
+    background-color: var(--primary-600);
+    border-color: var(--primary-600);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-700);
+}
+
+/* Nút Outline (Hủy, Quay lại, Lọc) */
+.btn-outline-secondary {
+    color: var(--slate-600);
+    border-color: var(--slate-200);
+    background-color: #ffffff;
+}
+
+.btn-outline-secondary:hover {
     background-color: var(--slate-50);
     border-color: var(--slate-300);
+    color: var(--slate-800);
 }
 
-.btn-custom-primary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    background: var(--primary-600);
-    border: 1px solid transparent;
-    color: white;
-    border-radius: 24px;
-    transition: all 0.2s;
+/* Nút Success (Xanh lá - An toàn/Thêm mới/Lưu) */
+.btn-success {
+    background-color: #1e8e3e; /* Xanh lá chuẩn Material */
+    border: none;
+    color: #ffffff;
 }
 
-.btn-custom-primary:hover {
-    background-color: var(--primary-700);
-    color: white;
-    box-shadow: var(--google-shadow);
+.btn-success:hover {
+    background-color: #137333;
+    color: #ffffff;
+}
+
+/* Nút Danger (Đỏ - Cảnh báo/Xóa) */
+.btn-danger {
+    background-color: #d93025; /* Đỏ chuẩn Material */
+    border: none;
+    color: #ffffff;
+}
+
+.btn-danger:hover {
+    background-color: #b21f16;
+    color: #ffffff;
 }
 
 /* Table Styles */
 .table-container {
     background: #ffffff;
-    border-radius: 0.5rem;
+    border-radius: 1rem;
     box-shadow: var(--google-shadow-soft);
     overflow: hidden;
 }
@@ -396,6 +423,11 @@ body {
     box-shadow: var(--google-shadow);
 }
 
+.form-control::placeholder,
+.search-input::placeholder {
+    color: var(--slate-300) !important;
+}
+
 .search-icon-wrapper {
     position: absolute;
     left: 1rem;
@@ -457,4 +489,23 @@ header {
 .form-check-input:checked {
     background-color: var(--primary-600);
     border-color: var(--primary-600);
+}
+
+/* --- MODAL XÁC NHẬN XÓA (REUSABLE) --- */
+.modal-confirm .modal-content {
+    border-radius: 28px; /* Bo góc lớn chuẩn Material Design 3 */
+    border: none;
+    padding: 1.5rem;
+}
+
+.modal-confirm .icon-box {
+    color: var(--red-600);
+    background: var(--red-50);
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
 }

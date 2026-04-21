@@ -13,3 +13,15 @@ if (selectAll) {
         checkboxes.forEach(checkbox => checkbox.checked = this.checked);
     });
 }
+
+/**
+ * Hàm hiển thị Modal xác nhận xóa dùng chung
+ * @param {string} url - Đường dẫn thực hiện hành động xóa
+ * @param {string} message - Lời nhắn hiển thị trên Modal
+ */
+function showDeleteModal(url, message) {
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    document.getElementById('deleteConfirmMessage').innerText = message;
+    document.getElementById('deleteConfirmBtn').setAttribute('href', url);
+    modal.show();
+}
