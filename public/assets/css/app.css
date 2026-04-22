@@ -137,14 +137,14 @@ body {
 /* Xử lý Logo PMS */
 .sidebar-logo-container {
     height: 64px;
-    padding-left: 28px;
+    padding-left: 25px;
     display: flex;
     align-items: center;
     transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-wrapper.collapsed .sidebar-logo-container {
-    padding-left: 20px;
+    padding-left: 17px;
 }
 
 /* Style cho Logo Sidebar */
