@@ -66,16 +66,16 @@ class UserModel extends Model
             // Nếu mọi thứ ổn, xác nhận lưu vĩnh viễn các thay đổi
             $this->db->commit();
             return $userId;
-
         } catch (Exception $e) {
             // Nếu có bất kỳ lỗi nào xảy ra, hủy bỏ toàn bộ các thay đổi trong transaction này
             $this->db->rollBack();
             // Ném lỗi tiếp ra ngoài để Controller hoặc ErrorHandler xử lý hiển thị            
-            throw new Exception("Lỗi khi tạo nhân viên: " . $e->getMessage(), 500); 
+            throw new Exception("Lỗi khi tạo nhân viên: " . $e->getMessage(), 500);
         }
     }
 
-    public function getLastUser(){
+    public function getLastUser()
+    {
         return $this->db->lastInsertId();
     }
 
@@ -152,10 +152,26 @@ class UserModel extends Model
         return $this->db->query($sql, ['user_id' => $userId])->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function softDeleteUser($id){
+    public function softDeleteUser($id)
+    {
         $sql = "UPDATE users SET deleted_at = NOW() WHERE id = :id";
         return $this->db->query($sql, ['id' => $id]);
     }
 
-    
+
+    public function getUserByPage($page, $perPage)
+    {
+        
+        // công thức tính phân trang
+        $offset = ($page - 1) * $perPage;
+        // câu lệnh sql
+        $sql = "SELECT * FROM users WHERE deleted_at IS NULL LIMIT {$perPage} OFFSET {$offset}";
+        $stmt = $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt;
+    }
+    public function getTotalUser(){
+        $sql = "SELECT COUNT(*) FROM users WHERE deleted_at IS NULL";
+        $result = $this->db->query($sql);
+        return (int)$result->fetchColumn();
+    }
 }

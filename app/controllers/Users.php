@@ -20,11 +20,26 @@ class Users extends Controller
      */
     public function getlist()
     {
-        $users = $this->modelUser->getAllUsers();
+        $perPage = 5; //số bản ghi mỗi trang
+
+        if (isset($_GET['page'])) {
+            $currentPage = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT);
+        } else {
+            $currentPage = 1;
+        }
+        if ($currentPage < 1) $currentPage = 1;
+        $users = $this->modelUser->getUserByPage($currentPage, $perPage);
+        $totalUsers = $this->modelUser->getTotalUser();
+        $totalPages = ceil($totalUsers / $perPage);
+        $pages = range(1, $totalPages);
         View::render('users/list', [
             'data' => $users,
             'pageTitle' => 'Nhân viên',
             'extra_css' => 'users',
+            'perPage' => $perPage,
+            'currentPage' => $currentPage,
+            'totalPage' => $totalPages,
+            'pages' => $pages
             // 'extra_js' => 'user_list'
         ]);
     }
@@ -250,7 +265,7 @@ class Users extends Controller
 
                 // Thay vì di chuyển trực tiếp, ta gọi hàm resize để tối ưu ảnh trước khi lưu
                 if ($this->resizeImage($_FILES['avatar']['tmp_name'], $targetPath, $fileExtension)) {
-                    
+
                     return $fileName;
                 }
             }
@@ -319,7 +334,7 @@ class Users extends Controller
         imagesavealpha($dstImage, true);
         imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
         // Đoạn lưu ảnh vào sever
-        
+
         if ($extension === 'jpg' || $extension === 'jpeg') $result = imagejpeg($dstImage, $targetPath, 85);
         elseif ($extension === 'png') $result = imagepng($dstImage, $targetPath);
         elseif ($extension === 'gif') $result = imagegif($dstImage, $targetPath);
@@ -327,7 +342,7 @@ class Users extends Controller
 
         imagedestroy($srcImage);
         imagedestroy($dstImage);
-       
+
         return $result; // 
 
     }

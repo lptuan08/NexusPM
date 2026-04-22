@@ -9,15 +9,23 @@ class Controller
             require_once $path;
             if (class_exists($name)) {
                 $model = new $name();
-            }else{
+            } else {
                 throw new Exception("class model {$name} không tồn tại", 500);
             }
-        }else{
+        } else {
             throw new Exception("File model {$path} không tồn tại", 500);
         }
 
         return $model;
     }
+    public function getEllipsisPagination($currentPage, $totalPages, $delta = '4')
+    {
+        // có delta: sẽ phát triển sau
 
-    
+        
+        
+
+          
+
+    }
 }
