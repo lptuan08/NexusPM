@@ -1,0 +1,314 @@
+:root {
+    --primary-color: #0d6efd;
+    /* Xanh dương chủ đạo */
+    --primary-hover: #0b5ed7;
+    --text-dark: #0f172a;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+body {
+    background-color: #f9fafb;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Container chính mô phỏng khung Tablet/Desktop */
+.main-wrapper {
+    display: flex;
+    width: 100%;
+    max-width: 1100px;
+    height: 700px;
+    background: white;
+    border-radius: 32px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+    margin: 20px;
+}
+
+/* --- PHẦN BÊN TRÁI (ILLUSTRATION) --- */
+.side-visual {
+    flex: 1.1;
+    min-width: 500px;
+    position: relative;
+    /* Khôi phục lại Light Mesh Gradient nền sáng */
+    background-color: #f0f7ff;
+    background-image:
+        radial-gradient(at 40% 20%, hsla(210, 100%, 94%, 1) 0px, transparent 50%),
+        radial-gradient(at 80% 0%, hsla(200, 100%, 94%, 1) 0px, transparent 50%),
+        radial-gradient(at 0% 50%, hsla(215, 100%, 94%, 1) 0px, transparent 50%),
+        radial-gradient(at 80% 50%, hsla(195, 100%, 94%, 1) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, hsla(220, 100%, 94%, 1) 0px, transparent 50%),
+        radial-gradient(at 80% 100%, hsla(205, 100%, 94%, 1) 0px, transparent 50%),
+        radial-gradient(at 0% 0%, hsla(210, 100%, 94%, 1) 0px, transparent 50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+}
+
+.side-text {
+    margin-top: 40px;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+    /* Nổi lên trên */
+}
+
+.side-text h2 {
+    color: #084298;
+    /* Đổi lại màu chữ xanh đậm cho nền sáng */
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.side-text p {
+    color: #475569;
+    /* Màu text xám đậm dễ đọc trên nền sáng */
+    margin-top: 12px;
+    font-size: 15px;
+    max-width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+}
+
+/* Hiệu ứng float cho minh họa */
+.illustration {
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-15px);
+    }
+}
+
+/* --- PHẦN BÊN PHẢI (FORM) --- */
+.side-form {
+    flex: 1;
+    background-color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    padding: 50px 60px;
+}
+
+.brand-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Căn giữa logo theo chiều ngang */
+    margin-bottom: 60px;
+    /* Tăng khoảng cách để tách biệt phần logo */
+}
+
+.brand-logo a {
+    display: block;
+}
+
+.brand-logo img {
+    max-width: 240px;
+    /* Tăng kích thước logo để nổi bật hơn */
+    height: auto;
+    object-fit: contain;
+    /* Hiệu ứng đổ bóng nhẹ giúp logo trông có chiều sâu */
+    filter: drop-shadow(0 10px 15px rgba(13, 110, 253, 0.1));
+}
+
+.form-header {
+    margin-bottom: 40px;
+}
+
+.form-header h1 {
+    font-size: 25px;
+    /* Giảm nhẹ kích thước để tạo sự cân đối, chuyên nghiệp */
+    font-weight: 800;
+    /* Tăng độ đậm để nhấn mạnh */
+    letter-spacing: -1px;
+    /* Thu hẹp khoảng cách chữ tạo cảm giác hiện đại */
+    color: #1e293b;
+    /* Sử dụng màu xanh đen (Slate 800) thay vì đen thuần */
+}
+
+
+/* Cấu trúc Input Pill-shaped */
+.input-box {
+    margin-bottom: 16px;
+}
+
+.input-box input {
+    width: 100%;
+    padding: 14px 24px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 50px;
+    background-color: #f8fafc;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.2s;
+    background: #fafafa;
+}
+
+.input-box input:focus {
+    border-color: var(--primary-color);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
+}
+
+.password-toggle {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+}
+
+.forgot-password {
+    float: right;
+    font-size: 13px;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.btn-submit {
+    width: 100%;
+    padding: 14px;
+    background-color: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    border-radius: 50px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform 0.1s, background-color 0.2s, box-shadow 0.2s;
+}
+
+.btn-submit:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2);
+}
+
+.btn-submit:active {
+    transform: translateY(0);
+}
+
+/* Đăng nhập MXH */
+.social-divider {
+    display: flex;
+    align-items: center;
+    margin: 24px 0;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.social-divider::before,
+.social-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border-color);
+}
+
+.social-divider span {
+    padding: 0 12px;
+}
+
+.social-group {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.social-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.social-icon:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.social-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.footer-note {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.footer-note a {
+    color: #166534;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.login-link {
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.login-link a {
+    color: var(--primary-color);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .side-visual {
+        display: none;
+    }
+
+    .main-wrapper {
+        max-width: 450px;
+        min-height: 600px;
+        height: auto;
+        border-radius: 24px;
+    }
+
+    .side-form {
+        padding: 40px 30px;
+    }
+}

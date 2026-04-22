@@ -1,0 +1,16 @@
+<svg width="500" height="150" viewBox="0 0 500 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="nGradRefined" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#4285F4"></stop>
+            <stop offset="100%" stop-color="#A142F4"></stop>
+        </linearGradient>
+    </defs>
+    <!-- Chấm tròn được căn chỉnh lại (cx=46) cho nét 700 -->
+    <circle cx="46" cy="18" r="9" fill="#A142F4"></circle>
+    <text x="20" y="115"
+        style="font-family: system-ui, -apple-system, sans-serif; font-size: 100px; letter-spacing: -6px;">
+        <tspan fill="url(#nGradRefined)" font-weight="700">N</tspan>
+        <tspan dx="-12" fill="#1e293b" font-weight="600">exus</tspan>
+        <tspan fill="#4285F4" font-weight="400">PM</tspan>
+    </text>
+</svg>

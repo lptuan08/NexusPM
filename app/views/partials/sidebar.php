@@ -1,12 +1,10 @@
     <!-- KÊNH SIDEBAR -->
     <aside id="sidebar-container" class="sidebar-wrapper">
         <div class="sidebar-inner">
-            <div class="sidebar-logo-container flex-shrink-0 mb-3">
-                <div class="rounded d-flex align-items-center justify-content-center flex-shrink-0"
-                    style="width: 32px; height: 32px; color: var(--primary-600);">
-                    <i data-lucide="layout-dashboard"></i>
-                </div>
-                <span class="sidebar-title-text">PMS</span>
+            <div class="sidebar-logo-container flex-shrink-0">
+                <a href="<?= URLROOT ?>" class="d-flex align-items-center text-decoration-none">
+                    <img src="<?= URLROOT; ?>/assets/images/logo/logo_nexus.svg" alt="NexusPM Logo" class="sidebar-logo">
+                </a>
             </div>
 
             <nav class="flex-grow-1 overflow-auto d-flex flex-column gap-1">

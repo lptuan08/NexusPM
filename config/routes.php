@@ -3,6 +3,8 @@
 $routes['defaut_controller'] = 'Dashboard';
 $routes['trang-chu'] = 'Dashboard';
 
+// login
+$routes['dang-nhap'] = 'Auth/login';
 
 // router cho user
 $routes['nguoi-dung'] = 'Users/getlist';

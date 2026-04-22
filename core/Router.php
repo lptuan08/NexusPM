@@ -25,6 +25,7 @@ class Router
     {
 
         global $routes;
+    
 
         // 1. Gán mặc định handleUrl là url hiện tại (phòng trường hợp không khớp route nào)
         $this->handleUrl = $url;

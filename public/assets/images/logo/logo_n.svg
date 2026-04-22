@@ -1,0 +1,11 @@
+<svg width="120" height="150" viewBox="0 0 120 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="nGradIconRefined" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#4285F4"></stop>
+            <stop offset="100%" stop-color="#A142F4"></stop>
+        </linearGradient>
+    </defs>
+    <circle cx="46" cy="25" r="12" fill="#A142F4"></circle>
+    <text x="15" y="125" style="font-family: system-ui, -apple-system, sans-serif; font-size: 110px; font-weight: 700;"
+        fill="url(#nGradIconRefined)">N</text>
+</svg>

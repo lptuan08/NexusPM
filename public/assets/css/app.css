@@ -137,14 +137,30 @@ body {
 /* Xử lý Logo PMS */
 .sidebar-logo-container {
     height: 64px;
-    padding-left: 24px;
+    padding-left: 28px;
     display: flex;
     align-items: center;
     transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-wrapper.collapsed .sidebar-logo-container {
-    padding-left: 24px;
+    padding-left: 20px;
+}
+
+/* Style cho Logo Sidebar */
+.sidebar-logo {
+    height: 45px;
+    width: auto;
+    max-width: 170px;
+    object-fit: contain;
+    transition: all 0.3s ease;
+}
+
+/* Khi sidebar thu gọn, logo sẽ được giới hạn lại để chỉ hiện phần biểu tượng */
+.sidebar-wrapper.collapsed .sidebar-logo {
+    max-width: 32px;
+    object-position: left; /* Giữ lại phần icon bên trái nếu logo là dạng ngang */
+    object-fit: cover;
 }
 
 .sidebar-title-text {
