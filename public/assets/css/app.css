@@ -387,6 +387,48 @@ body {
     border-bottom: none;
 }
 
+/* Specific font sizes for table cells */
+.table-custom .text-stt {
+    font-size: 0.75rem;
+    font-family: 'Roboto Mono', monospace; /* Using a monospace font for STT */
+    color: var(--slate-500);
+}
+
+.table-custom .text-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--slate-900);
+}
+
+.table-custom .text-meta {
+    font-size: 0.85rem;
+    color: var(--slate-600);
+}
+
+/* Pagination info */
+.table-pagination-info {
+    font-size: 0.8rem;
+    color: var(--slate-500);
+}
+
+/* Pagination buttons */
+.pagination-sm .page-link {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: none;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.pagination-sm .page-item.disabled .page-link {
+    background-color: var(--slate-50);
+    color: var(--slate-400);
+    cursor: not-allowed;
+}
+
 /* Badges for Roles */
 .badge-role {
     padding: 0.35rem 0.75rem;
@@ -417,6 +459,10 @@ body {
     color: var(--warning-600);
 }
 
+/* Custom Text Sizes */
+.text-xs {
+    font-size: 0.75rem !important;
+}
 /* General UI */
 .search-input {
     padding-left: 2.5rem;
@@ -489,6 +535,13 @@ header {
     color: var(--slate-700);
 }
 
+.pagination-sm .page-item:not(.disabled) .page-link {
+    background-color: #fff;
+    color: var(--slate-600);
+    font-weight: 500;
+    box-shadow: var(--google-shadow-soft);
+}
+
 .dropdown-item:hover {
     background-color: var(--slate-50);
     color: var(--slate-900);
@@ -505,6 +558,13 @@ header {
 .form-check-input:checked {
     background-color: var(--primary-600);
     border-color: var(--primary-600);
+}
+
+.pagination-sm .page-item.active .page-link {
+    background-color: var(--primary-600);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: var(--google-shadow);
 }
 
 /* --- MODAL XÁC NHẬN XÓA (REUSABLE) --- */
@@ -524,4 +584,11 @@ header {
     justify-content: center;
     border-radius: 50%;
     margin: 0 auto 1rem;
+}
+
+/* Badge for task priority in dashboard.php */
+.badge.badge-task-priority {
+    font-size: 0.6rem;
+    letter-spacing: 0.5px;
+}
 }

@@ -23,11 +23,11 @@
         <table class="table table-custom align-middle">
             <thead class="bg-slate-50">
                 <tr>
-                    <th scope="col" class="text-slate-700 fw-bold text-uppercase" style="width: 50px; text-align: center; font-size: 0.7rem; letter-spacing: 0.05em;">STT</th>
-                    <th scope="col" class="text-slate-700 fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Họ và Tên</th>
-                    <th scope="col" class="text-slate-700 fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Mã NV</th>
-                    <th scope="col" class="text-slate-700 fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Email</th>
-                    <th scope="col" class="text-slate-700 fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Chức danh</th>
+                    <th scope="col" class="text-center" style="width: 50px;">STT</th>
+                    <th scope="col">Họ và Tên</th>
+                    <th scope="col">Mã NV</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Chức danh</th>
                     <th scope="col" style="width: 60px; text-align: center;"></th>
                 </tr>
             </thead>
@@ -36,7 +36,7 @@
                     <?php $stt = 1; ?>
                     <?php foreach ($data as $user): ?>
                         <tr>
-                            <td class="text-center text-slate-500 font-monospace" style="font-size: 0.8rem;"><?= $stt++ ?></td>
+                            <td class="text-center text-stt"><?= $stt++ ?></td>
                             <td>
                                 <div class="d-flex align-items-center gap-3">
                                     <?php
@@ -50,12 +50,12 @@
 
                                     <img src="<?= $avatarUrl ?>"
                                         alt="Avatar" class="avatar">
-                                    <div class="fw-medium text-slate-900"><?= htmlspecialchars($displayName) ?></div>
+                                    <div class="text-name"><?= htmlspecialchars($displayName) ?></div>
                                 </div>
                             </td>
-                            <td class="text-slate-600"><?= htmlspecialchars($user['employee_code'] ?? 'N/A') ?></td>
-                            <td class="text-slate-600"><?= htmlspecialchars($user['email'] ?? '') ?></td>
-                            <td><span class="text-slate-600"><?= htmlspecialchars($user['job_title'] ?? 'Chưa cập nhật') ?></span></td>
+                            <td class="text-meta"><?= htmlspecialchars($user['employee_code'] ?? 'N/A') ?></td>
+                            <td class="text-meta"><?= htmlspecialchars($user['email'] ?? '') ?></td>
+                            <td><span class="text-meta"><?= htmlspecialchars($user['job_title'] ?? 'Chưa cập nhật') ?></span></td>
 
                             <td>
                                 <div class="dropdown position-static">
@@ -90,6 +90,7 @@
 
     <div class="d-flex align-items-center justify-content-between p-3 border-top border-slate-200 bg-white">
         <span class="text-slate-500" style="font-size: 0.875rem;">Hiển thị 1 đến 5 của 124 kết quả</span>
+        <span class="text-slate-500" style="font-size: 0.8rem;">Hiển thị 1 đến 5 của 124 kết quả</span>
         <div class="d-flex align-items-center gap-2">
             <div class="px-4 py-3 bg-white border-slate-100">
                 <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">

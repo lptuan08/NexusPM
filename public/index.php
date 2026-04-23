@@ -36,6 +36,7 @@ require_once CORE_PATH . '/Connection.php';
 require_once CORE_PATH . '/ErrorHandler.php';
 require_once CORE_PATH . '/Request.php';
 require_once CORE_PATH . '/Response.php';
+require_once APP_PATH . '/helpers/Helper.php';
 
 // App
 require_once CORE_PATH . '/App.php';

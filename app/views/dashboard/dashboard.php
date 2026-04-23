@@ -140,7 +140,7 @@ $myTasks = [
                             <p class="text-muted small mb-4 line-clamp-2"><?= $proj['desc'] ?></p>
                             
                             <div class="d-flex justify-content-between mb-1">
-                                <span class="text-xs fw-bold text-muted uppercase">Tiến độ</span>
+                                <span class="text-xs fw-bold text-muted text-uppercase">Tiến độ</span>
                                 <span class="text-xs fw-bold text-dark"><?= $proj['progress'] ?>%</span>
                             </div>
                             <div class="progress" style="height: 6px;">
@@ -182,7 +182,7 @@ $myTasks = [
                                     </div>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="badge rounded-pill <?= $priorityMap[$t['prio']] ?> text-uppercase px-2 py-1" style="font-size: 0.6rem; letter-spacing: 0.5px;">
+                                    <span class="badge rounded-pill <?= $priorityMap[$t['prio']] ?> badge-task-priority text-uppercase px-2 py-1">
                                         <?= $t['prio'] ?>
                                     </span>
                                     <div class="dropdown">

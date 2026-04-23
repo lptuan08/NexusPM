@@ -99,7 +99,7 @@ $taskStatusMap = [
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
                         <span class="text-muted small fw-medium">Trạng thái</span>
-                        <span class="badge rounded-pill <?php echo $user['is_active'] ? 'status-active' : 'status-locked'; ?>" style="font-size: 0.65rem;">
+                        <span class="badge rounded-pill <?php echo $user['is_active'] ? 'status-active' : 'status-locked'; ?>">
                             <span class="status-dot"></span>
                             <?php echo $user['is_active'] ? 'Đang hoạt động' : 'Tạm khóa'; ?>
                         </span>
