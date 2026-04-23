@@ -31,6 +31,7 @@ class Request
         $this->bodyCache = $data;
         return $data;
     }
+    
 
     /**
      * Hàm hỗ trợ làm sạch dữ liệu đệ quy (Xử lý được cả chuỗi đơn và mảng lồng nhau)

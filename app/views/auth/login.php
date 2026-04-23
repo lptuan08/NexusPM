@@ -84,10 +84,21 @@
 
             <form action="<?= URLROOT ?>/dang-nhap" method="POST">
                 <div class="input-box">
-                    <input type="email" name="email" placeholder="Địa chỉ Email" required>
+                    <input type="email" name="email" placeholder="Địa chỉ Email"  value="<?= $old['email'] ?? '' ?>">
+                    <?php if (isset($errors['email'])): ?>
+                        <span class="error-text" style="color: #dc3545; font-size: 0.85rem; margin-left:25px; margin-top: 4px; display: block;">
+                            <?= $errors['email'] ?>
+                        </span>
+                    <?php endif; ?>
+                    
                 </div>
                 <div class="input-box mb-2" style="position: relative;">
-                    <input type="password" name="password" id="password" placeholder="Mật khẩu" required>
+                    <input type="password" name="password" id="password" placeholder="Mật khẩu">
+                    <?php if (isset($errors['password'])): ?>
+                        <span class="error-text" style="color: #dc3545; font-size: 0.85rem; margin-left:25px; margin-top: 4px; display: block;">
+                            <?= $errors['password'] ?>
+                        </span>
+                    <?php endif; ?>
                     <button type="button" class="password-toggle" onclick="togglePassword()">
                         <i data-lucide="eye" id="toggleIcon" size="18"></i>
                     </button>

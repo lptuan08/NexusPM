@@ -99,7 +99,7 @@ class Validator
         //   'tmp_name' => string 'C:\wamp64\tmp\php53F2.tmp' (length=25)
         //   'error' => 0 thành công | UPLOAD_ERR_OK lỗi
         //   'size' => int 355367 -> kích thước ảnh
-    
+
         // 1. Kiểm tra lỗi upload cơ bản từ PHP
         if ($file['error'] !== UPLOAD_ERR_OK) {
             $this->errors[$field] = "$label tải lên thất bại (Mã lỗi: {$file['error']})";
@@ -114,21 +114,21 @@ class Validator
 
         // 3. Kiểm tra định dạng qua MIME type và nội dung thực tế
         $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        
+
         /**
          * getimagesize(): Đọc nội dung file để lấy kích thước và loại ảnh.
          * Dấu @ để chặn Warning nếu file tải lên không phải là ảnh thật.
          * Trả về false nếu không phải ảnh, ngược lại trả về mảng thông tin.
          */
-        $imageInfo = @getimagesize($file['tmp_name']);  
+        $imageInfo = @getimagesize($file['tmp_name']);
         //@ kiểm soát lỗi | getimagesize đọc file ảnh trả về thông tin
-                //   0 => int 1920
-                //   1 => int 1080
-                //   2 => int 2
-                //   3 => string 'width="1920" height="1080"' (length=26)
-                //   'bits' => int 8
-                //   'channels' => int 3
-                //   'mime' => string 'image/jpeg' (length=10)
+        //   0 => int 1920
+        //   1 => int 1080
+        //   2 => int 2
+        //   3 => string 'width="1920" height="1080"' (length=26)
+        //   'bits' => int 8
+        //   'channels' => int 3
+        //   'mime' => string 'image/jpeg' (length=10)
 
         if (!$imageInfo || !in_array($imageInfo['mime'], $allowedMimes)) {
             $this->errors[$field] = "$label phải là định dạng JPG, PNG, GIF hoặc WEBP";

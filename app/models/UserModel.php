@@ -2,7 +2,7 @@
 class UserModel extends Model
 {
     protected $table = 'users';
-
+    
     // =========================================================================
     // 1. NHÓM CRUD NHÂN VIÊN (DANH SÁCH, CHI TIẾT, THÊM, SỬA, XÓA)
     // =========================================================================
@@ -10,6 +10,7 @@ class UserModel extends Model
     /**
      * Lấy danh sách toàn bộ nhân viên kèm theo tên chức danh
      */
+   
     public function getAllUsers()
     {
         $sql = "SELECT u.id, u.employee_code, u.name, u.email, u.avatar, u.role, 

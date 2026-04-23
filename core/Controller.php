@@ -1,6 +1,14 @@
 <?php
 class Controller
 {
+    protected $request;
+    protected $validator;
+    public function __construct()
+    {
+        $this->request = new Request();
+        $this->validator = new Validator();
+    }
+
     public function model($name)
     {
         $model = false;
@@ -21,11 +29,13 @@ class Controller
     public function getEllipsisPagination($currentPage, $totalPages, $delta = '4')
     {
         // có delta: sẽ phát triển sau
+    }
 
-        
-        
-
-          
-
+    // check login Kiểm tra đăng nhập
+    public function checkLogin()
+    {
+        if (!isset($_SESSION['is_logged_in']) && $_SESSION['is_logged_in'] !== true) {
+            Response::redirect(URLROOT . '/dang-nhap');
+        }
     }
 }

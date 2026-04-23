@@ -8,6 +8,8 @@ class Users extends Controller
     private $modelUser;
     public function __construct()
     {
+        $this->checkLogin();
+        parent::__construct();
         $this->modelUser = $this->model('UserModel');
     }
 
