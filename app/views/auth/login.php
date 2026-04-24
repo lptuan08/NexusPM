@@ -82,7 +82,7 @@
                 <h1>Đăng nhập</h1>
             </div>
 
-            <form action="<?= URLROOT ?>/dang-nhap" method="POST">
+            <form action="<?= URLROOT ?>/login" method="POST">
                 <div class="input-box">
                     <input type="email" name="email" placeholder="Địa chỉ Email"  value="<?= $old['email'] ?? '' ?>">
                     <?php if (isset($errors['email'])): ?>

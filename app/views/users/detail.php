@@ -28,13 +28,13 @@ $taskStatusMap = [
 <!-- BREADCRUMB - ĐỒNG BỘ VỚI LIST.PHP -->
 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
     <div class="d-flex align-items-center text-slate-600 fs-6">
-        <a href="<?= URLROOT; ?>/nguoi-dung" class="text-decoration-none text-slate-500 hover-text-primary">Nhân viên</a>
+        <a href="<?= URLROOT; ?>/users" class="text-decoration-none text-slate-500 hover-text-primary">Nhân viên</a>
         <span class="mx-2 text-slate-400 d-flex align-items-center" style="width: 16px;"><i data-lucide="chevron-right" size="16"></i></span>
         <span class="fw-medium text-slate-800 fs-5"><?= htmlspecialchars($user['name']) ?></span>
     </div>
 
     <div class="d-flex align-items-center gap-2">
-        <a href="<?= URLROOT ?>/nguoi-dung/chinh-sua/<?= $user['id'] ?>" class="btn btn-outline-secondary">
+        <a href="<?= URLROOT ?>/users/<?= $user['id'] ?>/edit" class="btn btn-outline-secondary">
             <i data-lucide="edit-3"></i>
             <span>Chỉnh sửa</span>
         </a>
@@ -46,7 +46,7 @@ $taskStatusMap = [
                 <li>
                     <a class="dropdown-item text-danger d-flex align-items-center gap-2 py-2" 
                        href="javascript:void(0)" 
-                       onclick="showDeleteModal('<?= URLROOT ?>/nguoi-dung/xoa/<?= $user['id'] ?>', 'Bạn có chắc chắn muốn xóa hồ sơ nhân viên <?= htmlspecialchars($user['name']) ?>?')">
+                       onclick="showDeleteModal('<?= URLROOT ?>/users/<?= $user['id'] ?>/delete', 'Bạn có chắc chắn muốn xóa hồ sơ nhân viên <?= htmlspecialchars($user['name']) ?>?')">
                        <i data-lucide="trash-2"></i>
                         Xóa hồ sơ nhân viên
                     </a>
@@ -69,7 +69,9 @@ $taskStatusMap = [
                 
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-outline-secondary w-100" data-bs-dismiss="modal">Hủy bỏ</button>
-                    <a href="#" id="deleteConfirmBtn" class="btn btn-danger w-100">Xác nhận xóa</a>
+                    <form id="deleteForm" method="POST" action="" class="w-100 m-0">
+                        <button type="submit" class="btn btn-danger w-100">Xác nhận xóa</button>
+                    </form>
                 </div>
             </div>
         </div>

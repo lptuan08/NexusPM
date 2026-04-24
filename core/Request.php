@@ -18,11 +18,11 @@ class Request
         $data = [];
         $method = $this->getMethod();
 
-        if ($method === 'get') {
+        if ($method === 'GET') {
             foreach ($_GET as $key => $value) {
                 $data[$key] = $this->sanitize($value);
             }
-        } elseif ($method === 'post') {
+        } elseif ($method === 'POST') {
             foreach ($_POST as $key => $value) {
                 $data[$key] = $this->sanitize($value);
             }
@@ -31,7 +31,7 @@ class Request
         $this->bodyCache = $data;
         return $data;
     }
-    
+
 
     /**
      * Hàm hỗ trợ làm sạch dữ liệu đệ quy (Xử lý được cả chuỗi đơn và mảng lồng nhau)
@@ -53,6 +53,16 @@ class Request
         return filter_var($value, FILTER_SANITIZE_SPECIAL_CHARS);
     }
 
+    // Hàm tĩnh để lấy URL hiện tại
+    public static function uri()
+    {
+        $url ='/';
+        if (!empty($_SERVER['PATH_INFO'])) {
+            $url ="/". trim($_SERVER['PATH_INFO'], '/');
+        } 
+        return $url;
+    }
+
     /**
      * Lấy giá trị của một input cụ thể
      */
@@ -62,18 +72,17 @@ class Request
         return $body[$key] ?? $default;
     }
 
-    public function getMethod(): string
+    public static function getMethod(): string
     {
-        return strtolower($_SERVER['REQUEST_METHOD']);
+        return $_SERVER['REQUEST_METHOD'];
     }
     public function isPost()
     {
-        return $this->getMethod() === 'post';
+        return $this->getMethod() === 'POST';
     }
 
     public function isGet()
     {
-        return $this->getMethod() === 'get';
+        return $this->getMethod() === 'GET';
     }
-    
 }

@@ -3,7 +3,7 @@
 /**
  * Controller Users - Quản lý các hành động liên quan đến nhân sự
  */
-class Users extends Controller
+class UserController extends Controller
 {
     private $modelUser;
     public function __construct()
@@ -20,7 +20,7 @@ class Users extends Controller
     /**
      * Hiển thị danh sách toàn bộ nhân viên
      */
-    public function getlist()
+    public function index()
     {
         $perPage = 5; //số bản ghi mỗi trang
 
@@ -56,7 +56,7 @@ class Users extends Controller
         $taskUser = $this->modelUser->getUserTasks($id);
 
         if (!$user) {
-            Response::redirect(URLROOT . '/nguoi-dung');
+            Response::redirect(URLROOT . '/users');
         }
 
         View::render('users/detail', [
@@ -72,9 +72,7 @@ class Users extends Controller
     // 2. NHÓM THÊM MỚI (CREATE)
     // =========================================================================
 
-    /**
-     * Hiển thị trang form để thêm nhân viên mới
-     */
+    // Load trang thêm mới
     public function create()
     {
         $jobTitle = $this->modelUser->getJobTitle();
@@ -82,15 +80,12 @@ class Users extends Controller
             'job_titles' => $jobTitle,
             'extra_css' => 'users',
             'pageTitle' => 'Thêm nhân viên mới',
-            'action_url' => URLROOT . '/nguoi-dung/luu'
+            'action_url' => URLROOT . '/users/create'
         ]);
     }
 
-    /**
-     * Xử lý tiếp nhận dữ liệu từ Form (POST), kiểm tra và lưu vào Database
-     */
-
-    public function store()
+    // Thực hiện thêm mới
+    public function store() //->create - POST
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = $this->getFormData();
@@ -119,7 +114,7 @@ class Users extends Controller
             // Sử dụng phương thức tập trung có Transaction
             $this->modelUser->createWithEmployeeCode($data);
 
-            Response::redirect(URLROOT . '/nguoi-dung');
+            Response::redirect(URLROOT . '/users');
         }
     }
 
@@ -127,9 +122,7 @@ class Users extends Controller
     // 3. NHÓM CẬP NHẬT (UPDATE)
     // =========================================================================
 
-    /** 
-     * Hiển thị trang chỉnh sửa
-     */
+    // Load trang hiển thị edit user 
     public function edit($id)
     {
         $user = $this->modelUser->getUserById($id);
@@ -141,22 +134,14 @@ class Users extends Controller
             'job_titles' => $job_titles,
             'extra_css' => 'users',
             'pageTitle' => 'Chỉnh sửa nhân viên',
-            'action_url' => URLROOT . '/nguoi-dung/cap-nhat/' . $id
+            'action_url' => URLROOT . "/users/$id/edit"
         ]);
     }
 
-    // Xóa nhân viên
-    public function delete($id)
-    {
-        $result = $this->modelUser->softDeleteUser($id);
 
-        Response::redirect(URLROOT . '/nguoi-dung');
-    }
 
-    /**
-     * Xử lý cập nhật thông tin nhân viên
-     */
-    public function update($id)
+    // Thực hiện cập nhật user
+    public function update($id) // Edit - POST
     {
         // 1. Kiểm tra sự tồn tại của nhân viên
         $user = $this->modelUser->getUserById($id);
@@ -182,7 +167,7 @@ class Users extends Controller
                     'old'        => $_POST,
                     'extra_css'  => 'users',
                     'pageTitle'      => 'Chỉnh sửa nhân viên',
-                    'action_url' => URLROOT . '/nguoi-dung/cap-nhat/' . $id
+                    'action_url' => URLROOT . "/users/{id}/edit"
                 ]);
             }
 
@@ -198,8 +183,15 @@ class Users extends Controller
 
             // 4. Cập nhật vào DB và chuyển hướng
             $this->modelUser->updateUser($id, $data);
-            Response::redirect(URLROOT . '/nguoi-dung/chi-tiet/' . $id);
+            Response::redirect(URLROOT . "/users/$id");
         }
+    }
+    // Xóa nhân viên
+    public function delete($id)
+    {
+        $result = $this->modelUser->softDeleteUser($id);
+
+        Response::redirect(URLROOT . '/users');
     }
 
     /**

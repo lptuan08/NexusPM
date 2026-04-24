@@ -8,34 +8,34 @@
             </div>
 
             <nav class="flex-grow-1 overflow-auto d-flex flex-column gap-1 mt-4">
-                <a href="<?= URLROOT ?>/trang-chu" class="nav-link-custom" title="Tổng quan">
+                <a href="<?= URLROOT ?>/" class="nav-link-custom" title="Tổng quan">
                     <i data-lucide="layout-grid"></i>
                     <span class="nav-text">Tổng quan</span>
                 </a>
 
-                <a href="<?= URLROOT ?>/cong-viec" class="nav-link-custom" title="Công việc">
+                <a href="<?= URLROOT ?>/tasks" class="nav-link-custom" title="Công việc">
                     <i data-lucide="folder-kanban"></i>
                     <span class="nav-text">Công việc</span>
                 </a>
 
-                <a href="<?= URLROOT ?>/du-an" class="nav-link-custom" title="Dự án">
+                <a href="<?= URLROOT ?>/projects" class="nav-link-custom" title="Dự án">
                     <i data-lucide="briefcase"></i>
                     <span class="nav-text">Dự án</span>
                 </a>
 
-                <a href="<?= URLROOT ?>/nguoi-dung" class="nav-link-custom" title="Nhân viên">
+                <a href="<?= URLROOT ?>/users" class="nav-link-custom" title="Nhân viên">
                     <i data-lucide="users"></i>
                     <span class="nav-text">Nhân viên</span>
                 </a>
 
                 <div class="mt-3 mb-1 sidebar-section-title"></div>
-                <p class="mb-1 mt-2 fw-bold sidebar-section-title"
+                <!-- <p class="mb-1 mt-2 fw-bold sidebar-section-title"
                     style="font-size: 0.7rem; color: var(--slate-400); letter-spacing: 0.05rem; text-transform: uppercase;">Hệ thống</p>
 
                 <a href="#" class="nav-link-custom" title="Cài đặt">
                     <i data-lucide="settings-2"></i>
                     <span class="nav-text">Cài đặt</span>
-                </a>
+                </a> -->
             </nav>
         </div>
     </aside>

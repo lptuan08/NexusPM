@@ -3,7 +3,7 @@
 /**
  * Controller Auth - Xử lý đăng nhập và xác thực
  */
-class Auth extends Controller
+class AuthController extends Controller
 {
     protected $authModel;
 
@@ -11,7 +11,6 @@ class Auth extends Controller
     {
         parent::__construct();
         $this->authModel = $this->model('AuthModel');
-
     }
 
     /**
@@ -19,9 +18,15 @@ class Auth extends Controller
      */
     public function login()
     {
+        View::render('auth/login', [
+            'pageTitle' => 'Đăng nhập hệ thống - NexusPM'
+        ], null); // Truyền null để không sử dụng layout main (dashboard)
 
-
+    }
+    public function handleLogin()
+    {
         if ($this->request->isPost()) {
+            var_dump("handle Login được chạy");
             $user = [];
             $errors = [];
             // Xử lý đang nhập ở đây
@@ -76,13 +81,6 @@ class Auth extends Controller
                 ], null);
             }
         }
-
-
-        // nếu post không tồn tại thì truy cập link đăng nhập
-        View::render('auth/login', [
-            'pageTitle' => 'Đăng nhập hệ thống - NexusPM'
-        ], null); // Truyền null để không sử dụng layout main (dashboard)
-
     }
 
     public function initSession($user)
@@ -94,6 +92,35 @@ class Auth extends Controller
         $_SESSION['user_avatar'] = $user['avatar'];
         $_SESSION['is_logged_in'] = true;
 
-        Response::redirect(URLROOT . '/trang-chu');
+        Response::redirect(URLROOT . '/');
+    }
+
+    public function logout()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // Xóa toàn bộ dữ liệu session
+        $_SESSION = [];
+        // Hủy session cookie nếu có
+        // if (ini_get("session.use_cookies")) {
+        //     $params = session_get_cookie_params();
+        //     setcookie(
+        //         session_name(),
+        //         '',
+        //         time() - 42000,
+        //         $params["path"],
+        //         $params["domain"],
+        //         $params["secure"],
+        //         $params["httponly"]
+        //     );
+        // }
+
+        // Hủy session trên server
+        session_destroy();
+
+        // Chuyển hướng về trang đăng nhập
+        Response::redirect(URLROOT . '/login');
     }
 }

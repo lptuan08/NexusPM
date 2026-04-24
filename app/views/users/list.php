@@ -10,7 +10,7 @@
             <span class="d-none d-md-inline">Bộ lọc</span>
         </button>
 
-        <a href="<?= URLROOT; ?>/nguoi-dung/them-moi" class="btn btn-primary">
+        <a href="<?= URLROOT; ?>/users/create" class="btn btn-primary">
             <i data-lucide="user-plus"></i>
             <span>Thêm nhân viên</span>
         </a>
@@ -62,15 +62,15 @@
                                     <button class="btn btn-link text-slate-500 p-1 shadow-none"
                                         data-bs-toggle="dropdown"><i data-lucide="more-vertical"></i></button>
                                     <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/nguoi-dung/chi-tiet/<?= $user['id'] ?>"><i data-lucide="eye" class="text-600"></i> Chi tiết</a></li>
-                                        <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/nguoi-dung/chinh-sua/<?= $user['id'] ?>"><i data-lucide="edit-3" class="text-600"></i> Chỉnh sửa</a></li>
+                                        <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/users/<?= $user['id'] ?>"><i data-lucide="eye" class="text-600"></i> Chi tiết</a></li>
+                                        <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/users/<?= $user['id'] ?>/edit"><i data-lucide="edit-3" class="text-600"></i> Chỉnh sửa</a></li>
                                         <li>
                                             <hr class="dropdown-divider">
                                         </li>
                                         <li>
                                             <a class="dropdown-item d-flex align-items-center gap-2 text-danger"
                                                 href="javascript:void(0)"
-                                                onclick="showDeleteModal('<?= URLROOT ?>/nguoi-dung/xoa/<?= $user['id'] ?>', 'Bạn có chắc chắn muốn xóa nhân viên <?= htmlspecialchars($displayName) ?>?')">
+                                                onclick="showDeleteModal('<?= URLROOT ?>/users/<?= $user['id'] ?>/delete', 'Bạn có chắc chắn muốn xóa nhân viên <?= htmlspecialchars($displayName) ?>?')">
                                                 <i data-lucide="trash-2"></i> Xóa
                                             </a>
                                         </li>
@@ -90,7 +90,6 @@
 
     <div class="d-flex align-items-center justify-content-between p-3 border-top border-slate-200 bg-white">
         <span class="text-slate-500" style="font-size: 0.875rem;">Hiển thị 1 đến 5 của 124 kết quả</span>
-        <span class="text-slate-500" style="font-size: 0.8rem;">Hiển thị 1 đến 5 của 124 kết quả</span>
         <div class="d-flex align-items-center gap-2">
             <div class="px-4 py-3 bg-white border-slate-100">
                 <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
@@ -158,7 +157,9 @@
 
                         <div class="d-flex gap-2">
                             <button type="button" class="btn btn-outline-secondary w-100" data-bs-dismiss="modal">Hủy bỏ</button>
-                            <a href="#" id="deleteConfirmBtn" class="btn btn-danger w-100">Xác nhận xóa</a>
+                            <form id="deleteForm" method="POST" action="" class="w-100 m-0">
+                                <button type="submit" class="btn btn-danger w-100">Xác nhận xóa</button>
+                            </form>
                         </div>
                     </div>
                 </div>

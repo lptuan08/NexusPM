@@ -3,7 +3,7 @@
 /**
  * Controller Dashboard - Hiển thị trang tổng quan
  */
-class Dashboard extends Controller
+class DashboardController extends Controller
 {
     public function __construct()
     {

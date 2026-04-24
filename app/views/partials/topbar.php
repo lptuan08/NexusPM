@@ -63,7 +63,7 @@
                             </div>
                         </div>
                     </li>
-                    
+
                     <!-- Menu Links -->
                     <li>
                         <a class="dropdown-item rounded-3 d-flex align-items-center py-2" href="<?= URLROOT ?>/nguoi-dung/chi-tiet/<?= $_SESSION['user_id'] ?>">
@@ -77,12 +77,16 @@
                             <span style="font-size: 0.875rem;">Cài đặt tài khoản</span>
                         </a>
                     </li>
-                    <li><hr class="dropdown-divider mx-2"></li>
                     <li>
-                        <a class="dropdown-item rounded-3 d-flex align-items-center py-2 text-danger" href="#">
-                            <i data-lucide="log-out" class="me-2" size="16"></i>
-                            <span class="fw-medium" style="font-size: 0.875rem;">Đăng xuất</span>
-                        </a>
+                        <hr class="dropdown-divider mx-2">
+                    </li>
+                    <li>
+                        <form action="<?= URLROOT ?>/logout" method="POST" class="m-0">
+                            <button type="submit" class="dropdown-item rounded-3 d-flex align-items-center py-2 text-danger border-0 bg-transparent w-100">
+                                <i data-lucide="log-out" class="me-2" size="16"></i>
+                                <span class="fw-medium" style="font-size: 0.875rem;">Đăng xuất</span>
+                            </button>
+                        </form>
                     </li>
                 </ul>
             </div>

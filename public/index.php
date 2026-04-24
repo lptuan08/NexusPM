@@ -20,13 +20,16 @@ define('CORE_PATH', APPROOT . '/core');
 define('CONFIG_PATH', APPROOT . '/config');
 define('VIEW_PATH', APP_PATH . '/views');
 
+
+require_once APP_PATH . '/interface/Middlewareinterface.php';
+
+
 // Nạp file cấu hình ứng dụng
 require_once CONFIG_PATH . '/config.php';
-require_once CONFIG_PATH . '/routes.php';
+$routes = require_once CONFIG_PATH . '/routes.php';
 
 // Core
 require_once CORE_PATH . '/Config.php';
-require_once CORE_PATH . '/Router.php';
 require_once CORE_PATH . '/View.php';
 require_once CORE_PATH . '/Controller.php';
 require_once CORE_PATH . '/Validator.php';
@@ -39,13 +42,16 @@ require_once CORE_PATH . '/Response.php';
 require_once APP_PATH . '/helpers/Helper.php';
 
 // App
-require_once CORE_PATH . '/App.php';
+// require_once CORE_PATH . '/App.php';
+require_once CORE_PATH . '/Router.php';
 
 
 // run
 try {
-    $app = new App();
-    $app->run();
+    $app = new Router($routes);
+    $url = Request::uri();
+    $app->dispatch($url);
+    Helper::debug_mvc_widget();
 } catch (Exception $e) {
     ErrorHandler::handle($e);
 }

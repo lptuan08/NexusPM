@@ -22,6 +22,9 @@ if (selectAll) {
 function showDeleteModal(url, message) {
     const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
     document.getElementById('deleteConfirmMessage').innerText = message;
-    document.getElementById('deleteConfirmBtn').setAttribute('href', url);
+    const deleteForm = document.getElementById('deleteForm');
+    if (deleteForm) {
+        deleteForm.setAttribute('action', url);
+    }
     modal.show();
 }
