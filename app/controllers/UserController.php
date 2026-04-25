@@ -31,7 +31,7 @@ class UserController extends Controller
         }
         if ($currentPage < 1) $currentPage = 1;
         $users = $this->modelUser->getUserByPage($currentPage, $perPage);
-        $totalUsers = $this->modelUser->getTotalUser();
+        $totalUsers = $this->modelUser->count();
         $totalPages = ceil($totalUsers / $perPage);
         $pages = range(1, $totalPages);
         View::render('users/list', [
@@ -189,7 +189,7 @@ class UserController extends Controller
     // Xóa nhân viên
     public function delete($id)
     {
-        $result = $this->modelUser->softDeleteUser($id);
+        $result = $this->modelUser->delete($id);
 
         Response::redirect(URLROOT . '/users');
     }

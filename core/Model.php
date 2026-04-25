@@ -53,11 +53,29 @@ abstract class Model
     }
 
     /**
-     * Xóa bản ghi theo ID (Hard Delete)
+     * Xóa mềm bản ghi (Soft Delete)
+     * Cập nhật thời gian vào cột deleted_at
      */
     public function delete($id)
     {
+        return $this->update($id, ['deleted_at' => date('Y-m-d H:i:s')]);
+    }
+
+    /**
+     * Xóa vĩnh viễn bản ghi khỏi database (Hard Delete)
+     */
+    public function forceDelete($id)
+    {
         $condition = "id = :id";
         return $this->db->delete($this->table, $condition, ['id' => $id]);
+    }
+
+    /**
+     * Đếm tổng số bản ghi (không bao gồm các bản ghi đã xóa mềm)
+     */
+    public function count()
+    {
+        $sql = "SELECT COUNT(*) FROM {$this->table} WHERE deleted_at IS NULL";
+        return (int)$this->db->query($sql)->fetchColumn();
     }
 }

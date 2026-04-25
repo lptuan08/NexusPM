@@ -41,7 +41,7 @@ class UserModel extends Model
      */
     public function addUser($data)
     {
-        return $this->db->insert($this->table, $data);
+        return $this->insert($data);
     }
 
     /**
@@ -53,8 +53,8 @@ class UserModel extends Model
             // Bắt đầu giao dịch
             $this->db->beginTransaction();
 
-            // 1. Thêm nhân viên mới (employee_code lúc này chưa có)
-            $this->db->insert($this->table, $data);
+            // 1. Thêm nhân viên mới
+            $this->insert($data);
 
             // 2. Lấy ID vừa tạo từ dòng vừa insert
             $userId = $this->db->lastInsertId();
@@ -62,7 +62,7 @@ class UserModel extends Model
             // 3. Tạo mã nhân viên dựa trên ID (Ví dụ: MNV00001)
             $employeeCode = 'MNV' . str_pad($userId, 5, '0', STR_PAD_LEFT);
             // 4. Cập nhật mã nhân viên vào chính bản ghi vừa tạo
-            $this->updateUser($userId, ['employee_code' => $employeeCode]);
+            $this->update($userId, ['employee_code' => $employeeCode]);
 
             // Nếu mọi thứ ổn, xác nhận lưu vĩnh viễn các thay đổi
             $this->db->commit();
@@ -85,9 +85,7 @@ class UserModel extends Model
      */
     public function updateUser($id, $data)
     {
-        // Sử dụng prepared statement cho điều kiện WHERE để tránh SQL Injection
-        $condition = "id = :id";
-        return $this->db->update($this->table, $data, $condition, ['id' => $id]);
+        return $this->update($id, $data);
     }
 
     /**
@@ -95,9 +93,7 @@ class UserModel extends Model
      */
     public function deleteUser($id)
     {
-        // Sử dụng prepared statement cho điều kiện WHERE để tránh SQL Injection
-        $condition = "id = :id";
-        return $this->db->delete($this->table, $condition, ['id' => $id]);
+        return $this->delete($id);
     }
 
     // =========================================================================
@@ -155,13 +151,6 @@ class UserModel extends Model
         return $this->db->query($sql, ['user_id' => $userId])->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function softDeleteUser($id)
-    {
-        $sql = "UPDATE users SET deleted_at = NOW() WHERE id = :id";
-        return $this->db->query($sql, ['id' => $id]);
-    }
-
-
     public function getUserByPage($page, $perPage)
     {
 
@@ -172,14 +161,8 @@ class UserModel extends Model
         $perPage = (int)$perPage;
         $offset = (int)$offset;
         // câu lệnh sql
-        $sql = "SELECT * FROM users WHERE deleted_at IS NULL LIMIT {$perPage} OFFSET {$offset}";
+        $sql = "SELECT * FROM {$this->table} WHERE deleted_at IS NULL LIMIT {$perPage} OFFSET {$offset}";
         $stmt = $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         return $stmt;
-    }
-    public function getTotalUser()
-    {
-        $sql = "SELECT COUNT(*) FROM users WHERE deleted_at IS NULL";
-        $result = $this->db->query($sql);
-        return (int)$result->fetchColumn();
     }
 }
