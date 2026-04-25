@@ -40,6 +40,7 @@ require_once CORE_PATH . '/ErrorHandler.php';
 require_once CORE_PATH . '/Request.php';
 require_once CORE_PATH . '/Response.php';
 require_once APP_PATH . '/helpers/Helper.php';
+require_once APP_PATH . '/helpers/SecurityHelper.php';
 
 // App
 // require_once CORE_PATH . '/App.php';
@@ -51,7 +52,7 @@ try {
     $app = new Router($routes);
     $url = Request::uri();
     $app->dispatch($url);
-    Helper::debug_mvc_widget();
+    if (APP_DEBUG) Helper::debug_mvc_widget(); // Chỉ hiển thị widget debug khi APP_DEBUG là true
 } catch (Exception $e) {
     ErrorHandler::handle($e);
 }

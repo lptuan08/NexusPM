@@ -44,7 +44,7 @@ class Router
                 $controllerName = $config['controller'];
                 $action = $config['action'];
                 // debug mvc (xóa khi chuyển sang product)
-                $GLOBALS['current_controller'] = $controllerName;
+                $GLOBALS['current_controller'] = $controllerName; // Gán tên controller hiện tại cho debug widget
                 $GLOBALS['current_action'] = $action;
                 $GLOBALS['current_params'] = $matches;
                 // load file controller

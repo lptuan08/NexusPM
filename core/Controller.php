@@ -35,7 +35,8 @@ class Controller
     public function checkLogin()
     {
         if (!isset($_SESSION['is_logged_in']) && $_SESSION['is_logged_in'] !== true) {
-            Response::redirect(URLROOT . '/dang-nhap');
+            Response::redirect(URLROOT . '/login'); // Cập nhật URL đăng nhập mới
         }
     }
+
 }

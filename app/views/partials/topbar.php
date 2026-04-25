@@ -10,10 +10,11 @@
 <header class="flex-shrink-0 z-1 bg-white">
     <div class="d-flex align-items-center px-3 py-2 header-height">
         <?php
-        $userName = $_SESSION['user_name'] ?? 'Guest';
-        $userEmail = $_SESSION['user_email'] ?? '';
-        $userAvatar = $_SESSION['user_avatar'] ?? '';
-        $userRole = $_SESSION['user_role'] ?? 'Thành viên';
+        $user = $_SESSION['user'] ?? [];
+        $userName = $user['name'] ?? 'Guest';
+        $userEmail = $user['email'] ?? '';
+        $userAvatar = $user['avatar'] ?? '';
+        $userRole = $user['role'] ?? 'member';
 
         $physicalPath = APPROOT . '/public/uploads/avatars/' . $userAvatar;
         $avatarUrl = (!empty($userAvatar) && file_exists($physicalPath))
@@ -66,7 +67,7 @@
 
                     <!-- Menu Links -->
                     <li>
-                        <a class="dropdown-item rounded-3 d-flex align-items-center py-2" href="<?= URLROOT ?>/nguoi-dung/chi-tiet/<?= $_SESSION['user_id'] ?>">
+                        <a class="dropdown-item rounded-3 d-flex align-items-center py-2" href="<?= URLROOT ?>/users/<?= $user['id'] ?? '' ?>">
                             <i data-lucide="user" class="me-2 text-slate-400" size="16"></i>
                             <span style="font-size: 0.875rem;">Hồ sơ cá nhân</span>
                         </a>
@@ -82,6 +83,7 @@
                     </li>
                     <li>
                         <form action="<?= URLROOT ?>/logout" method="POST" class="m-0">
+                            <?php SecurityHelper::csrfInput(); ?>
                             <button type="submit" class="dropdown-item rounded-3 d-flex align-items-center py-2 text-danger border-0 bg-transparent w-100">
                                 <i data-lucide="log-out" class="me-2" size="16"></i>
                                 <span class="fw-medium" style="font-size: 0.875rem;">Đăng xuất</span>

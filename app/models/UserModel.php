@@ -10,7 +10,7 @@ class UserModel extends Model
     /**
      * Lấy danh sách toàn bộ nhân viên kèm theo tên chức danh
      */
-   
+
     public function getAllUsers()
     {
         $sql = "SELECT u.id, u.employee_code, u.name, u.email, u.avatar, u.role, 
@@ -85,8 +85,9 @@ class UserModel extends Model
      */
     public function updateUser($id, $data)
     {
-        $condition = "id = $id";
-        return $this->db->update($this->table, $data, $condition);
+        // Sử dụng prepared statement cho điều kiện WHERE để tránh SQL Injection
+        $condition = "id = :id";
+        return $this->db->update($this->table, $data, $condition, ['id' => $id]);
     }
 
     /**
@@ -94,8 +95,9 @@ class UserModel extends Model
      */
     public function deleteUser($id)
     {
-        $condition = "id = $id";
-        return $this->db->delete($this->table, $condition);
+        // Sử dụng prepared statement cho điều kiện WHERE để tránh SQL Injection
+        $condition = "id = :id";
+        return $this->db->delete($this->table, $condition, ['id' => $id]);
     }
 
     // =========================================================================
@@ -162,15 +164,20 @@ class UserModel extends Model
 
     public function getUserByPage($page, $perPage)
     {
-        
+
         // công thức tính phân trang
         $offset = ($page - 1) * $perPage;
+        // mặc định câu truy vấn sẽ được bind sang kiểu string sql truyền bằng tham số
+        // chuyển sang kiểu int, truyền thẳng vẫn an toàn
+        $perPage = (int)$perPage;
+        $offset = (int)$offset;
         // câu lệnh sql
         $sql = "SELECT * FROM users WHERE deleted_at IS NULL LIMIT {$perPage} OFFSET {$offset}";
         $stmt = $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         return $stmt;
     }
-    public function getTotalUser(){
+    public function getTotalUser()
+    {
         $sql = "SELECT COUNT(*) FROM users WHERE deleted_at IS NULL";
         $result = $this->db->query($sql);
         return (int)$result->fetchColumn();

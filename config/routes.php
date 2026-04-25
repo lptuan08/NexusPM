@@ -71,7 +71,7 @@ return [
         // Lưu người dùng mới vào Database
         '/users' => [
             'controller' => 'UserController',
-            'action'     => 'store', // Hàm thực hiện INSERT DB
+            'action'     => 'store', // Hàm thực hiện INSERT DB (form tạo mới sẽ POST đến đây)
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
         // Form thêm mới
@@ -84,7 +84,7 @@ return [
         // Cập nhật người dùng sau khi chỉnh sửa
         '/users/{id}/edit' => [
             'controller' => 'UserController',
-            'action'     => 'edit', // Hàm thực hiện UPDATE DB
+            'action'     => 'update', // Hàm thực hiện UPDATE DB
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
 

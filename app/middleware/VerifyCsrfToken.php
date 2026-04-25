@@ -1,6 +1,10 @@
 <?php
 class VerifyCsrfToken{
     public function handle(){
-        // TODO: implement VerifyCsrfToken logic
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+                die("Lỗi bảo mật: Yêu cầu không hợp lệ (CSRF detected).");
+            }
+        }
     }
 }

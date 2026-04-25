@@ -31,6 +31,7 @@
             </div>
             <div class="card-body p-4">
                 <form action="<?= $action_url ?>" method="POST" enctype="multipart/form-data">
+                    <?php SecurityHelper::csrfInput(); ?>
                     <div class="row g-4">
                         <!-- Section: Thông tin cơ bản -->
                         <div class="col-12">
@@ -40,7 +41,7 @@
                                         <label class="form-label fw-medium small text-slate-700">Họ và tên <span class="text-danger">*</span></label>
                                         <input type="text" name="name" class="form-control <?= isset($errors['name']) ? 'is-invalid' : '' ?>" placeholder="Nhập tên đầy đủ" value="<?= htmlspecialchars($old['name'] ?? $user['name'] ?? '') ?>">
                                         <?php if (isset($errors['name'])): ?>
-                                            <div class="invalid-feedback"><?= $errors['name'] ?></div>
+                                            <div class="invalid-feedback d-block"><?= $errors['name'] ?></div>
                                         <?php endif; ?>
                                     </div>
                                     <div class="col-md-6">
@@ -59,7 +60,7 @@
                                 </span>
                                 <input type="email" name="email" class="form-control border-start-0 <?= isset($errors['email']) ? 'is-invalid' : '' ?>" placeholder="email@nexuspm.vn" value="<?= htmlspecialchars($old['email'] ?? $user['email'] ?? '') ?>">
                                 <?php if (isset($errors['email'])): ?>
-                                    <div class="invalid-feedback"><?= $errors['email'] ?></div>
+                                            <div class="invalid-feedback d-block"><?= $errors['email'] ?></div>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -103,7 +104,7 @@
                             <label class="form-label fw-medium small text-slate-700">Ảnh đại diện</label>
                             <input type="file" name="avatar" class="form-control <?= isset($errors['avatar']) ? 'is-invalid' : '' ?>" accept="image/*">
                             <?php if (isset($errors['avatar'])): ?>
-                                <div class="invalid-feedback"><?= $errors['avatar'] ?></div>
+                                <div class="invalid-feedback d-block"><?= $errors['avatar'] ?></div>
                             <?php endif; ?>
                             <div class="form-text small text-slate-500">Định dạng chấp nhận: JPG, PNG, WEBP. Tối đa 2MB. <?= isset($user['avatar']) ? 'Ảnh hiện tại: ' . $user['avatar'] : '' ?></div>
                         </div>

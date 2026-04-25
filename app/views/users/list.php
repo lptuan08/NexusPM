@@ -98,40 +98,40 @@
                     <nav aria-label="Điều hướng trang" class="order-1 order-md-2">
                         <ul class="pagination pagination-sm m-0 gap-2">
                             <?php if ($currentPage == 1): ?>
-                                <li class="page-item disabled">
-                                    <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center bg-slate-50 text-slate-400" href="?page=0" style="width: 32px; height: 32px;">
+                                <li class="page-item disabled"> <!-- Nút Previous bị disabled khi ở trang đầu -->
+                                    <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center bg-slate-50 text-slate-400" href="#" style="width: 32px; height: 32px;">
                                         <i data-lucide="chevron-left" size="16"></i>
                                     </a>
                                 </li>
                             <?php else: ?>
                                 <li class="page-item">
-                                    <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center bg-slate-50 text-slate-400" href="?page=0" style="width: 32px; height: 32px;">
+                                    <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center bg-slate-50 text-slate-400" href="?page=<?= htmlspecialchars($currentPage - 1) ?>" style="width: 32px; height: 32px;">
                                         <i data-lucide="chevron-left" size="16"></i>
                                     </a>
                                 </li>
                             <?php endif; ?>
 
                             <?php
-                            foreach ($pages as $p): ?>
+                            foreach ($pages as $p): // Hiển thị các nút số trang ?>
                                 <?php if ($p == $currentPage): ?>
                                     <li class="page-item active">
                                         <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" href="?page=<?= htmlspecialchars($p) ?>" style="width: 32px; height: 32px;"><?= htmlspecialchars($p) ?></a>
                                     </li>
                                 <?php else: ?>
                                     <li class="page-item">
-                                        <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" href="?page=<?= htmlspecialchars($p) ?>" style="width: 32px; height: 32px;"><?= htmlspecialchars($p) ?></a>
+                                        <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" href="?page=<?= htmlspecialchars($p) ?>" style="width: 32px; height: 32px;"><?= htmlspecialchars($p) ?></a> <!-- Link đến trang cụ thể -->
                                     </li>
                                 <?php endif; ?>
                             <?php endforeach; ?>
                             <?php if ($currentPage == $totalPage): ?>
-                                <li class="page-item disabled">
-                                    <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center text-slate-600 hover-bg-slate-100" href="?page=<?= htmlspecialchars($totalPage) ?>" style="width: 32px; height: 32px;">
+                                <li class="page-item disabled"> <!-- Nút Next bị disabled khi ở trang cuối -->
+                                    <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center text-slate-600 hover-bg-slate-100" href="#" style="width: 32px; height: 32px;">
                                         <i data-lucide="chevron-right" size="16"></i>
                                     </a>
                                 </li>
                             <?php else: ?>
-                                <li class="page-item disable">
-                                    <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center text-slate-600 hover-bg-slate-100" href="?page=<?= htmlspecialchars($totalPage) ?>" style="width: 32px; height: 32px;">
+                                <li class="page-item"> <!-- Nút Next -->
+                                    <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center text-slate-600 hover-bg-slate-100" href="?page=<?= htmlspecialchars($currentPage + 1) ?>" style="width: 32px; height: 32px;">
                                         <i data-lucide="chevron-right" size="16"></i>
                                     </a>
                                 </li>
@@ -158,6 +158,8 @@
                         <div class="d-flex gap-2">
                             <button type="button" class="btn btn-outline-secondary w-100" data-bs-dismiss="modal">Hủy bỏ</button>
                             <form id="deleteForm" method="POST" action="" class="w-100 m-0">
+                                <?php SecurityHelper::csrfInput(); ?> <!-- Thêm CSRF token vào form xóa -->
+                                
                                 <button type="submit" class="btn btn-danger w-100">Xác nhận xóa</button>
                             </form>
                         </div>

@@ -79,7 +79,7 @@ class UserController extends Controller
         View::render('users/create', [
             'job_titles' => $jobTitle,
             'extra_css' => 'users',
-            'pageTitle' => 'Thêm nhân viên mới',
+            'pageTitle' => 'Thêm nhân viên mới', // Tiêu đề trang
             'action_url' => URLROOT . '/users/create'
         ]);
     }
@@ -104,7 +104,7 @@ class UserController extends Controller
                     'old' => $_POST,
                     'extra_css' => 'users',
                     'pageTitle' => 'Thêm nhân viên mới',
-                    'action_url' => URLROOT . '/nguoi-dung/luu'
+                    'action_url' => URLROOT . '/users' // Form tạo mới sẽ POST đến /users
                 ]);
             }
 
@@ -113,7 +113,7 @@ class UserController extends Controller
 
             // Sử dụng phương thức tập trung có Transaction
             $this->modelUser->createWithEmployeeCode($data);
-
+            // Có thể thêm flash message ở đây: Helper::setFlash('success', 'Thêm nhân viên thành công!');
             Response::redirect(URLROOT . '/users');
         }
     }
@@ -134,7 +134,7 @@ class UserController extends Controller
             'job_titles' => $job_titles,
             'extra_css' => 'users',
             'pageTitle' => 'Chỉnh sửa nhân viên',
-            'action_url' => URLROOT . "/users/$id/edit"
+            'action_url' => URLROOT . "/users/{$id}/edit" // URL cho form cập nhật
         ]);
     }
 
@@ -167,7 +167,7 @@ class UserController extends Controller
                     'old'        => $_POST,
                     'extra_css'  => 'users',
                     'pageTitle'      => 'Chỉnh sửa nhân viên',
-                    'action_url' => URLROOT . "/users/{id}/edit"
+                    'action_url' => URLROOT . "/users/{$id}/edit" // Đảm bảo $id được truyền đúng
                 ]);
             }
 
@@ -231,15 +231,14 @@ class UserController extends Controller
     private function uploadAvatar()
     {
         if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = APPROOT . '/public/uploads/avatars/';
-            var_dump($uploadDir);
-            // $uploadDir = dirname(APPROOT) . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'avatars' . DIRECTORY_SEPARATOR;
+            $uploadDir = APPROOT . '/public/uploads/avatars/'; // Đường dẫn vật lý đến thư mục lưu trữ
+            // var_dump($uploadDir); // Debug statement, nên xóa trong production
             // Tự động tạo thư mục nếu chưa tồn tại
             if (!is_dir($uploadDir)) {
-                if (!mkdir($uploadDir, 0777, true)) {
+                // Sử dụng quyền 0755 để bảo mật hơn 0777
+                if (!mkdir($uploadDir, 0755, true)) { 
                     return null; // Không tạo được thư mục (có thể do quyền ghi)
                 }
-                // mkdir: Hàm tạo thư mục mới.
                 // $uploadDir: Đường dẫn thư mục cần tạo.
                 // 0777: Cấp quyền đọc/ghi/thực thi cao nhất cho thư mục (phổ biến trên Linux).
                 // true: Cho phép tạo thư mục lồng nhau (ví dụ tạo luôn 'uploads' nếu chưa có, sau đó mới tạo 'avatars').

@@ -49,8 +49,12 @@ class Database
 
     /**
      * Hàm Update dữ liệu theo ID
+     * @param string $table Tên bảng
+     * @param array $data Mảng dữ liệu cần cập nhật ['cot' => 'gia_tri']
+     * @param string $condition Chuỗi điều kiện WHERE (ví dụ: "id = :id")
+     * @param array $conditionParams Mảng tham số cho điều kiện WHERE (ví dụ: ['id' => $id])
      */
-    public function update($table, $data, $condition)
+    public function update($table, $data, $condition, $conditionParams = []) // tại sao lại có conditionParams? Giải thích
     {
         $updateStr = "";
         foreach ($data as $key => $value) {
@@ -58,17 +62,23 @@ class Database
         }
         $updateStr = rtrim($updateStr, ',');
 
+        // Gộp dữ liệu update và tham số điều kiện WHERE
+        $params = array_merge($data, $conditionParams);
+
         $sql = "UPDATE $table SET $updateStr WHERE $condition";
-        return $this->query($sql, $data);
+        return $this->query($sql, $params);
     }
 
     /**
      * Hàm Delete dữ liệu
+     * @param string $table Tên bảng
+     * @param string $condition Chuỗi điều kiện WHERE (ví dụ: "id = :id")
+     * @param array $conditionParams Mảng tham số cho điều kiện WHERE (ví dụ: ['id' => $id])
      */
-    public function delete($table, $condition)
+    public function delete($table, $condition, $conditionParams = [])
     {
         $sql = "DELETE FROM $table WHERE $condition";
-        return $this->query($sql);
+        return $this->query($sql, $conditionParams);
     }
 
     /**

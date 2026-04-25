@@ -26,7 +26,7 @@ class AuthController extends Controller
     public function handleLogin()
     {
         if ($this->request->isPost()) {
-            var_dump("handle Login được chạy");
+            // var_dump("handle Login được chạy"); // Debug statement, nên xóa trong production
             $user = [];
             $errors = [];
             // Xử lý đang nhập ở đây
@@ -76,6 +76,7 @@ class AuthController extends Controller
             if (!empty($errors)) {
                 return View::render('auth/login', [
                     'pageTitle' => 'Đăng nhập hệ thống - NexusPM',
+                    // 'errors' => $errors, // Đã được xử lý trong Validator
                     'errors' => $errors,
                     'old' => $body
                 ], null);
@@ -85,42 +86,62 @@ class AuthController extends Controller
 
     public function initSession($user)
     {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['user_name'] = $user['name'];
-        $_SESSION['user_email'] = $user['email'];
-        $_SESSION['user_role'] = $user['role'];
-        $_SESSION['user_avatar'] = $user['avatar'];
+        // 1. Xóa sạch dữ liệu session cũ (guest data) nếu có
+        session_unset();
+
+        // 2. Làm mới ID phiên làm việc (Built-in function)
+        // Việc này giúp chống Session Fixation cực tốt
+        session_regenerate_id(true);
+
+        // 3. Lưu thông tin người dùng vào mảng
+        // Mẹo nhỏ: Cậu có thể gom vào một mảng 'user' để $_SESSION trông gọn hơn
+        $_SESSION['user'] = [
+            'id'     => $user['id'],
+            'name'   => $user['name'],
+            'email'  => $user['email'],
+            'role'   => $user['role'],
+            'avatar' => $user['avatar']
+        ];
         $_SESSION['is_logged_in'] = true;
 
+        // 4. Khởi tạo CSRF Token mới tinh cho phiên đăng nhập này
+        // Sử dụng SecurityHelper mà chúng ta đã build ở trên
+        SecurityHelper::generateToken();
+
+        // 5. Điều hướng về trang chủ
         Response::redirect(URLROOT . '/');
+        return; // Đảm bảo không có code nào được thực thi sau khi chuyển hướng
     }
 
     public function logout()
     {
+        // 1. Đảm bảo session đã được khởi động để có cái mà hủy
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
-        // Xóa toàn bộ dữ liệu session
+        // 2. Xóa sạch dữ liệu trong mảng $_SESSION
         $_SESSION = [];
-        // Hủy session cookie nếu có
-        // if (ini_get("session.use_cookies")) {
-        //     $params = session_get_cookie_params();
-        //     setcookie(
-        //         session_name(),
-        //         '',
-        //         time() - 42000,
-        //         $params["path"],
-        //         $params["domain"],
-        //         $params["secure"],
-        //         $params["httponly"]
-        //     );
-        // }
 
-        // Hủy session trên server
+        // 3. Xóa Cookie của Session trên trình duyệt người dùng
+        // Đây là bước cực kỳ quan trọng để "vệ sinh" hoàn toàn
+        if (ini_get("session.use_cookies")) {
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000, // Đặt thời gian hết hạn về quá khứ
+                $params["path"],
+                $params["domain"],
+                $params["secure"],
+                $params["httponly"]
+            );
+        }
+
+        // 4. Hủy session trên server
         session_destroy();
 
-        // Chuyển hướng về trang đăng nhập
+        // 5. Chuyển hướng
         Response::redirect(URLROOT . '/login');
     }
 }
