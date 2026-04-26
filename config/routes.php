@@ -49,6 +49,28 @@ return [
             'action'     => 'show',
             'middleware' => ['AuthMiddleware']
         ],
+
+        // -----PROJECTS-----
+        '/projects' => [
+            'controller' => 'ProjectController',
+            'action'     => 'index',
+            'middleware' => ['AuthMiddleware']
+        ],
+        '/projects/create' => [
+            'controller' => 'ProjectController',
+            'action'     => 'create',
+            'middleware' => ['AuthMiddleware']
+        ],
+        '/projects/{id}' => [
+            'controller' => 'ProjectController',
+            'action'     => 'show',
+            'middleware' => ['AuthMiddleware']
+        ],
+        '/projects/{id}/edit' => [
+            'controller' => 'ProjectController',
+            'action'     => 'edit',
+            'middleware' => ['AuthMiddleware']
+        ],
         // -----end USER------
     ],
 
@@ -86,6 +108,23 @@ return [
         '/users/{id}/delete' => [
             'controller' => 'UserController',
             'action'     => 'delete', // Hàm thực hiện DELETE DB
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+
+        // -----PROJECTS POST-----
+        '/projects/create' => [
+            'controller' => 'ProjectController',
+            'action'     => 'store',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+        '/projects/{id}/edit' => [
+            'controller' => 'ProjectController',
+            'action'     => 'update',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+        '/projects/{id}/delete' => [
+            'controller' => 'ProjectController',
+            'action'     => 'delete',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
     ]

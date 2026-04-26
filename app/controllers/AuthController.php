@@ -20,13 +20,13 @@ class AuthController extends Controller
     {
         View::render('auth/login', [
             'pageTitle' => 'Đăng nhập hệ thống - NexusPM'
+
         ], null); // Truyền null để không sử dụng layout main (dashboard)
 
     }
     public function handleLogin()
     {
         if ($this->request->isPost()) {
-            // var_dump("handle Login được chạy"); // Debug statement, nên xóa trong production
             $user = [];
             $errors = [];
             // Xử lý đang nhập ở đây
@@ -52,6 +52,7 @@ class AuthController extends Controller
             if ($this->validator->passes()) {
                 // truy vấn dữ liệu kiểm tra email
                 $user = $this->authModel->findEmailUser($email);
+
                 if (!empty($user)) {
                     // Kiểm tra tài khoản kích hoạt
                     if ($user['is_active'] == 1) {
@@ -86,8 +87,9 @@ class AuthController extends Controller
 
     public function initSession($user)
     {
+        
         // 1. Xóa sạch dữ liệu session cũ (guest data) nếu có
-        Session::destroy();
+        // Session::destroy();
 
         // 2. Làm mới ID phiên làm việc (Built-in function)
         // Việc này giúp chống Session Fixation cực tốt
@@ -108,7 +110,7 @@ class AuthController extends Controller
         // 4. Khởi tạo CSRF Token mới tinh cho phiên đăng nhập này
         // Sử dụng SecurityHelper mà chúng ta đã build ở trên
         SecurityHelper::generateToken();
-
+    
         // 5. Điều hướng về trang chủ
         Response::redirect(URLROOT . '/');
         return; // Đảm bảo không có code nào được thực thi sau khi chuyển hướng

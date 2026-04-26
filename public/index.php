@@ -1,6 +1,7 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+    var_dump($_SESSION);
 }
 // thứ tự require: Config → Core → Session → Run
 define('APP_DEBUG', true); // dev -> trạng thái debug lỗi, cho ErrorHandler.php dùng
