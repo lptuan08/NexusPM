@@ -87,22 +87,23 @@ class AuthController extends Controller
     public function initSession($user)
     {
         // 1. Xóa sạch dữ liệu session cũ (guest data) nếu có
-        session_unset();
+        Session::destroy();
 
         // 2. Làm mới ID phiên làm việc (Built-in function)
         // Việc này giúp chống Session Fixation cực tốt
-        session_regenerate_id(true);
+        Session::regenerate();
 
         // 3. Lưu thông tin người dùng vào mảng
         // Mẹo nhỏ: Cậu có thể gom vào một mảng 'user' để $_SESSION trông gọn hơn
-        $_SESSION['user'] = [
+
+        Session::set('user', [
             'id'     => $user['id'],
             'name'   => $user['name'],
             'email'  => $user['email'],
             'role'   => $user['role'],
             'avatar' => $user['avatar']
-        ];
-        $_SESSION['is_logged_in'] = true;
+        ]);
+        Session::set('is_logged_in', true);
 
         // 4. Khởi tạo CSRF Token mới tinh cho phiên đăng nhập này
         // Sử dụng SecurityHelper mà chúng ta đã build ở trên
@@ -115,31 +116,8 @@ class AuthController extends Controller
 
     public function logout()
     {
-        // 1. Đảm bảo session đã được khởi động để có cái mà hủy
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
-        // 2. Xóa sạch dữ liệu trong mảng $_SESSION
-        $_SESSION = [];
-
-        // 3. Xóa Cookie của Session trên trình duyệt người dùng
-        // Đây là bước cực kỳ quan trọng để "vệ sinh" hoàn toàn
-        if (ini_get("session.use_cookies")) {
-            $params = session_get_cookie_params();
-            setcookie(
-                session_name(),
-                '',
-                time() - 42000, // Đặt thời gian hết hạn về quá khứ
-                $params["path"],
-                $params["domain"],
-                $params["secure"],
-                $params["httponly"]
-            );
-        }
-
-        // 4. Hủy session trên server
-        session_destroy();
+        // Sử dụng phương thức destroy tập trung để xóa sạch dữ liệu và cookie session
+        Session::destroy();
 
         // 5. Chuyển hướng
         Response::redirect(URLROOT . '/login');

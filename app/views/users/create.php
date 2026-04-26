@@ -30,7 +30,7 @@
                 <p class="text-slate-500 small mb-0">Vui lòng điền đầy đủ các thông tin bắt buộc dưới đây.</p>
             </div>
             <div class="card-body p-4">
-                <form action="<?= $action_url ?>" method="POST" enctype="multipart/form-data">
+                <form action="<?= $action_url ?>" method="POST" enctype="multipart/form-data" autocomplete="off">
                     <?php SecurityHelper::csrfInput(); ?>
                     <div class="row g-4">
                         <!-- Section: Thông tin cơ bản -->
@@ -58,9 +58,9 @@
                                 <span class="input-group-text bg-slate-50 border-end-0 text-slate-400">
                                     <i data-lucide="mail" size="18"></i>
                                 </span>
-                                <input type="email" name="email" class="form-control border-start-0 <?= isset($errors['email']) ? 'is-invalid' : '' ?>" placeholder="email@nexuspm.vn" value="<?= htmlspecialchars($old['email'] ?? $user['email'] ?? '') ?>">
+                                <input type="email" name="email" autocomplete="off" class="form-control border-start-0 <?= isset($errors['email']) ? 'is-invalid' : '' ?>" placeholder="email@nexuspm.vn" value="<?= htmlspecialchars($old['email'] ?? $user['email'] ?? '') ?>">
                                 <?php if (isset($errors['email'])): ?>
-                                            <div class="invalid-feedback d-block"><?= $errors['email'] ?></div>
+                                    <div class="invalid-feedback d-block"><?= $errors['email'] ?></div>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -71,7 +71,7 @@
                                 <span class="input-group-text bg-slate-50 border-end-0 text-slate-400">
                                     <i data-lucide="lock" size="18"></i>
                                 </span>
-                                <input type="password" name="password" class="form-control border-start-0" placeholder="<?= isset($user) ? 'Để trống nếu không đổi' : '••••••••' ?>" <?= isset($user) ? '' : 'required' ?>>
+                                <input type="password" name="password" autocomplete="new-password" class="form-control border-start-0" placeholder="<?= isset($user) ? 'Để trống nếu không đổi' : '••••••••' ?>" <?= isset($user) ? '' : 'required' ?>>
                             </div>
                             <?php if (isset($user)): ?>
                                 <div class="form-text small">Để trống nếu bạn không muốn thay đổi mật khẩu nhân viên.</div>

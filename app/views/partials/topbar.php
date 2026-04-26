@@ -10,7 +10,7 @@
 <header class="flex-shrink-0 z-1 bg-white">
     <div class="d-flex align-items-center px-3 py-2 header-height">
         <?php
-        $user = $_SESSION['user'] ?? [];
+        $user = Session::get('user', []);
         $userName = $user['name'] ?? 'Guest';
         $userEmail = $user['email'] ?? '';
         $userAvatar = $user['avatar'] ?? '';

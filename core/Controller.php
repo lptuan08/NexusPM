@@ -34,7 +34,7 @@ class Controller
     // check login Kiểm tra đăng nhập
     public function checkLogin()
     {
-        if (!isset($_SESSION['is_logged_in']) && $_SESSION['is_logged_in'] !== true) {
+        if (!Session::get('is_logged_in')) {
             Response::redirect(URLROOT . '/login'); // Cập nhật URL đăng nhập mới
         }
     }

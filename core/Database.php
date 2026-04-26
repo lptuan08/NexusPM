@@ -54,7 +54,7 @@ class Database
      * @param string $condition Chuỗi điều kiện WHERE (ví dụ: "id = :id")
      * @param array $conditionParams Mảng tham số cho điều kiện WHERE (ví dụ: ['id' => $id])
      */
-    public function update($table, $data, $condition, $conditionParams = []) // tại sao lại có conditionParams? Giải thích
+    public function update($table, $data, $condition, $conditionParams = [])
     {
         $updateStr = "";
         foreach ($data as $key => $value) {
@@ -69,17 +69,17 @@ class Database
         return $this->query($sql, $params);
     }
 
-    /**
-     * Hàm Delete dữ liệu
-     * @param string $table Tên bảng
-     * @param string $condition Chuỗi điều kiện WHERE (ví dụ: "id = :id")
-     * @param array $conditionParams Mảng tham số cho điều kiện WHERE (ví dụ: ['id' => $id])
-     */
-    public function delete($table, $condition, $conditionParams = [])
-    {
-        $sql = "DELETE FROM $table WHERE $condition";
-        return $this->query($sql, $conditionParams);
-    }
+    // /**
+    //  * Hàm Delete dữ liệu
+    //  * @param string $table Tên bảng
+    //  * @param string $condition Chuỗi điều kiện WHERE (ví dụ: "id = :id")
+    //  * @param array $conditionParams Mảng tham số cho điều kiện WHERE (ví dụ: ['id' => $id])
+    //  */
+    // public function delete($table, $condition, $conditionParams = [])
+    // {
+    //     $sql = "DELETE FROM $table WHERE $condition";
+    //     return $this->query($sql, $conditionParams);
+    // }
 
     /**
      * Lấy ID vừa insert cuối cùng

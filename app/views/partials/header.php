@@ -20,6 +20,13 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="<?= URLROOT; ?>/assets/css/app.css">
+
+    <!-- toast -->
+    <link rel="stylesheet" href="<?= Helper::asset('assets/css/toast.css') ?>">
+    <!-- ... -->
+    <script src="<?= Helper::asset('assets/js/toast.js') ?>"></script>
+
 </head>
 
 <body class="d-flex vh-100 overflow-hidden">
+    

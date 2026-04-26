@@ -8,7 +8,6 @@ class UserController extends Controller
     private $modelUser;
     public function __construct()
     {
-        $this->checkLogin();
         parent::__construct();
         $this->modelUser = $this->model('UserModel');
     }
@@ -24,12 +23,9 @@ class UserController extends Controller
     {
         $perPage = 5; //số bản ghi mỗi trang
 
-        if (isset($_GET['page'])) {
-            $currentPage = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT);
-        } else {
-            $currentPage = 1;
-        }
+        $currentPage = (int)$this->request->input('page', 1);
         if ($currentPage < 1) $currentPage = 1;
+
         $users = $this->modelUser->getUserByPage($currentPage, $perPage);
         $totalUsers = $this->modelUser->count();
         $totalPages = ceil($totalUsers / $perPage);
@@ -38,6 +34,7 @@ class UserController extends Controller
             'data' => $users,
             'pageTitle' => 'Nhân viên',
             'extra_css' => 'users',
+            'totalUsers' => $totalUsers,
             'perPage' => $perPage,
             'currentPage' => $currentPage,
             'totalPage' => $totalPages,
@@ -76,6 +73,7 @@ class UserController extends Controller
     public function create()
     {
         $jobTitle = $this->modelUser->getJobTitle();
+
         View::render('users/create', [
             'job_titles' => $jobTitle,
             'extra_css' => 'users',
@@ -87,7 +85,7 @@ class UserController extends Controller
     // Thực hiện thêm mới
     public function store() //->create - POST
     {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($this->request->isPost()) {
             $data = $this->getFormData();
             $validator = new Validator();
 
@@ -95,13 +93,22 @@ class UserController extends Controller
             $validator->required('name', $data['name'], 'Họ tên');
             $validator->required('email', $data['email'], 'Email');
             $validator->email('email', $data['email'], 'Email');
+            $validator->required('role', $data['role'], 'Quyền hạn');
+            $validator->required('job_title_id', $data['job_title_id'], 'Chức danh');
             $validator->image('avatar', 'Ảnh đại diện');
+            $validator->required('password', $data['password'], 'Password');
+            $validator->min('password', $data['password'], 4);
+
+            // Kiểm tra email trùng lặp
+            if (!empty($data['email']) && $this->modelUser->isEmailExists($data['email'])) {
+                $validator->addError('email', 'Email này đã tồn tại trên hệ thống');
+            }
 
             if (!$validator->passes()) {
                 return View::render('users/create', [
                     'job_titles' => $this->modelUser->getJobTitle(),
                     'errors' => $validator->getErrors(),
-                    'old' => $_POST,
+                    'old' => $this->request->getBody(),
                     'extra_css' => 'users',
                     'pageTitle' => 'Thêm nhân viên mới',
                     'action_url' => URLROOT . '/users' // Form tạo mới sẽ POST đến /users
@@ -113,7 +120,7 @@ class UserController extends Controller
 
             // Sử dụng phương thức tập trung có Transaction
             $this->modelUser->createWithEmployeeCode($data);
-            // Có thể thêm flash message ở đây: Helper::setFlash('success', 'Thêm nhân viên thành công!');
+            Helper::setFlash('success', 'Thêm nhân viên mới thành công!');
             Response::redirect(URLROOT . '/users');
         }
     }
@@ -127,7 +134,7 @@ class UserController extends Controller
     {
         $user = $this->modelUser->getUserById($id);
         $job_titles = $this->modelUser->getJobTitle();
-        if (!$user) Response::redirect(URLROOT . '/nguoi-dung');
+        if (!$user) Response::redirect(URLROOT . '/users');
 
         View::render('users/create', [
             'user' => $user,
@@ -146,10 +153,10 @@ class UserController extends Controller
         // 1. Kiểm tra sự tồn tại của nhân viên
         $user = $this->modelUser->getUserById($id);
         if (!$user) {
-            Response::redirect(URLROOT . '/nguoi-dung');
+            Response::redirect(URLROOT . '/users');
         }
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($this->request->isPost()) {
             // 2. Lấy dữ liệu và validate
             $data = $this->getFormData(true);
             $validator = new Validator();
@@ -157,14 +164,21 @@ class UserController extends Controller
             $validator->required('name', $data['name'], 'Họ tên');
             $validator->required('email', $data['email'], 'Email');
             $validator->email('email', $data['email'], 'Email');
+            $validator->required('role', $data['role'], 'Quyền hạn');
+            $validator->required('job_title_id', $data['job_title_id'], 'Chức danh');
             $validator->image('avatar', 'Ảnh đại diện');
+
+            // Kiểm tra email trùng lặp (trừ user hiện tại)
+            if (!empty($data['email']) && $this->modelUser->isEmailExists($data['email'], $id)) {
+                $validator->addError('email', 'Email này đã được sử dụng bởi nhân viên khác');
+            }
 
             if (!$validator->passes()) {
                 return View::render('users/create', [
                     'user'       => $user, // Truyền thông tin user cũ để form hiển thị đúng
                     'job_titles' => $this->modelUser->getJobTitle(),
                     'errors'     => $validator->getErrors(),
-                    'old'        => $_POST,
+                    'old'        => $this->request->getBody(),
                     'extra_css'  => 'users',
                     'pageTitle'      => 'Chỉnh sửa nhân viên',
                     'action_url' => URLROOT . "/users/{$id}/edit" // Đảm bảo $id được truyền đúng
@@ -183,6 +197,7 @@ class UserController extends Controller
 
             // 4. Cập nhật vào DB và chuyển hướng
             $this->modelUser->updateUser($id, $data);
+            Helper::setFlash('success', 'Thông tin nhân viên đã được cập nhật');
             Response::redirect(URLROOT . "/users/$id");
         }
     }
@@ -190,7 +205,7 @@ class UserController extends Controller
     public function delete($id)
     {
         $result = $this->modelUser->delete($id);
-
+        Helper::setFlash('success', 'Xóa nhân viên thành công');
         Response::redirect(URLROOT . '/users');
     }
 
@@ -200,24 +215,26 @@ class UserController extends Controller
      */
     private function getFormData($isUpdate = false) //false = tao mới
     {
+        $body = $this->request->getBody();
+
         $data = [
-            'name'          => $_POST['name'] ?? '',
-            'email'         => $_POST['email'] ?? '',
-            'role'          => $_POST['role'] ?? 'member',
-            'job_title_id'  => $_POST['job_title_id'] ?? null,
-            'is_active'     => isset($_POST['is_active']) ? 1 : 0,
+            'name'          => $body['name'] ?? '',
+            'email'         => $body['email'] ?? '',
+            'role'          => $body['role'] ?? 'member',
+            'job_title_id'  => $body['job_title_id'] ?? null,
+            'is_active'     => isset($body['is_active']) ? 1 : 0,
         ];
 
         // Xử lý mật khẩu: 
         // - Nếu thêm mới: Bắt buộc hash (hoặc dùng mặc định)
         if (!$isUpdate) {
-            $password = !empty($_POST['password']) ? $_POST['password'] : '123456';
+            $password = !empty($body['password']) ? $body['password'] : '123456';
             $data['password'] = password_hash($password, PASSWORD_DEFAULT);
         }
         // - Nếu cập nhật: Chỉ hash nếu người dùng có nhập mật khẩu mới
         else {
-            if (!empty($_POST['password'])) {
-                $data['password'] = password_hash($_POST['password'], PASSWORD_DEFAULT);
+            if (!empty($body['password'])) {
+                $data['password'] = password_hash($body['password'], PASSWORD_DEFAULT);
             }
         }
 
@@ -236,7 +253,7 @@ class UserController extends Controller
             // Tự động tạo thư mục nếu chưa tồn tại
             if (!is_dir($uploadDir)) {
                 // Sử dụng quyền 0755 để bảo mật hơn 0777
-                if (!mkdir($uploadDir, 0755, true)) { 
+                if (!mkdir($uploadDir, 0755, true)) {
                     return null; // Không tạo được thư mục (có thể do quyền ghi)
                 }
                 // $uploadDir: Đường dẫn thư mục cần tạo.

@@ -58,17 +58,17 @@ abstract class Model
      */
     public function delete($id)
     {
-        return $this->update($id, ['deleted_at' => date('Y-m-d H:i:s')]);
+        return $this->update($id, ['deleted_ats' => date('Y-m-d H:i:s')]);
     }
 
-    /**
-     * Xóa vĩnh viễn bản ghi khỏi database (Hard Delete)
-     */
-    public function forceDelete($id)
-    {
-        $condition = "id = :id";
-        return $this->db->delete($this->table, $condition, ['id' => $id]);
-    }
+    // /**
+    //  * Xóa vĩnh viễn bản ghi khỏi database (Hard Delete)
+    //  */
+    // public function forceDelete($id)
+    // {
+    //     $condition = "id = :id";
+    //     return $this->db->delete($this->table, $condition, ['id' => $id]);
+    // }
 
     /**
      * Đếm tổng số bản ghi (không bao gồm các bản ghi đã xóa mềm)

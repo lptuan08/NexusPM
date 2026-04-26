@@ -96,6 +96,23 @@ class UserModel extends Model
         return $this->delete($id);
     }
 
+    /**
+     * Kiểm tra Email đã tồn tại trong hệ thống chưa
+     * @param string $email
+     * @param int|null $excludeId ID cần loại trừ (dùng khi cập nhật)
+     * @return bool
+     */
+    public function isEmailExists($email, $excludeId = null)
+    {
+        $sql = "SELECT COUNT(*) FROM {$this->table} WHERE email = :email AND deleted_at IS NULL";
+        $params = ['email' => $email];
+        if ($excludeId) {
+            $sql .= " AND id != :exclude_id";
+            $params['exclude_id'] = $excludeId;
+        }
+        return (int)$this->db->query($sql, $params)->fetchColumn() > 0;
+    }
+
     // =========================================================================
     // 2. NHÓM DỮ LIỆU DANH MỤC (HỖ TRỢ FORM)
     // =========================================================================
@@ -161,8 +178,15 @@ class UserModel extends Model
         $perPage = (int)$perPage;
         $offset = (int)$offset;
         // câu lệnh sql
-        $sql = "SELECT * FROM {$this->table} WHERE deleted_at IS NULL LIMIT {$perPage} OFFSET {$offset}";
+        $sql = "SELECT u.*, jt.name AS job_title 
+                FROM {$this->table} AS u
+                LEFT JOIN job_titles AS jt ON u.job_title_id = jt.id
+                WHERE u.deleted_at IS NULL 
+                ORDER BY u.id DESC 
+                LIMIT {$perPage} OFFSET {$offset}";
         $stmt = $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         return $stmt;
     }
+
+   
 }

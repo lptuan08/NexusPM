@@ -72,6 +72,14 @@ class Validator
     }
 
     /**
+     * Thêm lỗi thủ công từ bên ngoài (ví dụ: kiểm tra trùng lặp trong DB)
+     */
+    public function addError($field, $message)
+    {
+        $this->errors[$field] = $message;
+    }
+
+    /**
      * Trả về danh sách tất cả các lỗi đã phát hiện
      */
     public function getErrors()

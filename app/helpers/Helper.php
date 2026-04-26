@@ -9,7 +9,7 @@ class Helper
      */
     public static function asset($path)
     {
-        return "http://nexuspm.test/" . ltrim($path, '/');
+        return URLROOT . "/" . ltrim($path, '/');
     }
 
 
@@ -37,17 +37,12 @@ class Helper
      */
     public static function setFlash($key, $message)
     {
-        $_SESSION['flash'][$key] = $message;
+        Session::flash($key, $message); // có message -> nó sẽ ghi $_SESSION['flash_messages'][$key]
     }
 
     public static function getFlash($key)
     {
-        if (isset($_SESSION['flash'][$key])) {
-            $msg = $_SESSION['flash'][$key];
-            unset($_SESSION['flash'][$key]); // Xem xong xóa luôn
-            return $msg;
-        }
-        return null;
+        return Session::flash($key); // không có lấy ra return $msg và xóa $_SESSION['flash_messages'][$key]
     }
 
     /**
@@ -105,7 +100,7 @@ class Helper
         $params     = $GLOBALS['current_params']     ?? [];
 
 
-        
+
 
         // 3. Lấy Call Stack
         $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);

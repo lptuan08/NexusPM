@@ -1,0 +1,52 @@
+.toast-container {
+    z-index: 9999;
+    /* Cố định vị trí ở góc dưới bên trái */
+    top: auto !important;
+    right: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+}
+
+.toast-custom {
+    /* Sử dụng màu xám đậm Slate 800 để nổi bật trên nền Slate 100 của trang */
+    background: #323336 !important; 
+    border-radius: 12px !important;
+    box-shadow: none !important; 
+    /* Tăng độ sáng viền để trông sáng và nổi bật hơn */
+    border: 1px solid rgba(255, 255, 255, 0.15) !important; 
+    min-width: 300px;
+}
+
+/* Đảm bảo văn bản hiển thị rõ trên nền tối */
+.toast-custom .text-slate-800 {
+    color: #ffffff !important;
+}
+
+.toast-custom .text-slate-500 {
+    color: #d1d5db !important; /* Tông xám sáng hơn cho phần mô tả */
+}
+
+.toast-custom .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%); /* Chuyển nút đóng sang màu trắng */
+}
+
+.toast-icon-wrapper {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.toast-success .toast-icon-wrapper {
+    /* Tông xanh lá đậm hơn để hài hòa với nền xám */
+    background-color: rgba(16, 185, 129, 0.25);
+    color: #34d399;
+}
+
+.toast-error .toast-icon-wrapper {
+    /* Tông đỏ đậm hơn cho chế độ nền tối */
+    background-color: rgba(239, 68, 68, 0.25);
+    color: #f87171;
+}

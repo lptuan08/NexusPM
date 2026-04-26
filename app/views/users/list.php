@@ -89,13 +89,15 @@
     </div>
 
     <div class="d-flex align-items-center justify-content-between p-3 border-top border-slate-200 bg-white">
-        <span class="text-slate-500" style="font-size: 0.875rem;">Hiển thị 1 đến 5 của 124 kết quả</span>
+        <?php
+            $from = ($totalUsers > 0) ? ($currentPage - 1) * $perPage + 1 : 0;
+            $to = min($currentPage * $perPage, $totalUsers);
+        ?>
+        <span class="text-slate-500" style="font-size: 0.875rem;">
+            Hiển thị <?= $from ?> đến <?= $to ?> của <?= $totalUsers ?> kết quả
+        </span>
         <div class="d-flex align-items-center gap-2">
-            <div class="px-4 py-3 bg-white border-slate-100">
-                <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
-
-
-                    <nav aria-label="Điều hướng trang" class="order-1 order-md-2">
+            <nav aria-label="Điều hướng trang">
                         <ul class="pagination pagination-sm m-0 gap-2">
                             <?php if ($currentPage == 1): ?>
                                 <li class="page-item disabled"> <!-- Nút Previous bị disabled khi ở trang đầu -->
