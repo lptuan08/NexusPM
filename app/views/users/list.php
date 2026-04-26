@@ -106,7 +106,7 @@
                                     </a>
                                 </li>
                             <?php else: ?>
-                                <li class="page-item">
+                        <li class="page-item"> <!-- Sửa nút Previous khi trang > 1 -->
                                     <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center bg-slate-50 text-slate-400" href="?page=<?= htmlspecialchars($currentPage - 1) ?>" style="width: 32px; height: 32px;">
                                         <i data-lucide="chevron-left" size="16"></i>
                                     </a>
@@ -114,7 +114,7 @@
                             <?php endif; ?>
 
                             <?php
-                            foreach ($pages as $p): // Hiển thị các nút số trang ?>
+                    if (!empty($pages)) foreach ($pages as $p): // Hiển thị các nút số trang ?>
                                 <?php if ($p == $currentPage): ?>
                                     <li class="page-item active">
                                         <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" href="?page=<?= htmlspecialchars($p) ?>" style="width: 32px; height: 32px;"><?= htmlspecialchars($p) ?></a>
@@ -125,7 +125,8 @@
                                     </li>
                                 <?php endif; ?>
                             <?php endforeach; ?>
-                            <?php if ($currentPage == $totalPage): ?>
+
+                    <?php if ($currentPage >= $totalPage): ?>
                                 <li class="page-item disabled"> <!-- Nút Next bị disabled khi ở trang cuối -->
                                     <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center text-slate-600 hover-bg-slate-100" href="#" style="width: 32px; height: 32px;">
                                         <i data-lucide="chevron-right" size="16"></i>

@@ -16,7 +16,7 @@ class UserModel extends Model
         $sql = "SELECT u.id, u.employee_code, u.name, u.email, u.avatar, u.role, 
                        jt.name AS job_title 
                 FROM {$this->table} AS u
-                JOIN job_titles AS jt ON jt.id = u.job_title_id
+                LEFT JOIN job_titles AS jt ON jt.id = u.job_title_id
                 WHERE u.deleted_at IS NULL
                 ORDER BY u.id DESC";
 

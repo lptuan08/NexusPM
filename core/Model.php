@@ -58,7 +58,7 @@ abstract class Model
      */
     public function delete($id)
     {
-        return $this->update($id, ['deleted_ats' => date('Y-m-d H:i:s')]);
+        return $this->update($id, ['deleted_at' => date('Y-m-d H:i:s')]);
     }
 
     // /**

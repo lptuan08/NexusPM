@@ -29,7 +29,7 @@ class UserController extends Controller
         $users = $this->modelUser->getUserByPage($currentPage, $perPage);
         $totalUsers = $this->modelUser->count();
         $totalPages = ceil($totalUsers / $perPage);
-        $pages = range(1, $totalPages);
+        $pages = $totalPages > 0 ? range(1, $totalPages) : [];
         View::render('users/list', [
             'data' => $users,
             'pageTitle' => 'Nhân viên',
@@ -111,7 +111,7 @@ class UserController extends Controller
                     'old' => $this->request->getBody(),
                     'extra_css' => 'users',
                     'pageTitle' => 'Thêm nhân viên mới',
-                    'action_url' => URLROOT . '/users' // Form tạo mới sẽ POST đến /users
+                    'action_url' => URLROOT . '/users/create' // Form tạo mới sẽ POST đến /users
                 ]);
             }
 
