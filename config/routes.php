@@ -71,6 +71,7 @@ return [
             'action'     => 'edit',
             'middleware' => ['AuthMiddleware']
         ],
+        
         // -----end USER------
     ],
 
@@ -127,5 +128,11 @@ return [
             'action'     => 'delete',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
+        '/projects/{id}/addMembers' => [
+            'controller' => 'ProjectController',
+            'action'     => 'addMembers',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+        
     ]
 ];

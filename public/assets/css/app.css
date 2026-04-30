@@ -591,4 +591,57 @@ header {
     font-size: 0.6rem;
     letter-spacing: 0.5px;
 }
+
+/* =========================================
+   HỆ THỐNG FORM (CREATE/EDIT) - GOOGLE STYLE
+   ========================================= */
+
+/* Container giới hạn độ rộng cho trang nhập liệu */
+.form-main-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    width: 100%;
+}
+
+/* Card liền khối, không đường kẻ */
+.form-card-seamless {
+    background: #ffffff;
+    border-radius: 12px;
+    border: none;
+    box-shadow: var(--google-shadow-soft);
+    padding: 32px;
+}
+
+/* Bố cục 1 cột cho tất cả input */
+.form-body-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 24px; /* Khoảng cách Google tiêu chuẩn */
+}
+
+/* Group label và input */
+.form-group-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group-stack label {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--slate-700);
+}
+
+/* Chuyển các nút Lưu, Hủy sang phải */
+.form-actions-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--slate-100);
+}
+
+.form-actions-container .btn {
+    min-width: 100px;
 }

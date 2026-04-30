@@ -89,7 +89,6 @@ class UserController extends Controller
             $data = $this->getFormData();
             $validator = new Validator();
 
-            // $validator->required('employee_code', $data['employee_code'], 'Mã nhân viên');
             $validator->required('name', $data['name'], 'Họ tên');
             $validator->required('email', $data['email'], 'Email');
             $validator->email('email', $data['email'], 'Email');

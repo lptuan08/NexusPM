@@ -126,6 +126,16 @@ class UserModel extends Model
         return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function getProjectOwnerOptions()
+    {
+        $sql = "SELECT id, name, email
+                FROM {$this->table}
+                WHERE deleted_at IS NULL
+                ORDER BY name ASC";
+
+        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     // =========================================================================
     // 3. NHÓM QUAN HỆ VÀ HIỆU SUẤT (DỰ ÁN, CÔNG VIỆC)
     // =========================================================================
