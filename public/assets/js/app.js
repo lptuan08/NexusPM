@@ -1,8 +1,27 @@
-lucide.createIcons();
+function refreshIcons() {
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+refreshIcons();
 
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar-container');
+    if (!sidebar) return;
     sidebar.classList.toggle('collapsed');
+}
+
+function setActiveSidebarLink() {
+    const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
+    document.querySelectorAll('.nav-link-custom[href]').forEach(link => {
+        const linkPath = new URL(link.href, window.location.origin).pathname.replace(/\/+$/, '') || '/';
+        const isActive = linkPath === '/'
+            ? currentPath === '/'
+            : currentPath === linkPath || currentPath.startsWith(`${linkPath}/`);
+
+        link.classList.toggle('active', isActive);
+    });
 }
 
 // Xử lý chọn tất cả checkbox trong bảng
@@ -20,11 +39,23 @@ if (selectAll) {
  * @param {string} message - Lời nhắn hiển thị trên Modal
  */
 function showDeleteModal(url, message) {
-    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
-    document.getElementById('deleteConfirmMessage').innerText = message;
+    const modalElement = document.getElementById('deleteConfirmModal');
+    if (!modalElement) return;
+
+    const modal = new bootstrap.Modal(modalElement);
+    const messageElement = document.getElementById('deleteConfirmMessage');
+    if (messageElement) {
+        messageElement.innerText = message;
+    }
+
     const deleteForm = document.getElementById('deleteForm');
     if (deleteForm) {
         deleteForm.setAttribute('action', url);
     }
     modal.show();
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    setActiveSidebarLink();
+    refreshIcons();
+});

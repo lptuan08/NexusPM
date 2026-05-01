@@ -27,7 +27,7 @@
                 <i data-lucide="menu"></i>
             </div>
         </div>
-        <div class="position-relative d-none d-md-block ms-4" style="width: 480px; max-width: 50vw;">
+        <div class="position-relative d-none d-md-block ms-4 topbar-search">
             <div class="search-icon-wrapper"><i data-lucide="search"></i></div>
             <input type="text" class="search-input w-100" placeholder="Tìm kiếm...">
         </div>
@@ -37,28 +37,28 @@
                     <i data-lucide="bell"></i>
                 </div>
                 <ul class="dropdown-menu dropdown-menu-end mt-2 shadow-lg border-0">
-                    <li class="px-3 py-2 border-bottom"><span class="fw-bold" style="font-size: 0.85rem;">Thông báo</span></li>
+                    <li class="px-3 py-2 border-bottom"><span class="fw-bold text-slate-800 small">Thông báo</span></li>
                     <li>
                         <a class="dropdown-item d-flex align-items-center py-2" href="#">
                             <i data-lucide="bell-off" class="me-2 text-slate-400" size="16"></i>
-                            <span style="font-size: 0.85rem;">Không có thông báo mới</span>
+                            <span class="small">Không có thông báo mới</span>
                         </a>
                     </li>
                 </ul>
             </div>
             <div class="dropdown ms-1">
                 <button class="btn border-0 p-1" type="button" data-bs-toggle="dropdown">
-                    <img src="<?= htmlspecialchars($avatarUrl) ?>" alt="Avatar" class="avatar" style="width: 36px; height: 36px; border: 2px solid var(--slate-200);">
+                    <img src="<?= htmlspecialchars($avatarUrl) ?>" alt="Avatar" class="avatar topbar-avatar">
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end mt-2 shadow-lg border-0 p-2" style="min-width: 260px; border-radius: 16px;">
+                <ul class="dropdown-menu dropdown-menu-end mt-2 shadow-lg border-0 p-2 profile-menu">
                     <!-- Header Profile -->
-                    <li class="px-3 py-3 mb-2 rounded-4" style="background-color: var(--slate-50);">
+                    <li class="px-3 py-3 mb-2 profile-menu-card">
                         <div class="d-flex align-items-center gap-3">
-                            <img src="<?= htmlspecialchars($avatarUrl) ?>" alt="Avatar" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
+                            <img src="<?= htmlspecialchars($avatarUrl) ?>" alt="Avatar" class="avatar-md">
                             <div class="overflow-hidden">
-                                <div class="fw-bold text-dark text-truncate" style="font-size: 0.9rem; line-height: 1.2;"><?= htmlspecialchars($userName) ?></div>
-                                <div class="text-muted text-truncate my-1" style="font-size: 0.8rem;"><?= htmlspecialchars($userEmail) ?></div>
-                                <span class="badge rounded-pill <?= $userRole === 'admin' ? 'role-director' : 'role-staff' ?>" style="font-size: 0.65rem; letter-spacing: 0.02em; padding: 0.35em 0.8em;">
+                                <div class="fw-bold text-dark text-truncate small"><?= htmlspecialchars($userName) ?></div>
+                                <div class="text-muted text-truncate my-1 text-xs"><?= htmlspecialchars($userEmail) ?></div>
+                                <span class="badge-role <?= $userRole === 'admin' ? 'role-director' : 'role-staff' ?>">
                                     <?= strtoupper($userRole) ?>
                                 </span>
                             </div>
@@ -69,13 +69,13 @@
                     <li>
                         <a class="dropdown-item rounded-3 d-flex align-items-center py-2" href="<?= URLROOT ?>/users/<?= $user['id'] ?? '' ?>">
                             <i data-lucide="user" class="me-2 text-slate-400" size="16"></i>
-                            <span style="font-size: 0.875rem;">Hồ sơ cá nhân</span>
+                            <span>Hồ sơ cá nhân</span>
                         </a>
                     </li>
                     <li>
                         <a class="dropdown-item rounded-3 d-flex align-items-center py-2" href="#">
                             <i data-lucide="settings" class="me-2 text-slate-400" size="16"></i>
-                            <span style="font-size: 0.875rem;">Cài đặt tài khoản</span>
+                            <span>Cài đặt tài khoản</span>
                         </a>
                     </li>
                     <li>
@@ -86,7 +86,7 @@
                             <?php \App\helpers\SecurityHelper::csrfInput(); ?>
                             <button type="submit" class="dropdown-item rounded-3 d-flex align-items-center py-2 text-danger border-0 bg-transparent w-100">
                                 <i data-lucide="log-out" class="me-2" size="16"></i>
-                                <span class="fw-medium" style="font-size: 0.875rem;">Đăng xuất</span>
+                                <span class="fw-medium">Đăng xuất</span>
                             </button>
                         </form>
                     </li>

@@ -1,10 +1,10 @@
 <!-- INDEX - DANH SÁCH NHÂN VIÊN -->
-<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+<div class="page-toolbar">
     <div class="d-flex align-items-center text-slate-600 fs-6">
-        <span class="fw-medium text-slate-800 fs-5">Nhân viên</span>
+        <span class="page-title">Nhân viên</span>
     </div>
 
-    <div class="d-flex align-items-center gap-2">
+    <div class="page-actions">
         <button class="btn btn-outline-secondary" title="Lọc dữ liệu">
             <i data-lucide="filter"></i>
             <span class="d-none d-md-inline">Bộ lọc</span>
@@ -23,12 +23,12 @@
         <table class="table table-custom align-middle">
             <thead class="bg-slate-50">
                 <tr>
-                    <th scope="col" class="text-center" style="width: 50px;">STT</th>
+                    <th scope="col" class="text-center col-stt">STT</th>
                     <th scope="col">Họ và Tên</th>
                     <th scope="col">Mã NV</th>
                     <th scope="col">Email</th>
                     <th scope="col">Chức danh</th>
-                    <th scope="col" style="width: 60px; text-align: center;"></th>
+                    <th scope="col" class="text-center col-actions"></th>
                 </tr>
             </thead>
             <tbody>
@@ -59,18 +59,18 @@
 
                             <td>
                                 <div class="dropdown position-static">
-                                    <button class="btn btn-link text-slate-500 p-1 shadow-none"
+                                    <button class="btn btn-link btn-action shadow-none"
                                         data-bs-toggle="dropdown"><i data-lucide="more-vertical"></i></button>
                                     <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/users/<?= $user['id'] ?>"><i data-lucide="eye" class="text-600"></i> Chi tiết</a></li>
-                                        <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/users/<?= $user['id'] ?>/edit"><i data-lucide="edit-3" class="text-600"></i> Chỉnh sửa</a></li>
+                                        <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/users/<?= $user['id'] ?>"><i data-lucide="eye" class="text-slate-600"></i> Chi tiết</a></li>
+                                        <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/users/<?= $user['id'] ?>/edit"><i data-lucide="edit-3" class="text-slate-600"></i> Chỉnh sửa</a></li>
                                         <li>
                                             <hr class="dropdown-divider">
                                         </li>
                                         <li>
                                             <a class="dropdown-item d-flex align-items-center gap-2 text-danger"
                                                 href="javascript:void(0)"
-                                                onclick="showDeleteModal('<?= URLROOT ?>/users/<?= $user['id'] ?>/delete', 'Bạn có chắc chắn muốn xóa nhân viên <?= htmlspecialchars($displayName) ?>?')">
+                                                onclick="showDeleteModal('<?= URLROOT ?>/users/<?= (int) $user['id'] ?>/delete', <?= htmlspecialchars(json_encode('Bạn có chắc chắn muốn xóa nhân viên ' . $displayName . '?', JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
                                                 <i data-lucide="trash-2"></i> Xóa
                                             </a>
                                         </li>
@@ -81,19 +81,19 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">Không có dữ liệu nhân viên nào được tìm thấy.</td>
+                        <td colspan="6" class="table-empty">Không có dữ liệu nhân viên nào được tìm thấy.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
         </table>
     </div>
 
-    <div class="d-flex align-items-center justify-content-between p-3 border-top border-slate-200 bg-white">
+    <div class="table-footer">
         <?php
             $from = ($totalUsers > 0) ? ($currentPage - 1) * $perPage + 1 : 0;
             $to = min($currentPage * $perPage, $totalUsers);
         ?>
-        <span class="text-slate-500" style="font-size: 0.875rem;">
+        <span class="table-pagination-info">
             Hiển thị <?= $from ?> đến <?= $to ?> của <?= $totalUsers ?> kết quả
         </span>
         <div class="d-flex align-items-center gap-2">
@@ -101,13 +101,13 @@
                         <ul class="pagination pagination-sm m-0 gap-2">
                             <?php if ($currentPage == 1): ?>
                                 <li class="page-item disabled"> <!-- Nút Previous bị disabled khi ở trang đầu -->
-                                    <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center bg-slate-50 text-slate-400" href="#" style="width: 32px; height: 32px;">
+                                    <a class="page-link" href="#">
                                         <i data-lucide="chevron-left" size="16"></i>
                                     </a>
                                 </li>
                             <?php else: ?>
                         <li class="page-item"> <!-- Sửa nút Previous khi trang > 1 -->
-                                    <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center bg-slate-50 text-slate-400" href="?page=<?= htmlspecialchars($currentPage - 1) ?>" style="width: 32px; height: 32px;">
+                                    <a class="page-link" href="?page=<?= htmlspecialchars($currentPage - 1) ?>">
                                         <i data-lucide="chevron-left" size="16"></i>
                                     </a>
                                 </li>
@@ -117,24 +117,24 @@
                     if (!empty($pages)) foreach ($pages as $p): // Hiển thị các nút số trang ?>
                                 <?php if ($p == $currentPage): ?>
                                     <li class="page-item active">
-                                        <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" href="?page=<?= htmlspecialchars($p) ?>" style="width: 32px; height: 32px;"><?= htmlspecialchars($p) ?></a>
+                                        <a class="page-link" href="?page=<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></a>
                                     </li>
                                 <?php else: ?>
                                     <li class="page-item">
-                                        <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" href="?page=<?= htmlspecialchars($p) ?>" style="width: 32px; height: 32px;"><?= htmlspecialchars($p) ?></a> <!-- Link đến trang cụ thể -->
+                                        <a class="page-link" href="?page=<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></a> <!-- Link đến trang cụ thể -->
                                     </li>
                                 <?php endif; ?>
                             <?php endforeach; ?>
 
                     <?php if ($currentPage >= $totalPage): ?>
                                 <li class="page-item disabled"> <!-- Nút Next bị disabled khi ở trang cuối -->
-                                    <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center text-slate-600 hover-bg-slate-100" href="#" style="width: 32px; height: 32px;">
+                                    <a class="page-link" href="#">
                                         <i data-lucide="chevron-right" size="16"></i>
                                     </a>
                                 </li>
                             <?php else: ?>
                                 <li class="page-item"> <!-- Nút Next -->
-                                    <a class="page-link border-0 rounded-circle d-flex align-items-center justify-content-center text-slate-600 hover-bg-slate-100" href="?page=<?= htmlspecialchars($currentPage + 1) ?>" style="width: 32px; height: 32px;">
+                                    <a class="page-link" href="?page=<?= htmlspecialchars($currentPage + 1) ?>">
                                         <i data-lucide="chevron-right" size="16"></i>
                                     </a>
                                 </li>
@@ -149,7 +149,7 @@
 
         <!-- MODAL XÁC NHẬN XÓA DÙNG CHUNG -->
         <div class="modal fade modal-confirm" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+            <div class="modal-dialog modal-dialog-centered modal-confirm-dialog">
                 <div class="modal-content shadow-lg border-0">
                     <div class="modal-body text-center">
                         <div class="icon-box">

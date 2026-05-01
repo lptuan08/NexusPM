@@ -1,16 +1,16 @@
 /* DASHBOARD SPECIFIC STYLES */
 
 /* Utility for large rounding (Standard Modern UI) */
-.rounded-5 { border-radius: 1.5rem !important; }
+.rounded-5 { border-radius: 1rem !important; }
 
 /* KPI Cards & Gradients */
-.kpi-card { transition: transform 0.2s ease, box-shadow 0.2s ease; cursor: default; border-radius: 1.5rem !important; }
-.kpi-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+.kpi-card { transition: transform 0.2s ease, box-shadow 0.2s ease; cursor: default; border-radius: 1rem !important; }
+.kpi-card:hover { transform: translateY(-3px); box-shadow: var(--google-shadow-card) !important; }
 
-.kpi-gradient-1 { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); border: none; }
-.kpi-gradient-2 { background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; }
-.kpi-gradient-3 { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border: none; }
-.kpi-gradient-4 { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border: none; }
+.kpi-gradient-1 { background: linear-gradient(135deg, #1a73e8 0%, #174ea6 100%); border: none; }
+.kpi-gradient-2 { background: linear-gradient(135deg, #188038 0%, #137333 100%); border: none; }
+.kpi-gradient-3 { background: linear-gradient(135deg, #f9ab00 0%, #e8710a 100%); border: none; }
+.kpi-gradient-4 { background: linear-gradient(135deg, #d93025 0%, #a50e0e 100%); border: none; }
 
 .kpi-icon-shape {
     width: 56px;
@@ -47,6 +47,10 @@
 .project-icon-bg-indigo { background-color: #e0e7ff; color: #4f46e5; }
 .project-icon-bg-rose { background-color: #ffe4e6; color: #e11d48; }
 .project-icon-bg-emerald { background-color: #d1fae5; color: #059669; }
+
+.progress-bar-indigo { background-color: var(--primary-600); }
+.progress-bar-rose { background-color: var(--red-600); }
+.progress-bar-emerald { background-color: var(--emerald-600); }
 
 /* Modern Checklist */
 .task-card {

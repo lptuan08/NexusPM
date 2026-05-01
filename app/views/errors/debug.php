@@ -63,7 +63,7 @@
 <body>
 
     <div class="box">
-        <div class="title">⚠️ Exception Debug</div>
+        <div class="title">Exception Debug</div>
 
         <div class="info">
             <p><strong>Message:</strong> <?= $e->getMessage(); ?></p>
@@ -74,7 +74,7 @@
     </div>
 
     <div class="box">
-        <div class="title">📍 Stack Trace</div>
+        <div class="title">Stack Trace</div>
 
         <table>
             <thead>

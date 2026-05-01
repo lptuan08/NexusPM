@@ -14,13 +14,13 @@
 }
 
 /* Status Badges */
-.status-active {
+.account-status-active {
     background-color: #e6f4ea !important;
     color: #1e8e3e !important;
     padding: 6px 16px !important;
     font-weight: 600;
 }
-.status-locked {
+.account-status-locked {
     background-color: #fce8e6 !important;
     color: #d93025 !important;
     padding: 6px 16px !important;

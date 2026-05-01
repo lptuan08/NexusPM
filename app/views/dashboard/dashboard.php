@@ -53,11 +53,11 @@ $myTasks = [
 ?>
 
 <!-- BREADCRUMB -->
-<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+<div class="page-toolbar">
     <div class="d-flex align-items-center text-slate-600 fs-6">
         <a href="<?= URLROOT; ?>" class="text-decoration-none text-slate-500 hover-text-primary">PMS</a>
-        <span class="mx-2 text-slate-400 d-flex align-items-center" style="width: 16px;"><i data-lucide="chevron-right" size="16"></i></span>
-        <span class="fw-medium text-slate-800 fs-5">Tổng quan</span>
+        <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
+        <span class="page-title">Tổng quan</span>
     </div>
 </div>
 
@@ -121,13 +121,13 @@ $myTasks = [
                         <h5 class="fw-bold text-dark mb-0">Dự án trọng tâm</h5>
                         <p class="text-muted small">Các dự án bạn đang tham gia</p>
                     </div>
-                    <button class="btn btn-link text-primary fw-semibold text-decoration-none p-0">Xem tất cả</button>
+                    <a href="<?= URLROOT ?>/projects" class="btn btn-outline-secondary btn-sm">Xem tất cả</a>
                 </div>
                 
                 <div class="row g-4">
                     <?php foreach($featuredProjects as $proj): ?>
                     <div class="col-md-6">
-                        <div class="project-card bg-white p-4 shadow-sm h-100">
+                            <div class="project-card ui-card p-4 h-100">
                             <div class="d-flex justify-content-between mb-3">
                                 <div class="project-icon-wrapper <?= $proj['bg'] ?>">
                                     <i data-lucide="<?= $proj['icon'] ?>"></i>
@@ -143,7 +143,7 @@ $myTasks = [
                                 <span class="text-xs fw-bold text-muted text-uppercase">Tiến độ</span>
                                 <span class="text-xs fw-bold text-dark"><?= $proj['progress'] ?>%</span>
                             </div>
-                            <div class="progress" style="height: 6px;">
+                            <div class="progress progress-thin">
                                 <div class="progress-bar <?= $proj['bar'] ?>" style="width: <?= $proj['progress'] ?>%"></div>
                             </div>
                         </div>
@@ -168,7 +168,7 @@ $myTasks = [
                     </div>
                 </div>
 
-                <div class="task-checklist-container bg-white rounded-5 shadow-sm p-3">
+                <div class="task-checklist-container ui-card p-3">
                     <div class="row g-3">
                         <?php foreach($myTasks as $t): ?>
                         <div class="col-12">
@@ -186,7 +186,7 @@ $myTasks = [
                                         <?= $t['prio'] ?>
                                     </span>
                                     <div class="dropdown">
-                                        <button class="btn btn-icon-google p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: 32px; height: 32px;">
+                                        <button class="btn btn-icon-google btn-action-sm p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                             <i data-lucide="more-vertical" size="16"></i>
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
@@ -205,7 +205,7 @@ $myTasks = [
 
         <!-- Right Column: Recent Activities -->
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-5 mb-4 overflow-hidden">
+            <div class="ui-card mb-4 overflow-hidden">
                 <div class="card-header bg-white border-0 pt-4 pb-2">
                     <h5 class="fw-bold text-dark mb-0">Hoạt động gần đây</h5>
                 </div>
@@ -222,11 +222,11 @@ $myTasks = [
                         ];
                         foreach ($activities as $item): ?>
                         <li class="list-group-item d-flex align-items-center gap-3 py-3 px-4">
-                            <img src="https://ui-avatars.com/api/?name=<?= urlencode($item['name']) ?>&background=random&color=fff&rounded=true&size=40" 
-                                 alt="Avatar" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                            <img src="https://ui-avatars.com/api/?name=<?= urlencode($item['name']) ?>&background=e8f0fe&color=1a73e8&rounded=true&size=40"
+                                 alt="Avatar" class="avatar-activity">
                             <div class="flex-grow-1">
                                 <p class="mb-0 text-dark small"><span class="fw-bold"><?= $item['name'] ?></span> <?= $item['act'] ?> <span class="text-primary fw-medium"><?= $item['target'] ?></span></p>
-                                <span class="text-muted" style="font-size: 0.7rem;"><?= $item['time'] ?></span>
+                                <span class="text-muted timestamp-text"><?= $item['time'] ?></span>
                             </div>
                         </li>
                         <?php endforeach; ?>

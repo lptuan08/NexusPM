@@ -1,20 +1,20 @@
 <!-- BREADCRUMB - THỐNG NHẤT VỚI LIST.PHP -->
-<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+<div class="page-toolbar">
     <div class="d-flex align-items-center text-slate-600 fs-6">
         <a href="<?= URLROOT; ?>/users" class="text-decoration-none text-slate-500 hover-text-primary">Nhân Viên</a>
 
 
-        <span class="mx-2 text-slate-400 d-flex align-items-center" style="width: 16px;"><i data-lucide="chevron-right" size="16"></i></span>
+        <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
         <?php if (isset($user['name'])): ?>
             <a href="<?= URLROOT ?>/users/<?= $user['id'] ?>" class="text-decoration-none text-slate-500 hover-text-primary"><?= htmlspecialchars($user['name']) ?></a>
-            <span class="mx-2 text-slate-400 d-flex align-items-center" style="width: 16px;"><i data-lucide="chevron-right" size="16"></i></span>
-            <span class="fw-medium text-slate-800 fs-5"><?php ?>Chỉnh sửa</span>
+            <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
+            <span class="page-title">Chỉnh sửa</span>
         <?php else: ?>
-            <span class="fw-medium text-slate-800 fs-5"><?php ?>Thêm mới</span>
+            <span class="page-title">Thêm mới</span>
         <?php endif; ?>
     </div>
 
-    <div class="d-flex align-items-center gap-2">
+    <div class="page-actions">
         <a href="<?= URLROOT ?>/users" class="btn btn-outline-secondary px-3">
             <i data-lucide="arrow-left"></i>
             <span>Quay lại</span>
@@ -22,23 +22,22 @@
     </div>
 </div>
 
-<div class="row justify-content-center">
-    <div class="col-12" style="max-width: 720px;">
-        <div class="card border-0 shadow-sm rounded-5 overflow-hidden">
-            <div class="card-header bg-white border-bottom border-slate-100 py-4 px-4">
+<div class="form-main-container">
+        <div class="ui-card overflow-hidden">
+            <div class="ui-card-header">
                 <h5 class="m-0 fw-bold text-slate-800 fs-5">Thông tin hồ sơ</h5>
                 <p class="text-slate-500 small mb-0">Vui lòng điền đầy đủ các thông tin bắt buộc dưới đây.</p>
             </div>
-            <div class="card-body p-4">
+            <div class="ui-card-body">
                 <form action="<?= $action_url ?>" method="POST" enctype="multipart/form-data">
                     <?php App\helpers\SecurityHelper::csrfInput(); ?>
                     <div class="d-flex flex-column gap-4">
                         <!-- Section: Thông tin cơ bản -->
                         <div>
-                            <div class="p-3 bg-slate-50 rounded-3 border border-slate-200">
+                            <div class="form-section">
                                 <div class="d-flex flex-column gap-3">
                                     <div>
-                                        <label class="form-label fw-medium small text-slate-700">Họ và tên <span class="text-danger">*</span></label>
+                                        <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
                                         <input type="text" name="name" class="form-control <?= isset($errors['name']) ? 'is-invalid' : '' ?>" placeholder="Nhập tên đầy đủ" value="<?= htmlspecialchars($old['name'] ?? $user['name'] ?? '') ?>">
                                         <?php if (isset($errors['name'])): ?>
                                             <div class="invalid-feedback d-block"><?= $errors['name'] ?></div>
@@ -49,7 +48,7 @@
                         </div>
 
                         <div>
-                            <label class="form-label fw-medium small text-slate-700">Địa chỉ Email <span class="text-danger">*</span></label>
+                            <label class="form-label">Địa chỉ Email <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text bg-slate-50 border-end-0 text-slate-400">
                                     <i data-lucide="mail" size="18"></i>
@@ -62,7 +61,7 @@
                         </div>
 
                         <div>
-                            <label class="form-label fw-medium small text-slate-700">Mật khẩu khởi tạo <span class="text-danger">*</span></label>
+                            <label class="form-label">Mật khẩu khởi tạo <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text bg-slate-50 border-end-0 text-slate-400">
                                     <i data-lucide="lock" size="18"></i>
@@ -75,7 +74,7 @@
                         </div>
 
                         <div>
-                            <label class="form-label fw-medium small text-slate-700">Quyền hạn hệ thống</label>
+                            <label class="form-label">Quyền hạn hệ thống</label>
                             <?php $currentRole = $old['role'] ?? $user['role'] ?? 'member'; ?>
                             <select name="role" class="form-select">
                                 <option value="member" <?= $currentRole == 'member' ? 'selected' : '' ?>>Thành viên (Member)</option>
@@ -84,7 +83,7 @@
                         </div>
 
                         <div>
-                            <label class="form-label fw-medium small text-slate-700">Chức danh <span class="text-danger">*</span></label>
+                            <label class="form-label">Chức danh <span class="text-danger">*</span></label>
                             <?php $currentJob = $old['job_title_id'] ?? $user['job_title_id'] ?? ''; ?>
                             <select name="job_title_id" class="form-select" required>
                                 <option value="" selected disabled>Chọn chức danh</option>
@@ -97,7 +96,7 @@
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label fw-medium small text-slate-700">Ảnh đại diện</label>
+                            <label class="form-label">Ảnh đại diện</label>
                             <input type="file" name="avatar" class="form-control <?= isset($errors['avatar']) ? 'is-invalid' : '' ?>" accept="image/*">
                             <?php if (isset($errors['avatar'])): ?>
                                 <div class="invalid-feedback d-block"><?= $errors['avatar'] ?></div>
@@ -106,7 +105,7 @@
                         </div>
 
                         <div class="col-12 mt-4">
-                            <div class="d-flex align-items-center gap-3 p-3 bg-slate-50 rounded-3 border border-slate-200">
+                            <div class="form-section d-flex align-items-center gap-3">
                                 <div class="form-check form-switch m-0">
                                     <?php
                                     $isActive = true;
@@ -119,23 +118,19 @@
                             </div>
                         </div>
 
-                        <div class="pt-3 border-slate-100">
-                            <div class="d-flex gap-2 justify-content-end">
+                        <div class="form-actions-container">
+                            <a href="<?= URLROOT ?>/users" class="btn btn-outline-secondary px-4">Hủy bỏ</a>
                                 <button type="submit" class="btn btn-primary px-4">
                                     <i data-lucide="save"></i>
                                     Lưu
                                 </button>
-                            </div>
                         </div>
                     </div>
                 </form>
             </div>
         </div>
-    </div>
-
     <!-- <div class=" mt-4 p-3 rounded-3 bg-white border border-slate-200 shadow-sm d-flex align-items-center text-primary-600">
             <i data-lucide="info" size="20" class="me-2"></i>
             <span class="small fw-medium">Mọi thay đổi về thông tin nhân sự sẽ được hệ thống ghi lại trong nhật ký hoạt động.</span>
         </div> -->
-</div>
 </div>

@@ -1,154 +1,145 @@
 <?php
+
 /**
  * Giao diện quản lý trạng thái dự án (Thiết lập hệ thống)
  */
 ?>
 
 <style>
-    /* Container danh sách trạng thái */
-    .status-list-container {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 1.25rem;
-        box-shadow: 0 10px 25px -15px rgba(15, 23, 42, 0.1);
-        overflow: hidden;
-    }
-
-    /* Item trạng thái trong danh sách */
-    .status-item {
-        padding: 1.25rem;
-        border-bottom: 1px solid #f1f5f9;
-        display: flex;
-        align-items: center;
-        background: #fff;
-        transition: background-color 0.2s;
-    }
-
-    .status-item:last-child {
-        border-bottom: none;
-    }
-
-    /* Hiệu ứng khi kéo thả */
-    .status-item.sortable-ghost {
-        opacity: 0.4;
-        background: #f8fafc;
-        border: 1px dashed #cbd5e1;
-    }
-
-    .drag-handle {
-        cursor: grab;
-        color: #94a3b8;
-        padding: 0.5rem;
-        margin-right: 0.75rem;
-        border-radius: 0.5rem;
-        transition: all 0.2s;
-    }
-
-    .drag-handle:hover {
-        background: #f1f5f9;
-        color: #64748b;
-    }
-
-    .drag-handle:active {
-        cursor: grabbing;
-    }
-
-    /* Xem trước màu sắc */
+    .color-box,
     .status-color-circle {
-        width: 14px;
-        height: 14px;
+        width: 18px;
+        height: 18px;
         border-radius: 50%;
-        display: inline-block;
-        margin-right: 1rem;
-        box-shadow: 0 0 0 4px rgba(0,0,0,0.03);
-    }
-
-    .btn-action-icon {
-        width: 36px;
-        height: 36px;
         display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 0.75rem;
-        color: #64748b;
-        transition: all 0.2s;
-        border: 1px solid transparent;
+        flex-shrink: 0;
+        margin-right: 0.5rem;
+        border: 1px solid rgba(32, 33, 36, 0.1);
     }
 
-    .btn-action-icon:hover {
-        background: #f8fafc;
-        border-color: #e2e8f0;
-        color: #0f172a;
+    .sortable-ghost {
+        opacity: 0.5;
+        background: var(--primary-50) !important;
     }
 
-    .btn-action-icon.text-danger:hover {
-        background: #fff1f2;
-        border-color: #fecdd3;
-        color: #e11d48;
+    .status-position-col {
+        width: 80px;
+    }
+
+    .status-actions-col {
+        width: 150px;
+    }
+
+    .status-modal-dialog {
+        max-width: 450px;
+    }
+
+    .sort-modal-dialog {
+        max-width: 480px;
+    }
+
+    .status-color-input {
+        width: 44px;
+        height: 44px;
+        padding: 2px;
+    }
+
+    .status-color-hex {
+        font-size: 0.9rem;
     }
 </style>
 
-<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+
+
+<div class="page-toolbar">
     <div class="d-flex align-items-center text-slate-600 fs-6">
         <a href="<?= URLROOT; ?>/admin/settings" class="text-decoration-none text-slate-500 hover-text-primary">Thiết lập</a>
-        <span class="mx-2 text-slate-400 d-flex align-items-center"><i data-lucide="chevron-right" size="16"></i></span>
-        <span class="fw-medium text-slate-800 fs-5">Trạng thái dự án</span>
+        <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
+        <span class="page-title">Trạng thái dự án</span>
     </div>
-
-    <button type="button" class="btn btn-primary px-4 shadow-sm rounded-3 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#statusModal" onclick="resetStatusForm()">
-        <i data-lucide="plus" size="18"></i>
-        <span>Thêm trạng thái</span>
-    </button>
+    <div class="page-actions">
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sortModal">
+            <i data-lucide="arrow-up-down"></i>
+            <span>Sắp xếp</span>
+        </button>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#statusModal" onclick="resetStatusForm()">
+            <i data-lucide="plus"></i>
+            <span>Thêm trạng thái</span>
+        </button>
+    </div>
 </div>
 
-<div class="row">
-    <div class="col-xl-8 col-lg-10 mx-auto">
-        <div class="status-list-container">
-            <div class="bg-light bg-opacity-50 py-3 px-4 border-bottom">
-                <div class="d-flex align-items-center justify-content-between">
-                    <h6 class="fw-bold text-slate-900 mb-0">Thứ tự trạng thái</h6>
-                    <span class="badge bg-white text-slate-500 border fw-medium px-2 py-1" style="font-size: 0.7rem;">Kéo thả để sắp xếp</span>
-                </div>
-            </div>
-            <div id="sortableStatusList">
-                <?php if (!empty($statuses)): ?>
-                    <?php foreach ($statuses as $status): ?>
-                        <div class="status-item" data-id="<?= $status['id'] ?>">
-                            <div class="drag-handle">
-                                <i data-lucide="grip-vertical" size="20"></i>
-                            </div>
-                            <div class="flex-grow-1 d-flex align-items-center">
-                                <span class="status-color-circle" style="background-color: <?= htmlspecialchars($status['color'] ?? '#94a3b8') ?>"></span>
-                                <div>
-                                    <div class="fw-bold text-slate-900"><?= htmlspecialchars($status['name']) ?></div>
-                                    <div class="text-slate-400 small" style="font-size: 0.75rem;">Slug: <?= htmlspecialchars($status['slug']) ?></div>
-                                </div>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn-action-icon" onclick='editStatus(<?= json_encode($status) ?>)' title="Chỉnh sửa">
-                                    <i data-lucide="edit-3" size="18"></i>
-                                </button>
-                                <button type="button" class="btn-action-icon text-danger" onclick="deleteStatus(<?= $status['id'] ?>, '<?= htmlspecialchars($status['name']) ?>')" title="Xóa">
-                                    <i data-lucide="trash-2" size="18"></i>
-                                </button>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="text-center py-5">
-                        <div class="text-slate-300 mb-3"><i data-lucide="layers" size="48"></i></div>
-                        <p class="text-slate-500 mb-0">Chưa có trạng thái nào. Hãy tạo mới ngay!</p>
-                    </div>
-                <?php endif; ?>
-            </div>
+<!-- Cảnh báo quyền Admin -->
+<div class="alert alert-danger d-flex align-items-center border-0 shadow-sm" role="alert">
+    <i data-lucide="alert-triangle" class="me-3"></i>
+    <div>
+        <strong>Cảnh báo quản trị (Admin):</strong> Đây là chức năng thiết lập hệ thống cốt lõi. Vui lòng cẩn trọng khi thêm, sửa hoặc thay đổi vị trí các trạng thái vì điều này sẽ ảnh hưởng trực tiếp đến toàn bộ dự án đang vận hành.
+    </div>
+</div>
+
+<!-- Bảng danh sách trạng thái -->
+<div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-custom align-middle">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th scope="col" class="text-center status-position-col">Vị trí</th>
+                        <th scope="col">Tên trạng thái</th>
+                        <th scope="col">Slug</th>
+                        <th scope="col">Mã màu</th>
+                        <th scope="col" class="text-center">Hệ thống</th>
+                        <th scope="col" class="text-center status-actions-col">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (!empty($statuses)): ?>
+                        <?php foreach ($statuses as $index => $status): ?>
+                            <tr class="<?= ($status['is_locked'] ?? false) ? 'table-light text-muted' : '' ?>">
+                                <td class="text-center text-stt"><?= $status['position'] ?? ($index + 1) ?></td>
+                                <td class="text-name">
+                                    <?= htmlspecialchars($status['name']) ?>
+                                    <?php if ($status['is_locked'] ?? false): ?>
+                                        <span class="ui-badge priority-high ms-1">Mặc định</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><span class="ui-badge status-muted"><?= htmlspecialchars($status['slug']) ?></span></td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="color-box" style="background-color: <?= htmlspecialchars($status['color'] ?? '#94a3b8') ?>; <?= ($status['is_locked'] ?? false) ? 'opacity: 0.5;' : '' ?>"></span>
+                                        <code><?= htmlspecialchars($status['color'] ?? '#94a3b8') ?></code>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="form-check form-switch d-flex justify-content-center">
+                                        <input class="form-check-input" type="checkbox" role="switch" <?= ($status['is_locked'] ?? false) ? 'checked disabled' : '' ?>>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-inline-flex align-items-center gap-1">
+                                        <button class="btn btn-white btn-action" onclick='editStatus(<?= htmlspecialchars(json_encode($status, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)' <?= ($status['is_locked'] ?? false) ? 'disabled' : '' ?> title="Chỉnh sửa">
+                                            <i data-lucide="edit-3" size="14"></i>
+                                        </button>
+                                        <button class="btn btn-white btn-action text-danger" onclick="deleteStatus(<?= (int) $status['id'] ?>, <?= htmlspecialchars(json_encode($status['name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)" <?= ($status['is_locked'] ?? false) ? 'disabled' : '' ?> title="Xóa">
+                                            <i data-lucide="trash-2" size="14"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="6" class="table-empty">Chưa có dữ liệu trạng thái.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
-</div>
 
 <!-- Modal Form Trạng thái -->
 <div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 450px;">
-        <div class="modal-content border-0 shadow-lg rounded-4">
+    <div class="modal-dialog modal-dialog-centered status-modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
             <div class="modal-header border-bottom-0 pt-4 px-4">
                 <h5 class="fw-bold text-slate-900 mb-0" id="statusModalLabel">Cấu hình trạng thái</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -159,27 +150,59 @@
                 <div class="modal-body px-4 py-3">
                     <div class="mb-3">
                         <label class="form-label text-slate-600 fw-semibold small">Tên hiển thị <span class="text-danger">*</span></label>
-                        <input type="text" name="name" id="field_name" class="form-control rounded-3" placeholder="Ví dụ: Đã hoàn thành" required>
+                        <input type="text" name="name" id="field_name" class="form-control" placeholder="Ví dụ: Đã hoàn thành" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label text-slate-600 fw-semibold small">Mã định danh (Slug) <span class="text-danger">*</span></label>
-                        <input type="text" name="slug" id="field_slug" class="form-control rounded-3" placeholder="Ví dụ: completed" required>
+                        <input type="text" name="slug" id="field_slug" class="form-control" placeholder="Ví dụ: completed" required>
                     </div>
                     <div class="mb-2">
                         <label class="form-label text-slate-600 fw-semibold small">Màu sắc nhận diện</label>
                         <div class="d-flex align-items-center gap-3 p-2 border rounded-3 bg-slate-50">
-                            <input type="color" name="color" id="field_color" class="form-control form-control-color border-0 bg-transparent" style="width: 44px; height: 44px; padding: 2px;" value="#6366f1">
+                            <input type="color" name="color" id="field_color" class="form-control form-control-color border-0 bg-transparent status-color-input" value="#6366f1">
                             <div class="flex-grow-1">
-                                <input type="text" id="color_hex_display" class="form-control form-control-sm border-0 bg-transparent fw-mono" placeholder="#6366F1" style="font-size: 0.9rem;">
+                                <input type="text" id="color_hex_display" class="form-control form-control-sm border-0 bg-transparent fw-mono status-color-hex" placeholder="#6366F1">
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer border-top-0 pb-4 px-4">
-                    <button type="button" class="btn btn-light px-4 rounded-3 text-slate-600 fw-semibold" data-bs-dismiss="modal">Hủy bỏ</button>
-                    <button type="submit" class="btn btn-primary px-4 rounded-3 shadow-sm fw-semibold">Lưu thay đổi</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-primary shadow-sm">Lưu thay đổi</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Sắp xếp vị trí -->
+<div class="modal fade" id="sortModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered sort-modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-bottom-0 pt-4 px-4">
+                <h5 class="fw-bold text-slate-900 mb-0">Thay đổi thứ tự hiển thị</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 py-2">
+                <p class="text-slate-500 small mb-3">Kéo thả các trạng thái để sắp xếp thứ tự ưu tiên hiển thị trên hệ thống.</p>
+                <div id="sortableContainer" class="d-flex flex-column gap-2">
+                    <?php foreach ($statuses as $status): ?>
+                        <div class="d-flex align-items-center p-3 bg-white border rounded-3 sortable-item shadow-sm" data-id="<?= $status['id'] ?>">
+                            <div class="handle cursor-move me-3 text-slate-300">
+                                <i data-lucide="grip-vertical" size="18"></i>
+                            </div>
+                            <span class="status-color-circle mb-0" style="background-color: <?= htmlspecialchars($status['color'] ?? '#94a3b8') ?>"></span>
+                            <span class="fw-medium text-slate-700 flex-grow-1"><?= htmlspecialchars($status['name']) ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 pb-4 px-4 mt-2">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn btn-primary shadow-sm" id="saveOrderBtn">
+                    Lưu thứ tự mới
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -187,34 +210,36 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Khởi tạo kéo thả
-        const sortableList = document.getElementById('sortableStatusList');
-        if (sortableList) {
-            new Sortable(sortableList, {
-                animation: 200,
-                handle: '.drag-handle',
-                ghostClass: 'sortable-ghost',
-                onEnd: function() {
-                    const items = sortableList.querySelectorAll('.status-item');
-                    const orderData = Array.from(items).map((item, index) => ({
-                        id: item.dataset.id,
-                        position: index
-                    }));
-                    console.log('New Order:', orderData);
-                    // Gọi AJAX gửi orderData lên server tại đây để cập nhật cột 'position'
-                }
-            });
-        }
-
         // Đồng bộ mã màu giữa Picker và Input Text
         const colorPicker = document.getElementById('field_color');
         const colorText = document.getElementById('color_hex_display');
-        
+
         colorPicker.addEventListener('input', (e) => colorText.value = e.target.value.toUpperCase());
         colorText.addEventListener('input', (e) => {
             if (/^#[0-9A-F]{6}$/i.test(e.target.value)) colorPicker.value = e.target.value;
         });
         colorText.value = colorPicker.value.toUpperCase();
+
+        // Khởi tạo SortableJS cho modal sắp xếp
+        const sortableContainer = document.getElementById('sortableContainer');
+        if (sortableContainer) {
+            new Sortable(sortableContainer, {
+                animation: 150,
+                handle: '.handle',
+                ghostClass: 'sortable-ghost'
+            });
+        }
+
+        // Xử lý lưu thứ tự qua nút "Lưu thứ tự mới"
+        document.getElementById('saveOrderBtn')?.addEventListener('click', function() {
+            const items = sortableContainer.querySelectorAll('.sortable-item');
+            const order = Array.from(items).map((item, index) => ({
+                id: item.dataset.id,
+                position: index + 1
+            }));
+            console.log('Order to save:', order);
+            // Tại đây bạn có thể gọi AJAX để gửi mảng order lên backend
+        });
     });
 
     function resetStatusForm() {
@@ -232,7 +257,7 @@
         document.getElementById('field_slug').value = status.slug;
         document.getElementById('field_color').value = status.color || '#6366f1';
         document.getElementById('color_hex_display').value = (status.color || '#6366F1').toUpperCase();
-        
+
         const modal = new bootstrap.Modal(document.getElementById('statusModal'));
         modal.show();
     }

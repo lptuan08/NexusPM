@@ -13,18 +13,18 @@ $projectStatusMap = [
  * Ánh xạ trạng thái công việc
  */
 $taskStatusMap = [
-    'todo' => ['text' => 'Chưa làm', 'color' => '#64748b'],
-    'in_progress' => ['text' => 'Đang làm', 'color' => '#d97706'],
-    'done' => ['text' => 'Hoàn thành', 'color' => '#059669'],
+    'todo' => ['text' => 'Chưa làm', 'class' => 'status-muted'],
+    'in_progress' => ['text' => 'Đang làm', 'class' => 'status-active'],
+    'done' => ['text' => 'Hoàn thành', 'class' => 'status-completed'],
 ];
 
 /**
  * Ánh xạ mức độ ưu tiên công việc
  */
 $priorityMap = [
-    'high' => ['text' => 'Cao', 'color' => '#dc2626', 'bg' => '#fee2e2'],
-    'medium' => ['text' => 'Trung bình', 'color' => '#d97706', 'bg' => '#fef3c7'],
-    'low' => ['text' => 'Thấp', 'color' => '#475569', 'bg' => '#e2e8f0'],
+    'high' => ['text' => 'Cao', 'class' => 'priority-high'],
+    'medium' => ['text' => 'Trung bình', 'class' => 'priority-medium'],
+    'low' => ['text' => 'Thấp', 'class' => 'priority-low'],
 ];
 
 // Lấy thông tin trạng thái hiện tại của dự án
@@ -94,7 +94,7 @@ $memberCount = count($members);
 $projectCode = htmlspecialchars((string) ($project['project_code'] ?? '-'), ENT_QUOTES, 'UTF-8');
 $projectName = htmlspecialchars((string) ($project['name'] ?? ''), ENT_QUOTES, 'UTF-8');
 $projectDescription = trim((string) ($project['description'] ?? ''));
-$deleteMessage = htmlspecialchars("Bạn có chắc chắn muốn xóa dự án {$project['name']}?", ENT_QUOTES, 'UTF-8');
+$deleteMessage = "Bạn có chắc chắn muốn xóa dự án {$project['name']}?";
 
 /**
  * Hàm closure để tạo URL ảnh đại diện.
@@ -133,9 +133,6 @@ $leadMemberAvatar = $buildAvatar(
 <style>
     /* Container chính cho trang chi tiết dự án */
     .project-detail-shell {
-        background:
-            radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 28%),
-            linear-gradient(180deg, #f8fbff 0%, #f8fafc 100%);
         margin: -1.5rem;
         padding: 1.5rem;
         min-height: 100%;
@@ -190,6 +187,11 @@ $leadMemberAvatar = $buildAvatar(
         display: inline-flex;
         align-items: center;
         justify-content: center;
+    }
+
+    .project-stat-icon svg {
+        width: 22px;
+        height: 22px;
     }
 
     .project-soft-blue { background: #dbeafe; color: #1d4ed8; }
@@ -262,6 +264,54 @@ $leadMemberAvatar = $buildAvatar(
         object-fit: cover;
     }
 
+    .project-description {
+        line-height: 1.8;
+        font-size: 0.95rem;
+    }
+
+    .project-banner-content {
+        z-index: 1;
+    }
+
+    .project-banner-pill-outline {
+        background: rgba(255,255,255,0.12);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.16);
+    }
+
+    .project-banner-pill-soft {
+        background: rgba(255,255,255,0.16);
+        color: #fff;
+    }
+
+    .project-date-compact {
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+
+    .project-task-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .project-member-role-pill {
+        background: #f8fafc;
+        color: #334155;
+    }
+
+    .project-scroll-list {
+        max-height: 520px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-right: 8px;
+    }
+
+    .project-member-picker {
+        max-height: 400px;
+    }
+
     .project-lead-avatar {
         width: 80px;
         height: 80px;
@@ -296,6 +346,11 @@ $leadMemberAvatar = $buildAvatar(
         font-weight: 600;
     }
 
+    .project-pill svg {
+        width: 16px;
+        height: 16px;
+    }
+
     .project-mini-note {
         font-size: 0.82rem;
         color: #64748b;
@@ -311,26 +366,26 @@ $leadMemberAvatar = $buildAvatar(
 
 <div class="project-detail-shell">
     <!-- Đường dẫn Breadcrumb -->
-    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+    <div class="page-toolbar">
         <div class="d-flex align-items-center text-slate-600 fs-6">
             <a href="<?= URLROOT; ?>/projects" class="text-decoration-none text-slate-500 hover-text-primary">Dự án</a>
-            <span class="mx-2 text-slate-400 d-flex align-items-center"><i data-lucide="chevron-right" style="width:16px;height:16px;"></i></span>
-            <span class="fw-medium text-slate-800 fs-5"><?= $projectName ?></span>
+            <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
+            <span class="page-title"><?= $projectName ?></span>
         </div>
     </div>
 
     <!-- Khu vực Header Dự án (Banner & Tóm tắt) -->
     <section class="project-detail-header mb-4">
         <div class="project-detail-banner p-4 p-lg-5">
-            <div class="d-flex flex-column flex-xl-row justify-content-between gap-4 position-relative" style="z-index: 1;">
+            <div class="d-flex flex-column flex-xl-row justify-content-between gap-4 position-relative project-banner-content">
                 <div class="pe-xl-4">
                     <h1 class="h2 fw-bold mb-3"><?= $projectName ?></h1>
                     <div class="d-flex flex-wrap align-items-center gap-2">
-                        <span class="project-pill" style="background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.16);">
+                        <span class="project-pill project-banner-pill-outline">
                             <?= $projectCode ?>
                         </span>
-                        <span class="project-pill" style="background: rgba(255,255,255,0.16); color: #fff;">
-                            <i data-lucide="sparkles" style="width:16px;height:16px;"></i>
+                        <span class="project-pill project-banner-pill-soft">
+                            <i data-lucide="sparkles"></i>
                             <?= htmlspecialchars($currentStatus['text'], ENT_QUOTES, 'UTF-8') ?>
                         </span>
                     </div>
@@ -339,15 +394,15 @@ $leadMemberAvatar = $buildAvatar(
                 <!-- Các nút hành động chính -->
                 <div class="d-flex flex-wrap align-items-start gap-2 flex-shrink-0">
                     <a href="<?= URLROOT ?>/projects/<?= $project['id'] ?>/edit" class="btn btn-light fw-semibold px-3 px-lg-4">
-                        <i data-lucide="pencil" class="me-2" style="width:18px;height:18px;"></i>
-                        Chỉnh sửa
+                        <i data-lucide="pencil"></i>
+                        <span>Chỉnh sửa</span>
                     </a>
                     <button
                         type="button"
                         class="btn btn-outline-light fw-semibold px-3 px-lg-4"
-                        onclick="showDeleteModal('<?= URLROOT ?>/projects/<?= $project['id'] ?>/delete', '<?= $deleteMessage ?>')">
-                        <i data-lucide="trash-2" class="me-2" style="width:18px;height:18px;"></i>
-                        Xóa dự án
+                        onclick="showDeleteModal('<?= URLROOT ?>/projects/<?= (int) $project['id'] ?>/delete', <?= htmlspecialchars(json_encode($deleteMessage, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
+                        <i data-lucide="trash-2"></i>
+                        <span>Xóa dự án</span>
                     </button>
                 </div>
             </div>
@@ -361,11 +416,11 @@ $leadMemberAvatar = $buildAvatar(
                     <div class="project-stat-card">
                         <div class="d-flex align-items-center gap-3">
                             <div class="project-stat-icon project-soft-blue">
-                                <i data-lucide="calendar-clock" style="width:22px;height:22px;"></i>
+                                <i data-lucide="calendar-clock"></i>
                             </div>
                             <div class="overflow-hidden">
                                 <div class="project-meta-label">Thời hạn & Còn lại</div>
-                                <div class="fw-bold text-slate-900 mb-1" style="font-size: 0.85rem; white-space: nowrap;">
+                                <div class="fw-bold text-slate-900 mb-1 project-date-compact">
                                     <?= !empty($project['start_date']) ? date('d/m', strtotime($project['start_date'])) : '??' ?> - <?= !empty($project['due_date']) ? date('d/m/Y', strtotime($project['due_date'])) : '??' ?>
                                 </div>
                                 <div class="small fw-semibold <?= $isOverdueProject ? 'text-danger' : 'text-primary' ?>">
@@ -380,7 +435,7 @@ $leadMemberAvatar = $buildAvatar(
                     <div class="project-stat-card">
                         <div class="d-flex align-items-center gap-3">
                             <div class="project-stat-icon project-soft-violet">
-                                <i data-lucide="user-check" style="width:22px;height:22px;"></i>
+                                <i data-lucide="user-check"></i>
                             </div>
                             <div class="overflow-hidden">
                                 <div class="project-meta-label">Trưởng dự án</div>
@@ -394,7 +449,7 @@ $leadMemberAvatar = $buildAvatar(
                     <div class="project-stat-card">
                         <div class="d-flex align-items-center gap-3">
                             <div class="project-stat-icon project-soft-rose">
-                                <i data-lucide="list-checks" style="width:22px;height:22px;"></i>
+                                <i data-lucide="list-checks"></i>
                             </div>
                             <div>
                                 <div class="project-meta-label">Tổng công việc</div>
@@ -408,7 +463,7 @@ $leadMemberAvatar = $buildAvatar(
                     <div class="project-stat-card">
                         <div class="d-flex align-items-center gap-3">
                             <div class="project-stat-icon project-soft-green">
-                                <i data-lucide="activity" style="width:22px;height:22px;"></i>
+                                <i data-lucide="activity"></i>
                             </div>
                             <div>
                                 <div class="project-meta-label">Tiến độ dự án</div>
@@ -443,7 +498,7 @@ $leadMemberAvatar = $buildAvatar(
                 <div class="tab-content">
                     <!-- Tab: Tổng quan (Hiển thị các công việc mới nhất) -->
                     <div class="tab-pane fade show active" id="overview-pane" role="tabpanel">
-                        <div class="text-slate-600" style="line-height: 1.8; font-size: 0.95rem;">
+                        <div class="text-slate-600 project-description">
                             <?= nl2br(htmlspecialchars($projectDescription !== '' ? $projectDescription : 'Dự án này hiện chưa có thông tin mô tả chi tiết.', ENT_QUOTES, 'UTF-8')) ?>
                         </div>
                     </div>
@@ -456,15 +511,15 @@ $leadMemberAvatar = $buildAvatar(
                                 <div class="project-mini-note">Quản lý và theo dõi các đầu việc chi tiết.</div>
                             </div>
                             <a href="<?= URLROOT ?>/tasks/create?project_id=<?= $project['id'] ?>" class="btn btn-sm btn-primary px-3 shadow-sm">
-                                <i data-lucide="plus" class="me-1" style="width:16px;height:16px;"></i>
-                                Thêm công việc
+                                <i data-lucide="plus"></i>
+                                <span>Thêm công việc</span>
                             </a>
                         </div>
 
                         <div class="project-table-card overflow-hidden">
                             <div class="table-responsive">
-                                <table class="table project-table align-middle mb-0">
-                                    <thead>
+                                <table class="table table-custom align-middle">
+                                    <thead class="bg-slate-50">
                                         <tr>
                                             <th class="px-4 py-3">Tên công việc</th>
                                             <th class="px-4 py-3">Người phụ trách</th>
@@ -477,8 +532,8 @@ $leadMemberAvatar = $buildAvatar(
                                         <?php if (!empty($tasks)): ?>
                                             <?php foreach ($tasks as $task): ?>
                                                 <?php
-                                                $taskState = $taskStatusMap[$task['status'] ?? 'todo'] ?? ['text' => $task['status'] ?? 'Không rõ', 'color' => '#64748b'];
-                                                $taskPriority = $priorityMap[$task['priority'] ?? 'low'] ?? ['text' => $task['priority'] ?? 'Thấp', 'color' => '#475569', 'bg' => '#e2e8f0'];
+                                                $taskState = $taskStatusMap[$task['status'] ?? 'todo'] ?? ['text' => $task['status'] ?? 'Không rõ', 'class' => 'status-muted'];
+                                                $taskPriority = $priorityMap[$task['priority'] ?? 'low'] ?? ['text' => $task['priority'] ?? 'Thấp', 'class' => 'status-muted'];
                                                 ?>
                                                 <tr>
                                                     <td class="px-4 py-3">
@@ -486,17 +541,17 @@ $leadMemberAvatar = $buildAvatar(
                                                     </td>
                                                     <td class="px-4 py-3">
                                                         <div class="d-flex align-items-center gap-2">
-                                                            <img src="<?= $buildAvatar(['name' => $task['assigned_name'] ?? 'Chưa giao', 'avatar' => $task['assigned_avatar'] ?? null], 'name', 'avatar', 36) ?>" alt="avatar" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+                                                            <img src="<?= $buildAvatar(['name' => $task['assigned_name'] ?? 'Chưa giao', 'avatar' => $task['assigned_avatar'] ?? null], 'name', 'avatar', 36) ?>" alt="avatar" class="project-task-avatar">
                                                             <span class="text-slate-700"><?= htmlspecialchars((string) ($task['assigned_name'] ?? 'Chưa giao'), ENT_QUOTES, 'UTF-8') ?></span>
                                                         </div>
                                                     </td>
                                                     <td class="px-4 py-3">
-                                                        <span class="project-pill" style="background: <?= $taskState['color'] ?>15; color: <?= $taskState['color'] ?>;">
+                                                        <span class="project-pill <?= $taskState['class'] ?>">
                                                             <?= htmlspecialchars($taskState['text'], ENT_QUOTES, 'UTF-8') ?>
                                                         </span>
                                                     </td>
                                                     <td class="px-4 py-3">
-                                                        <span class="project-pill" style="background: <?= $taskPriority['bg'] ?>; color: <?= $taskPriority['color'] ?>;">
+                                                        <span class="project-pill <?= $taskPriority['class'] ?>">
                                                             <?= htmlspecialchars($taskPriority['text'], ENT_QUOTES, 'UTF-8') ?>
                                                         </span>
                                                     </td>
@@ -529,14 +584,14 @@ $leadMemberAvatar = $buildAvatar(
                         <div class="project-mini-note">Danh sách nhân sự đang thực hiện dự án này.</div>
                     </div>
                     <button type="button" class="btn btn-sm btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addMembersModal">
-                        <i data-lucide="user-plus" class="me-1" style="width:16px;height:16px;"></i>
-                        Thêm thành viên
+                        <i data-lucide="user-plus"></i>
+                        <span>Thêm thành viên</span>
                     </button>
                 </div>
 
                 <div class="project-table-card p-3 p-lg-4">
                     <?php if (!empty($members)): ?>
-                        <div class="d-flex flex-column" style="max-height: 520px; overflow-y: auto; overflow-x: hidden; padding-right: 8px;">
+                        <div class="d-flex flex-column project-scroll-list">
                             <?php foreach ($members as $member): ?>
                                 <div class="project-member-row py-3">
                                     <div class="d-flex flex-column gap-3">
@@ -548,7 +603,7 @@ $leadMemberAvatar = $buildAvatar(
                                                     <div class="project-mini-note text-truncate"><?= htmlspecialchars((string) ($member['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
                                                 </div>
                                             </div>
-                                            <span class="project-pill" style="background:#f8fafc;color:#334155;">
+                                            <span class="project-pill project-member-role-pill">
                                                 <?= htmlspecialchars((string) ($member['role'] ?? 'Thành viên'), ENT_QUOTES, 'UTF-8') ?>
                                             </span>
                                         </div>
@@ -572,7 +627,7 @@ $leadMemberAvatar = $buildAvatar(
     <!-- Modal Thêm thành viên -->
     <div class="modal fade" id="addMembersModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 1.25rem;">
+                <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header border-bottom-0 pt-4 px-4">
                     <h5 class="fw-bold text-slate-900 mb-0">Thêm thành viên mới</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -581,8 +636,8 @@ $leadMemberAvatar = $buildAvatar(
                     <?php \App\helpers\SecurityHelper::csrfInput(); ?>
                     <div class="modal-body px-4 py-3">
                         <div class="mb-4">
-                            <label class="project-editor-label">Quyền hạn trong dự án</label>
-                            <select name="role" class="form-select project-editor-select">
+                            <label class="form-label">Quyền hạn trong dự án</label>
+                            <select name="role" class="form-select">
                                 <option value="member" selected>Thành viên (Member)</option>
                                 <option value="lead">Trưởng nhóm (Lead)</option>
                                 <option value="manager">Quản lý (Manager)</option>
@@ -591,11 +646,11 @@ $leadMemberAvatar = $buildAvatar(
                         </div>
                         
                         <div class="project-section-title mb-2">Chọn nhân viên (có thể chọn nhiều)</div>
-                        <div class="project-table-card border rounded-3 overflow-auto" style="max-height: 400px;">
-                            <table class="table align-middle mb-0">
-                                <thead class="sticky-top bg-slate-50 shadow-sm" style="z-index: 10;">
+                        <div class="project-table-card border rounded-3 overflow-auto project-member-picker">
+                            <table class="table table-custom align-middle">
+                                <thead class="sticky-top bg-slate-50 shadow-sm sticky-layer">
                                     <tr class="border-bottom">
-                                        <th style="width: 40px;"></th>
+                                        <th class="col-check"></th>
                                         <th>Thông tin nhân viên</th>
                                         <th>Chức danh</th>
                                     </tr>
@@ -626,9 +681,10 @@ $leadMemberAvatar = $buildAvatar(
                         </div>
                     </div>
                     <div class="modal-footer border-top-0 pb-4 px-4">
-                        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal" style="border-radius: 0.75rem;">Hủy bỏ</button>
-                        <button type="submit" class="btn btn-primary px-4 shadow-sm" style="border-radius: 0.75rem;">
-                            <i data-lucide="check-circle" class="me-2" style="width:16px;height:16px;"></i>Xác nhận thêm
+                        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Hủy bỏ</button>
+                        <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                            <i data-lucide="check-circle"></i>
+                            <span>Xác nhận thêm</span>
                         </button>
                     </div>
                 </form>

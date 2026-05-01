@@ -4,14 +4,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng ký - Hệ thống Quản lý Dự án</title>
+    <title>Đăng nhập - Hệ thống Quản lý Dự án</title>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Font chữ hiện đại, sạch sẽ -->
+    <!-- Font chữ đồng bộ với ứng dụng -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= URLROOT; ?>/assets/css/login.css">
+    <style>
+        .login-password-field {
+            position: relative;
+        }
+
+        .login-error {
+            color: #d93025;
+            display: block;
+            font-size: 0.85rem;
+            margin-left: 1.25rem;
+            margin-top: 0.35rem;
+        }
+    </style>
 
 </head>
 
@@ -86,16 +99,16 @@
                 <div class="input-box">
                     <input type="email" name="email" placeholder="Địa chỉ Email"  value="<?= $old['email'] ?? '' ?>">
                     <?php if (isset($errors['email'])): ?>
-                        <span class="error-text" style="color: #dc3545; font-size: 0.85rem; margin-left:25px; margin-top: 4px; display: block;">
+                        <span class="login-error">
                             <?= $errors['email'] ?>
                         </span>
                     <?php endif; ?>
                     
                 </div>
-                <div class="input-box mb-2" style="position: relative;">
+                <div class="input-box mb-2 login-password-field">
                     <input type="password" name="password" id="password" placeholder="Mật khẩu">
                     <?php if (isset($errors['password'])): ?>
-                        <span class="error-text" style="color: #dc3545; font-size: 0.85rem; margin-left:25px; margin-top: 4px; display: block;">
+                        <span class="login-error">
                             <?= $errors['password'] ?>
                         </span>
                     <?php endif; ?>

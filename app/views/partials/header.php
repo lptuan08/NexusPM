@@ -4,11 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= !empty($pageTitle) ? $pageTitle : "" ?></title>
-    <?php if (isset($extra_css)): ?>
-        <link rel="stylesheet" href="<?= URLROOT; ?>/assets/css/<?= $extra_css ?>.css">
-    <?php endif; ?>
-
+    <title><?= !empty($pageTitle) ? $pageTitle : ($title ?? "") ?></title>
 
     <!-- Font Roboto (Google Standard) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,6 +16,11 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="<?= URLROOT; ?>/assets/css/app.css">
+    <?php if (isset($extra_css)): ?>
+        <?php foreach ((array) $extra_css as $cssFile): ?>
+            <link rel="stylesheet" href="<?= URLROOT; ?>/assets/css/<?= htmlspecialchars($cssFile, ENT_QUOTES, 'UTF-8') ?>.css">
+        <?php endforeach; ?>
+    <?php endif; ?>
 
     <!-- toast -->
     <link rel="stylesheet" href="<?= \App\helpers\Helper::asset('assets/css/toast.css') ?>">
@@ -29,4 +30,3 @@
 </head>
 
 <body class="d-flex vh-100 overflow-hidden">
-    
