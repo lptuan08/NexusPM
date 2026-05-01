@@ -17,7 +17,7 @@ return [
 
         // Đăng nhập
         '/login' => [
-            'controller' => 'AuthController',
+            'controller' => 'auth/AuthController',
             'action'     => 'login', // Hiển thị form đăng nhập
             'middleware' => []
         ],
@@ -73,20 +73,28 @@ return [
         ],
         
         // -----end USER------
+
+        // Thiết lập hệ thống
+        '/settings/project'=>[
+            'controller'=>'admin/SettingsController',
+            'action' => 'projectSetting',
+            'middleware' => ['AuthMiddleware'] //bổ sung thêm quyền admin
+        ]
+
     ],
 
     // NHÓM CÁC HÀNH ĐỘNG XỬ LÝ (Gửi dữ liệu - POST)
     'POST' => [
         // Xử lý đăng nhập (Khi nhấn nút Submit login)
         '/login' => [
-            'controller' => 'AuthController',
+            'controller' => 'auth/AuthController',
             'action'     => 'handleLogin', // Hàm kiểm tra tài khoản/mật khẩu
             'middleware' => []
         ],
 
         // Đăng xuất (Dùng POST để tránh Googlebot hoặc link rác tự đăng xuất người dùng)
         '/logout' => [
-            'controller' => 'AuthController',
+            'controller' => 'auth/AuthController',
             'action'     => 'logout',
             'middleware' => ['AuthMiddleware','VerifyCsrfToken']
         ],

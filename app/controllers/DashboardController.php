@@ -1,4 +1,8 @@
 <?php
+namespace App\controllers;
+
+use App\core\Controller;
+use App\core\View;
 
 /**
  * Controller Dashboard - Hiển thị trang tổng quan

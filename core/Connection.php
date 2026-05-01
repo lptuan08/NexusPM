@@ -1,4 +1,9 @@
 <?php
+namespace App\core;
+
+use PDO;
+use Exception;
+
 class Connection
 {
     private static $instance;

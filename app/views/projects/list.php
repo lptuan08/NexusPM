@@ -169,7 +169,7 @@ $projectStatusMap = [
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-outline-secondary w-100" data-bs-dismiss="modal">Hủy</button>
                     <form id="deleteForm" method="POST" class="w-100 m-0">
-                        <?php SecurityHelper::csrfInput(); ?>
+                        <?php App\helpers\SecurityHelper::csrfInput();?>
                         <button type="submit" class="btn btn-danger w-100">Xác nhận</button>
                     </form>
                 </div>

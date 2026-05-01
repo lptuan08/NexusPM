@@ -1,6 +1,11 @@
-
-
 <?php
+namespace App\core;
+
+use Exception;
+use App\core\Config;
+use App\core\Connection;
+use PDO;
+use PDOException;
 
 // Truy vấn (query) có 5 bước:
 // B1: Tiếp nhận yêu cầu tại Controller (Controller gọi model tương ứng)

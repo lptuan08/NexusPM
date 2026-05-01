@@ -10,7 +10,7 @@
 <header class="flex-shrink-0 z-1 bg-white">
     <div class="d-flex align-items-center px-3 py-2 header-height">
         <?php
-        $user = Session::get('user', []);
+        $user = \App\core\Session::get('user', []);
         $userName = $user['name'] ?? 'Guest';
         $userEmail = $user['email'] ?? '';
         $userAvatar = $user['avatar'] ?? '';
@@ -83,7 +83,7 @@
                     </li>
                     <li>
                         <form action="<?= URLROOT ?>/logout" method="POST" class="m-0">
-                            <?php SecurityHelper::csrfInput(); ?>
+                            <?php \App\helpers\SecurityHelper::csrfInput(); ?>
                             <button type="submit" class="dropdown-item rounded-3 d-flex align-items-center py-2 text-danger border-0 bg-transparent w-100">
                                 <i data-lucide="log-out" class="me-2" size="16"></i>
                                 <span class="fw-medium" style="font-size: 0.875rem;">Đăng xuất</span>

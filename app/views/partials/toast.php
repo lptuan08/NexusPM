@@ -7,7 +7,7 @@
     ];
 
     foreach ($flashTypes as $type => $config):
-        if ($msg = Helper::getFlash($type)): ?>
+        if ($msg = \App\helpers\Helper::getFlash($type)): ?>
             <div class="toast toast-custom <?= $config['class'] ?>" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="d-flex p-3">
                     <div class="toast-icon-wrapper me-3">

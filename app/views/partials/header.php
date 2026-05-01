@@ -22,9 +22,9 @@
     <link rel="stylesheet" href="<?= URLROOT; ?>/assets/css/app.css">
 
     <!-- toast -->
-    <link rel="stylesheet" href="<?= Helper::asset('assets/css/toast.css') ?>">
+    <link rel="stylesheet" href="<?= \App\helpers\Helper::asset('assets/css/toast.css') ?>">
     <!-- ... -->
-    <script src="<?= Helper::asset('assets/js/toast.js') ?>"></script>
+    <script src="<?= \App\helpers\Helper::asset('assets/js/toast.js') ?>"></script>
 
 </head>
 

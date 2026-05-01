@@ -1,4 +1,6 @@
 <?php
+namespace App\core;
+
 class Response {
     public static function json($data) {
         header('Content-Type: application/json');

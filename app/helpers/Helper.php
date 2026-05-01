@@ -1,4 +1,8 @@
 <?php
+namespace App\helpers;
+
+use App\core\Session;
+
 // method dùng chung: 
 class Helper
 {

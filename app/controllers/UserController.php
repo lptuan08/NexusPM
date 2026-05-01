@@ -1,4 +1,12 @@
 <?php
+namespace App\controllers;
+
+use App\core\Controller;
+use App\core\View;
+use App\core\Validator;
+use App\core\Response;
+use App\core\Request;
+use App\helpers\Helper;
 
 /**
  * Controller Users - Quản lý các hành động liên quan đến nhân sự

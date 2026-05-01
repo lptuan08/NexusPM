@@ -1,10 +1,20 @@
 <?php
+namespace App\core;
+
+use App\core\Request;
+use Exception;
+
 class Router
 {
     private $routes;
     public function __construct($routes)
     {
-        $this->routes = $routes;
+        if(!empty($routes)){
+            $this->routes = $routes;
+        }
+        else{
+            throw new Exception("Cấu hình routes không được để trống", 500);
+        }
     }
 
     public function dispatch($url)
@@ -24,7 +34,9 @@ class Router
             // '([^/]+)' lấy tất cả ký tự trừ dấu gạch chéo / -> chuỗi thay thế
             // nó sẽ túm lấy giá trị ([^/]+) này làm params
             $pattern = "@^" . $pattern . "$@";
+
             if (preg_match($pattern, $url, $matches)) {
+                
                 // $matches = [1.giá trị khớp toàn bộ, 2.giá trị trong nhóm ([^/]+)=> tham số]
                 array_shift($matches);
                 //giải thích:
@@ -34,9 +46,8 @@ class Router
                 // 1. Chạy Middleware
                 if (!empty($config['middleware'])) {
                     foreach ($config['middleware'] as $mwName) {
-                        // xử lý auto load sau.
-                        Helper::loadMiddleware($mwName);
-                        $mwInstance = new $mwName();
+                        $fullMwName = "App\\middleware\\" . $mwName;
+                        $mwInstance = new $fullMwName();
                         $mwInstance->handle();
                     }
                 }
@@ -47,21 +58,17 @@ class Router
                 $GLOBALS['current_controller'] = $controllerName; // Gán tên controller hiện tại cho debug widget
                 $GLOBALS['current_action'] = $action;
                 $GLOBALS['current_params'] = $matches;
-                // load file controller
-                if (Helper::loadController($controllerName)) {
-                    //kiểm tra class cotroller có tồn tại                    
-                    if (class_exists($controllerName)) {
-                        $controllerInstance = new $controllerName();
-                        if (method_exists($controllerInstance, $action)) {
-                            return call_user_func_array([$controllerInstance, $action], $matches);
-                        } else {
-                            throw new Exception("Action '{$action}' không tồn tại trong controller '{$controllerName}'", 404);
-                        }
+                
+                $fullControllerName = "App\\controllers\\" . str_replace('/', '\\', $controllerName);
+                if (class_exists($fullControllerName)) {
+                    $controllerInstance = new $fullControllerName();
+                    if (method_exists($controllerInstance, $action)) {
+                        return call_user_func_array([$controllerInstance, $action], $matches);
                     } else {
-                        throw new Exception("Class '{$controllerName}' không tồn tại", 500);
+                        throw new Exception("Action '{$action}' không tồn tại trong controller '{$fullControllerName}'", 404);
                     }
                 } else {
-                    throw new Exception("controllers/'{$controllerName}'không tồn tại", 500);
+                    throw new Exception("Class '{$fullControllerName}' không tồn tại. Vui lòng kiểm tra lại namespace và file controller.", 500);
                 }
             }
         }

@@ -161,7 +161,7 @@
                         <div class="d-flex gap-2">
                             <button type="button" class="btn btn-outline-secondary w-100" data-bs-dismiss="modal">Hủy bỏ</button>
                             <form id="deleteForm" method="POST" action="" class="w-100 m-0">
-                                <?php SecurityHelper::csrfInput(); ?> <!-- Thêm CSRF token vào form xóa -->
+                                <?php App\helpers\SecurityHelper::csrfInput(); ?> <!-- Thêm CSRF token vào form xóa -->
                                 
                                 <button type="submit" class="btn btn-danger w-100">Xác nhận xóa</button>
                             </form>

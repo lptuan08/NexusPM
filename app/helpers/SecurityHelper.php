@@ -1,5 +1,8 @@
 <?php
-// helpers/SecurityHelper.php
+namespace App\helpers;
+
+use App\core\Session;
+
 class SecurityHelper
 {
     public static function generateToken()

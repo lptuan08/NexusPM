@@ -1,5 +1,10 @@
 <?php
-
+namespace App\controllers\auth;
+use App\core\Controller;
+use App\core\View;
+use App\core\Session;
+use App\core\Response;
+use App\helpers\SecurityHelper;
 /**
  * Controller Auth - Xử lý đăng nhập và xác thực
  */

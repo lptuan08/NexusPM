@@ -1,4 +1,8 @@
 <?php
+namespace App\middleware;
+
+use App\interfaces\MiddlewareInterface;
+
 class VerifyCsrfToken{
     public function handle(){
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {

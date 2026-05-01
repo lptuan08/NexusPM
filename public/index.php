@@ -20,36 +20,23 @@ define('CORE_PATH', APPROOT . '/core');
 define('CONFIG_PATH', APPROOT . '/config');
 define('VIEW_PATH', APP_PATH . '/views');
 
+// 1. Nạp Autoloader chính (Xử lý các class có Namespace App\)
+require_once CORE_PATH . '/Autoload.php';
 
-require_once APP_PATH . '/interface/Middlewareinterface.php';
 
-
-// Nạp file cấu hình ứng dụng
 require_once CONFIG_PATH . '/config.php';
 $routes = require_once CONFIG_PATH . '/routes.php';
 
-// Core
-require_once CORE_PATH . '/Config.php';
-require_once CORE_PATH . '/View.php';
-require_once CORE_PATH . '/Controller.php';
-require_once CORE_PATH . '/Validator.php';
-require_once CORE_PATH . '/Model.php';
-require_once CORE_PATH . '/Database.php';
-require_once CORE_PATH . '/Connection.php';
-require_once CORE_PATH . '/ErrorHandler.php';
-require_once CORE_PATH . '/Request.php';
-require_once CORE_PATH . '/Response.php';
-require_once CORE_PATH . '/Session.php';
-require_once APP_PATH . '/helpers/Helper.php';
-require_once APP_PATH . '/helpers/SecurityHelper.php';
+// require_once APP_PATH . '/interface/Middlewareinterface.php';
+// require_once APP_PATH . '/interface/Middlewareinterface.php';
 
 
-// App
-// require_once CORE_PATH . '/App.php';
-require_once CORE_PATH . '/Router.php';
-
-
-// run
+// 3. Nạp các file cấu hình và interface bắt buộc
+use App\core\Router;
+use App\core\Request;
+use App\core\ErrorHandler;
+use App\helpers\Helper;
+// 4. Khởi chạy ứng dụng
 try {
     $app = new Router($routes);
     $url = Request::uri();

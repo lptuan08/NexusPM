@@ -1,4 +1,12 @@
 <?php
+namespace App\core;
+
+use App\core\Request;
+use App\core\Validator;
+use App\core\Session;
+use App\core\Response;
+use Exception;
+
 class Controller
 {
     protected $request;
@@ -11,20 +19,12 @@ class Controller
 
     public function model($name)
     {
-        $model = false;
-        $path = APP_PATH . "/models/{$name}.php";
-        if (file_exists($path)) {
-            require_once $path;
-            if (class_exists($name)) {
-                $model = new $name();
+        $className = "App\\models\\" . $name;
+        if (class_exists($className)) {
+                return new $className();
             } else {
                 throw new Exception("class model {$name} không tồn tại", 500);
             }
-        } else {
-            throw new Exception("File model {$path} không tồn tại", 500);
-        }
-
-        return $model;
     }
     public function getEllipsisPagination($currentPage, $totalPages, $delta = '4')
     {

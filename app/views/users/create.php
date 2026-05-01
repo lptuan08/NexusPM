@@ -31,7 +31,7 @@
             </div>
             <div class="card-body p-4">
                 <form action="<?= $action_url ?>" method="POST" enctype="multipart/form-data">
-                    <?php SecurityHelper::csrfInput(); ?>
+                    <?php App\helpers\SecurityHelper::csrfInput(); ?>
                     <div class="d-flex flex-column gap-4">
                         <!-- Section: Thông tin cơ bản -->
                         <div>
@@ -82,7 +82,7 @@
                                 <option value="admin" <?= $currentRole == 'admin' ? 'selected' : '' ?>>Quản trị viên (Admin)</option>
                             </select>
                         </div>
-                        
+
                         <div>
                             <label class="form-label fw-medium small text-slate-700">Chức danh <span class="text-danger">*</span></label>
                             <?php $currentJob = $old['job_title_id'] ?? $user['job_title_id'] ?? ''; ?>

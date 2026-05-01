@@ -1,4 +1,9 @@
 <?php
+namespace App\core;
+
+use App\helpers\Helper;
+use Exception;
+
 class ErrorHandler
 {
     public static function handle($e)

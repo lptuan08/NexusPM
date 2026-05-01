@@ -578,7 +578,7 @@ $leadMemberAvatar = $buildAvatar(
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form action="<?= URLROOT ?>/projects/<?= $project['id'] ?>/addMembers" method="POST">
-                    <?php SecurityHelper::csrfInput(); ?>
+                    <?php \App\helpers\SecurityHelper::csrfInput(); ?>
                     <div class="modal-body px-4 py-3">
                         <div class="mb-4">
                             <label class="project-editor-label">Quyền hạn trong dự án</label>

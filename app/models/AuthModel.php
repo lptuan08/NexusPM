@@ -1,4 +1,8 @@
 <?php
+namespace App\models;
+
+use App\core\Model;
+use PDO;
 class AuthModel extends Model
 {
     protected $table = 'users';

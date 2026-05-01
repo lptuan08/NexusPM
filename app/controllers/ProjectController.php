@@ -1,4 +1,10 @@
 <?php
+namespace App\controllers;
+
+use App\core\Controller;
+use App\core\View;
+use App\core\Response;
+use App\helpers\Helper;
 
 /**
  * Controller ProjectController - Quản lý các hoạt động liên quan đến dự án

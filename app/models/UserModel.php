@@ -1,4 +1,10 @@
 <?php
+namespace App\models;
+
+use App\core\Model;
+use PDO;
+use Exception;
+
 class UserModel extends Model
 {
     protected $table = 'users';

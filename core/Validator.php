@@ -1,5 +1,5 @@
 <?php
-
+namespace App\core;
 /**
  * Lớp Validator - Xử lý kiểm tra tính hợp lệ của dữ liệu đầu vào
  * 

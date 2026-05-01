@@ -112,7 +112,7 @@ $statusOptions = [
 
             <div class="p-4 p-lg-5">
                 <form action="<?= $action_url ?>" method="POST" autocomplete="off">
-                    <?php SecurityHelper::csrfInput(); ?>
+                    <?php App\helpers\SecurityHelper::csrfInput(); ?>
 
                     <div class="row g-4">
                         <!-- Cột trái: Thông tin chính -->

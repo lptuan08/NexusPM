@@ -1,4 +1,5 @@
 <?php
+// echo "main được gọi";
 require_once VIEW_PATH . '/partials/header.php';
 require_once VIEW_PATH . '/partials/sidebar.php';
 ?>

@@ -1,4 +1,9 @@
 <?php
+namespace App\core;
+
+use App\core\Database;
+use PDO;
+
 abstract class Model
 {
     protected $db;

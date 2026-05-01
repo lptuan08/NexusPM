@@ -1,4 +1,8 @@
 <?php
+namespace App\core;
+
+use Exception;
+
 class View
 {
     public static function render($view, $data = [], $layout = 'layouts/main')

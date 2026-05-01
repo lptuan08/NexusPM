@@ -1,4 +1,10 @@
 <?php
+namespace App\models;
+
+use App\core\Model;
+use PDO;
+use Exception;
+
 /**
  * Model ProjectModel - Xử lý các tương tác cơ sở dữ liệu liên quan đến dự án
  */

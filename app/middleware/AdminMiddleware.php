@@ -1,4 +1,9 @@
 <?php
+
+namespace App\middleware;
+
+use App\interfaces\MiddlewareInterface;
+
 class AdminMiddleware implements MiddlewareInterface
 {
     public function handle()

@@ -1,4 +1,13 @@
 <?php
+namespace App\middleware;
+
+use App\interfaces\MiddlewareInterface;
+use App\core\Response;
+
+/**
+ * Middleware AuthMiddleware
+ * Kiểm tra trạng thái đăng nhập của người dùng trước khi truy cập các tài nguyên bảo mật.
+ */
 class AuthMiddleware implements MiddlewareInterface
 {
     public function handle()

@@ -1,4 +1,6 @@
 <?php
+namespace App\core;
+
 class Request
 {
     // Biến lưu trữ dữ liệu đã lọc để tránh việc phải chạy lọc nhiều lần (caching)
