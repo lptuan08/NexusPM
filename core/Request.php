@@ -1,4 +1,5 @@
 <?php
+
 namespace App\core;
 
 class Request
@@ -47,21 +48,19 @@ class Request
             foreach ($value as $key => $val) {
                 $value[$key] = $this->sanitize($val);
             }
-            return $value;
+            return $value; //👈 tới đây là thoát hàm luôn
         }
 
-        // Sử dụng FILTER_SANITIZE_SPECIAL_CHARS để ngăn chặn XSS 
-        // Lưu ý: filter_var linh hoạt hơn filter_input khi xử lý đệ quy
-        return filter_var($value, FILTER_SANITIZE_SPECIAL_CHARS);
+        return $value = trim($value); // nhưng nếu $value không phải array thì trả về và thoát chổ này
     }
 
     // Hàm tĩnh để lấy URL hiện tại
     public static function uri()
     {
-        $url ='/';
+        $url = '/';
         if (!empty($_SERVER['PATH_INFO'])) {
-            $url ="/". trim($_SERVER['PATH_INFO'], '/');
-        } 
+            $url = "/" . trim($_SERVER['PATH_INFO'], '/');
+        }
         return $url;
     }
 

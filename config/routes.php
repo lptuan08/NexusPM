@@ -77,7 +77,7 @@ return [
         // Thiết lập hệ thống
         '/settings/project'=>[
             'controller'=>'admin/SettingsController',
-            'action' => 'projectSetting',
+            'action' => 'list',
             'middleware' => ['AuthMiddleware'] //bổ sung thêm quyền admin
         ]
 
@@ -141,6 +141,20 @@ return [
             'action'     => 'addMembers',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
-        
+        '/settings/project/create' =>[
+            'controller' => 'admin/SettingsController',
+            'action'     => 'store',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+        '/settings/project/{id}/edit' => [
+            'controller' => 'admin/SettingsController',
+            'action'     => 'update',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+        '/settings/project/reorder' => [
+            'controller' => 'admin/SettingsController',
+            'action'     => 'reorder',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
     ]
 ];

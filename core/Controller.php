@@ -11,6 +11,7 @@ class Controller
 {
     protected $request;
     protected $validator;
+    protected $a = 'ssss';
     public function __construct()
     {
         $this->request = new Request();
@@ -26,6 +27,7 @@ class Controller
                 throw new Exception("class model {$name} không tồn tại", 500);
             }
     }
+    
     public function getEllipsisPagination($currentPage, $totalPages, $delta = '4')
     {
         // có delta: sẽ phát triển sau

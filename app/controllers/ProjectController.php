@@ -214,8 +214,8 @@ class ProjectController extends Controller
         $body = $this->request->getBody();
 
         return [
-            'name' => trim($body['name'] ?? ''),
-            'description' => trim($body['description'] ?? ''),
+            'name' => $body['name'] ?? '',
+            'description' => $body['description'] ?? '',
             'status' => $body['status'] ?? 'planning',
             'owner_id' => isset($body['owner_id']) ? (int) $body['owner_id'] : 0,
             'start_date' => !empty($body['start_date']) ? $body['start_date'] : null,

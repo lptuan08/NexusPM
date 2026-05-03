@@ -1,5 +1,7 @@
 <?php
+
 namespace App\core;
+
 /**
  * Lớp Validator - Xử lý kiểm tra tính hợp lệ của dữ liệu đầu vào
  * 
@@ -38,8 +40,16 @@ class Validator
      */
     public function min($field, $value, $min, $label = '')
     {
-        if (strlen(trim($value)) < $min) {
+        if (strlen($value) < $min) {
             $this->errors[$field] = ($label ?: $field) . " phải có ít nhất {$min} ký tự";
+            return false;
+        }
+        return true;
+    }
+    public function max($field, $value, $max, $label = '')
+    {
+        if (strlen($value) > $max) {
+            $this->errors[$field] = ($label ?: $field) . "Vượt quá {$max} ký tự cho phép";
             return false;
         }
         return true;
@@ -52,6 +62,16 @@ class Validator
     {
         if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
             $this->errors[$field] = ($label ?: $field) . " không đúng định dạng email";
+            return false;
+        }
+        return true;
+    }
+
+    public function color($field, $value, $label = '')
+    {
+        $pattern = '/^#([a-fA-F0-9]{3}|[a-fA-F0-9]{6})$/';
+        if (!preg_match($pattern, $value)) {
+            $this->errors[$field] = ($label ?: $field) . " không đúng định dạng mã màu hex";
             return false;
         }
         return true;
