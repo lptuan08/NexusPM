@@ -71,15 +71,20 @@ return [
             'action'     => 'edit',
             'middleware' => ['AuthMiddleware']
         ],
-        
+
         // -----end USER------
 
         // Thiết lập hệ thống
-        '/settings/project'=>[
-            'controller'=>'admin/SettingsController',
+        '/settings/project' => [
+            'controller' => 'admin/SettingsController',
             'action' => 'list',
             'middleware' => ['AuthMiddleware'] //bổ sung thêm quyền admin
-        ]
+        ],
+        '/settings/task' => [
+            'controller' => 'admin/TaskSettingController',
+            'action' => 'list',
+            'middleware' => ['AuthMiddleware'] //bổ sung thêm quyền admin
+        ],
 
     ],
 
@@ -96,7 +101,7 @@ return [
         '/logout' => [
             'controller' => 'auth/AuthController',
             'action'     => 'logout',
-            'middleware' => ['AuthMiddleware','VerifyCsrfToken']
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
 
         // Lưu người dùng mới vào Database
@@ -105,7 +110,7 @@ return [
             'action'     => 'store', // Hàm thực hiện INSERT DB (form tạo mới sẽ POST đến đây)
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
-        
+
         // Cập nhật người dùng sau khi chỉnh sửa
         '/users/{id}/edit' => [
             'controller' => 'UserController',
@@ -141,7 +146,7 @@ return [
             'action'     => 'addMembers',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
-        '/settings/project/create' =>[
+        '/settings/project/create' => [
             'controller' => 'admin/SettingsController',
             'action'     => 'store',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
