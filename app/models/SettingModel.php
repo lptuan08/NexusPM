@@ -22,24 +22,23 @@ class SettingModel extends Model
     {
         $sql = "SELECT COUNT(*) FROM {$this->table} WHERE slug = :slug AND deleted_at IS NULL";
         $params = ['slug' => $slug];
-        
+
         if ($excludeId) {
             $sql .= " AND id != :id";
             $params['id'] = $excludeId;
         }
-        
+
         return (int)$this->db->query($sql, $params)->fetchColumn() > 0;
     }
     public function addProjectStatus($data)
     {
-        
+
 
         try {
             $this->db->beginTransaction();
-            // 1, Thêm nhân viên mới
+            //1. Kiểm tra lấy giá trị position
             $sqlMaxPos = "SELECT MAX(position) as max_pos FROM {$this->table} FOR UPDATE";
             $max = $this->db->query($sqlMaxPos)->fetch()['max_pos'];
-            var_dump($max);
             $position = ($max ?? 0) + 1;
 
             // insert record

@@ -116,6 +116,7 @@
                     <th scope="col">Slug</th>
                     <th scope="col">Mã màu</th>
                     <th scope="col">Trạng thái hoạt động</th>
+                    <th scope="col">Dự án</th>
                     <th scope="col" class="text-center status-actions-col">Hành động</th>
                 </tr>
             </thead>
@@ -126,9 +127,6 @@
                             <td class="text-center text-stt"><?= $status['position'] ?? ($index + 1) ?></td>
                             <td class="text-name">
                                 <?= htmlspecialchars($status['name']) ?>
-                                <?php if (empty($status['project_id'])): ?>
-                                    <span class="ui-badge priority-high ms-1">Mặc định</span>
-                                <?php endif; ?>
                             </td>
                             <td><span class="ui-badge status-muted"><?= htmlspecialchars($status['slug']) ?></span></td>
                             <td>
@@ -139,6 +137,15 @@
                             </td>
                             <td>
                                 <span class="ui-badge <?= ($status['is_active'] ?? false) ? 'status-active' : 'status-muted' ?>"><?= ($status['is_active'] ?? false) ? 'Đã kích hoạt' : 'Vô hiệu hóa' ?></span>
+                            </td>
+                            <td>
+                                <?php if (!empty($status['project_id'])): ?>
+                                    <span class="text-slate-700 small">
+                                        [<?= htmlspecialchars($status['project_code'] ?? '-') ?>] <?= htmlspecialchars($status['project_name'] ?? '') ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span class="text-slate-400 small italic">Dùng chung hệ thống</span>
+                                <?php endif; ?>
                             </td>
                             <td class="text-center">
                                 <div class="d-inline-flex align-items-center gap-1">
@@ -154,7 +161,7 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="6" class="table-empty">Chưa có dữ liệu trạng thái.</td>
+                        <td colspan="7" class="table-empty">Chưa có dữ liệu trạng thái.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>

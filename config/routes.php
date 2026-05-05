@@ -161,6 +161,11 @@ return [
             'action'     => 'reorder',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
+         '/settings/task/create' => [
+            'controller' => 'admin/TaskSettingController',
+            'action'     => 'store',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
         
     ]
 ];
