@@ -1,4 +1,5 @@
 <?php
+
 namespace App\core;
 
 use Exception;
@@ -31,6 +32,7 @@ class Database
 
             $statement = $this->__conn->prepare($sql); // Kiểm tra câu lệnh SQL trước khi thực thi
             $statement->execute($params);
+            // $statement->debugDumpParams();
             return $statement;
         } catch (PDOException $e) {
             throw new Exception("Lỗi truy vấn: " . $e->getMessage(), 500);
@@ -109,5 +111,4 @@ class Database
     {
         $this->__conn->rollBack();
     }
-    
 }

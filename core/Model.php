@@ -1,4 +1,5 @@
 <?php
+
 namespace App\core;
 
 use App\core\Database;
@@ -82,5 +83,22 @@ abstract class Model
     {
         $sql = "SELECT COUNT(*) FROM {$this->table} WHERE deleted_at IS NULL";
         return (int)$this->db->query($sql)->fetchColumn();
+    }
+
+
+    // TRANSACTION
+    public function beginTransaction()
+    {
+        return $this->db->beginTransaction();
+    }
+
+    public function commit()
+    {
+        return $this->db->commit();
+    }
+
+    public function rollBack()
+    {
+        return $this->db->rollBack();
     }
 }

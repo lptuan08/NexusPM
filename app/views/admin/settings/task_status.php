@@ -115,8 +115,9 @@
                     <th scope="col">Tên trạng thái</th>
                     <th scope="col">Slug</th>
                     <th scope="col">Mã màu</th>
-                    <th scope="col">Trạng thái hoạt động</th>
-                    <th scope="col">Dự án</th>
+                    <th scope="col" class="text-center">Hoàn tất</th>
+                    <th scope="col" class="text-center">Mặc định</th>
+                    <th scope="col" class="text-center">Kích hoạt</th>
                     <th scope="col" class="text-center status-actions-col">Hành động</th>
                 </tr>
             </thead>
@@ -135,17 +136,24 @@
                                     <code class="text-slate-500"><?= htmlspecialchars($status['color'] ?? '#94a3b8') ?></code>
                                 </div>
                             </td>
-                            <td>
-                                <span class="ui-badge <?= ($status['is_active'] ?? false) ? 'status-active' : 'status-muted' ?>"><?= ($status['is_active'] ?? false) ? 'Đã kích hoạt' : 'Vô hiệu hóa' ?></span>
-                            </td>
-                            <td>
-                                <?php if (!empty($status['project_id'])): ?>
-                                    <span class="text-slate-700 small">
-                                        [<?= htmlspecialchars($status['project_code'] ?? '-') ?>] <?= htmlspecialchars($status['project_name'] ?? '') ?>
-                                    </span>
+                            <td class="text-center">
+                                <?php if ($status['is_done'] ?? false): ?>
+                                    <i data-lucide="check-circle" class="text-success" size="20"></i>
                                 <?php else: ?>
-                                    <span class="text-slate-400 small italic">Dùng chung hệ thống</span>
+                                    <span class="text-slate-400 small">-</span>
                                 <?php endif; ?>
+                            </td>
+                            <td class="text-center">
+                                <?php if ($status['is_default'] ?? false): ?>
+                                    <i data-lucide="check" class="text-primary" size="20"></i>
+                                <?php else: ?>
+                                    <span class="text-slate-400 small">-</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center">
+                                    <input class="form-check-input" type="checkbox" <?= ($status['is_active'] ?? false) ? 'checked' : '' ?> disabled>
+                                </div>
                             </td>
                             <td class="text-center">
                                 <div class="d-inline-flex align-items-center gap-1">
@@ -161,7 +169,7 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="7" class="table-empty">Chưa có dữ liệu trạng thái.</td>
+                        <td colspan="8" class="table-empty">Chưa có dữ liệu trạng thái.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -226,6 +234,18 @@
                             <label class="form-check-label text-slate-600 fw-semibold small" for="field_is_active">Kích hoạt trạng thái</label>
                         </div>
                     </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_default" id="field_is_default" value="1" <?= (isset($old['is_default']) && $old['is_default'] == 1) ? 'checked' : '' ?>>
+                            <label class="form-check-label text-slate-600 fw-semibold small" for="field_is_default">Đặt làm mặc định</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_done" id="field_is_done" value="1" <?= (isset($old['is_done']) && $old['is_done'] == 1) ? 'checked' : '' ?>>
+                            <label class="form-check-label text-slate-600 fw-semibold small" for="field_is_done">Đánh dấu là trạng thái hoàn thành</label>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer border-top-0 pb-4 px-4">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
@@ -253,6 +273,7 @@
             -->
             <form action="<?= URLROOT ?>/settings/task/reorder" method="POST">
                 <?php \App\helpers\SecurityHelper::csrfInput(); ?>
+                <input type="hidden" name="project_id" value="<?= $projectId ?? '' ?>">
                 <div class="modal-body px-4 py-2">
                     <p class="text-slate-500 small mb-3">Kéo thả các trạng thái để sắp xếp thứ tự ưu tiên hiển thị trên hệ thống.</p>
                     <div id="sortableContainer" class="d-flex flex-column gap-2">
@@ -340,6 +361,8 @@
         document.getElementById('statusModalLabel').innerText = 'Thêm trạng thái mới'; // Bước 3: Đổi tiêu đề modal
         document.getElementById('color_hex_display').value = '#6366F1'; // Bước 4: Thiết lập màu mặc định
         document.getElementById('field_is_active').checked = true; // Bước 5: Mặc định là kích hoạt
+        document.getElementById('field_is_default').checked = false;
+        document.getElementById('field_is_done').checked = false;
     }
 
     /**
@@ -367,6 +390,8 @@
 
         // Bước 4: Xử lý trạng thái checkbox (0/1)
         document.getElementById('field_is_active').checked = status.is_active == 1;
+        document.getElementById('field_is_default').checked = status.is_default == 1;
+        document.getElementById('field_is_done').checked = status.is_done == 1;
 
         // Hiển thị modal bằng Bootstrap JavaScript API
         const modal = new bootstrap.Modal(document.getElementById('statusModal'));
