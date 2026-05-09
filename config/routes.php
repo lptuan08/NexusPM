@@ -71,6 +71,16 @@ return [
             'action'     => 'edit',
             'middleware' => ['AuthMiddleware']
         ],
+        '/tasks' => [
+            'controller' => 'TaskController',
+            'action'     => 'index',
+            'middleware' => ['AuthMiddleware']
+        ],
+        '/tasks/create' => [
+            'controller' => 'TaskController',
+            'action'     => 'create',
+            'middleware' => ['AuthMiddleware']
+        ],
 
         // -----end USER------
 
@@ -189,6 +199,11 @@ return [
             'action'     => 'reorder',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
+        '/settings/project/{id}/delete' => [
+            'controller' => 'admin/ProjectStatusController',
+            'action'     => 'delete',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
         // TASK STATUS
         '/settings/task/create' => [
             'controller' => 'admin/TaskStatusController',
@@ -203,6 +218,11 @@ return [
         '/settings/task/reorder' => [
             'controller' => 'admin/TaskStatusController',
             'action'     => 'reorder',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+        '/settings/task/{id}/delete' => [
+            'controller' => 'admin/TaskStatusController',
+            'action'     => 'delete',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
 
@@ -247,7 +267,7 @@ return [
         '/admin/roles/{id}/permissions' => [
             'controller' => 'admin/PermissionController',
             'action' => 'RolePermissionsEdit',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
 
 

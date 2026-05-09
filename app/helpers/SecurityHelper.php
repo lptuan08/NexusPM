@@ -17,6 +17,6 @@ class SecurityHelper
     public static function csrfInput()
     {
         $token = self::generateToken();
-        echo '<input type="hidden" name="csrf_token" value="' . $token . '">';
+        echo '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">';
     }
 }

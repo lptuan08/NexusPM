@@ -28,8 +28,7 @@ class RoleModel extends Model
         $sql = "SELECT EXISTS(
                 SELECT 1
                 FROM {$this->table}
-                WHERE slug = :slug
-                AND deleted_at IS NULL";
+                WHERE slug = :slug";
 
         $params = ['slug' => $slug];
 

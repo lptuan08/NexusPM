@@ -67,7 +67,7 @@
 
 <div class="page-toolbar">
     <div class="d-flex align-items-center text-slate-600 fs-6">
-        <a href="<?= URLROOT; ?>/admin/settings" class="text-decoration-none text-slate-500 hover-text-primary">Hệ thống</a>
+        <a href="<?= URLROOT; ?>/settings" class="text-decoration-none text-slate-500 hover-text-primary">Hệ thống</a>
         <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
         <span class="page-title">Nhân viên</span>
     </div>
@@ -247,6 +247,28 @@
         </nav>
     </div>
 
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal fade modal-confirm" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-confirm-dialog">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-body text-center">
+                <div class="icon-box">
+                    <i data-lucide="alert-triangle" size="32"></i>
+                </div>
+                <h5 class="fw-bold text-slate-800 mb-2">Xác nhận xóa</h5>
+                <p class="text-slate-500 small mb-4" id="deleteConfirmMessage">Hành động này không thể hoàn tác. Bạn có chắc chắn?</p>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary w-100" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <form id="deleteForm" method="POST" action="" class="w-100 m-0">
+                        <?php \App\helpers\SecurityHelper::csrfInput(); ?>
+                        <button type="submit" class="btn btn-danger w-100">Xác nhận xóa</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Filter Modal -->

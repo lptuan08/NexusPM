@@ -82,7 +82,7 @@
 
 <div class="page-toolbar">
     <div class="d-flex align-items-center text-slate-600 fs-6">
-        <a href="<?= URLROOT; ?>/admin/settings" class="text-decoration-none text-slate-500 hover-text-primary">Hệ thống</a>
+        <a href="<?= URLROOT; ?>/settings" class="text-decoration-none text-slate-500 hover-text-primary">Hệ thống</a>
         <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
         <span class="page-title">Trạng thái công việc</span>
     </div>
@@ -198,10 +198,10 @@
                     <div class="mb-3">
                         <label class="form-label text-slate-600 fw-semibold small">Áp dụng cho dự án</label>
                         <select name="project_id" id="field_project_id" class="form-select select-custom">
-                            <option value="">-- Cấu hình mặc định (Toàn hệ thống) --</option>
+                            <option value="" <?= (isset($old['project_id']) && $old['project_id'] === '') ? 'selected' : '' ?>>-- Cấu hình mặc định (Toàn hệ thống) --</option>
                             <?php if (!empty($projects)): ?>
                                 <?php foreach ($projects as $proj): ?>
-                                    <option value="<?= $proj['id'] ?>">
+                                    <option value="<?= $proj['id'] ?>" <?= (isset($old['project_id']) && $old['project_id'] == $proj['id']) ? 'selected' : '' ?>>
                                         [<?= htmlspecialchars($proj['project_code']) ?>] <?= htmlspecialchars($proj['name']) ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -231,7 +231,7 @@
                             </div>
                         </div>
                         <?php if (isset($errors['color'])): ?>
-                            <div class="text-danger small mt-1"><?= $errors['color'] ?></div>
+                            <div class="form-error-message text-danger small mt-1"><?= $errors['color'] ?></div>
                         <?php endif; ?>
                     </div>
                     <div class="mb-3 mt-3">
@@ -345,6 +345,11 @@
             const statusModal = new bootstrap.Modal(document.getElementById('statusModal'));
             statusModal.show();
         <?php endif; ?>
+
+        const modalEl = document.getElementById('statusModal');
+        modalEl.addEventListener('hidden.bs.modal', function() {
+            resetStatusForm();
+        });
     });
 
     /**
@@ -354,52 +359,44 @@
         window.location.href = '<?= URLROOT ?>/settings/task' + (id ? '?project_id=' + id : '');
     }
 
-    /**
-     * Làm mới form trong modal về trạng thái ban đầu để thêm mới
-     */
+    function setStatusColor(value) {
+        const color = value || '#6366f1';
+        document.getElementById('field_color').value = color;
+        document.getElementById('color_hex_display').value = color.toUpperCase();
+    }
+
     function resetStatusForm() {
         const form = document.getElementById('statusForm');
-        form.reset();
-        form.action = '<?= URLROOT ?>/settings/task/create'; // Bước 1: Trỏ action về route tạo mới
+        window.NexusPM?.clearFormValidation(form);
+        form.action = '<?= URLROOT ?>/settings/task/create';
 
-        document.getElementById('field_id').value = ''; // Bước 2: Xóa ID để backend phân biệt (Insert)
-        document.getElementById('field_project_id').value = '<?= $projectId ?? "" ?>'; // Bước 2.1: Mặc định theo bộ lọc hiện tại
-        document.getElementById('statusModalLabel').innerText = 'Thêm trạng thái mới'; // Bước 3: Đổi tiêu đề modal
-        document.getElementById('color_hex_display').value = '#6366F1'; // Bước 4: Thiết lập màu mặc định
-        document.getElementById('field_is_active').checked = true; // Bước 5: Mặc định là kích hoạt
+        document.getElementById('field_id').value = '';
+        document.getElementById('field_project_id').value = '<?= $projectId ?? "" ?>';
+        document.getElementById('field_name').value = '';
+        document.getElementById('field_slug').value = '';
+        document.getElementById('statusModalLabel').innerText = 'Thêm trạng thái mới';
+        setStatusColor('#6366f1');
+        document.getElementById('field_is_active').checked = true;
         document.getElementById('field_is_default').checked = false;
         document.getElementById('field_is_done').checked = false;
     }
 
-    /**
-     * Đổ dữ liệu vào modal và hiển thị để chỉnh sửa một trạng thái
-     * @param {Object} status Đối tượng chứa thông tin trạng thái
-     */
     function editStatus(status) {
-        // Reset form trước khi điền dữ liệu mới
         resetStatusForm();
 
-        // Bước 1: Thay đổi action của form trỏ tới route cập nhật kèm ID
         const form = document.getElementById('statusForm');
         form.action = `<?= URLROOT ?>/settings/task/${status.id}/edit`;
 
-        // Bước 2: Cập nhật tiêu đề và gán các giá trị từ đối tượng status vào form
         document.getElementById('statusModalLabel').innerText = 'Chỉnh sửa trạng thái';
         document.getElementById('field_id').value = status.id;
         document.getElementById('field_project_id').value = status.project_id || '';
         document.getElementById('field_name').value = status.name;
         document.getElementById('field_slug').value = status.slug;
-
-        // Bước 3: Đồng bộ cả input color và input text hex
-        document.getElementById('field_color').value = status.color || '#6366f1';
-        document.getElementById('color_hex_display').value = (status.color || '#6366F1').toUpperCase();
-
-        // Bước 4: Xử lý trạng thái checkbox (0/1)
+        setStatusColor(status.color);
         document.getElementById('field_is_active').checked = status.is_active == 1;
         document.getElementById('field_is_default').checked = status.is_default == 1;
         document.getElementById('field_is_done').checked = status.is_done == 1;
 
-        // Hiển thị modal bằng Bootstrap JavaScript API
         const modal = new bootstrap.Modal(document.getElementById('statusModal'));
         modal.show();
     }
@@ -411,8 +408,25 @@
      */
     function deleteStatus(id, name) {
         if (confirm(`Bạn có chắc chắn muốn xóa trạng thái "${name}" không?`)) {
-            // Chuyển hướng đến URL xóa của backend
-            window.location.href = `<?= URLROOT ?>/admin/settings/task-status/delete/${id}`;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `<?= URLROOT ?>/settings/task/${id}/delete`;
+
+            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+
+            const projectInput = document.createElement('input');
+            projectInput.type = 'hidden';
+            projectInput.name = 'project_id';
+            projectInput.value = '<?= htmlspecialchars((string)($projectId ?? ''), ENT_QUOTES, 'UTF-8') ?>';
+            form.appendChild(projectInput);
+
+            document.body.appendChild(form);
+            form.submit();
         }
     }
 </script>

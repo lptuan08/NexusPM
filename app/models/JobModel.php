@@ -18,7 +18,7 @@ class JobModel extends Model
     {
         $sql = "INSERT INTO {$this->table} (name) VALUES (:name)";
         $params = ['name' => $data['name']];
-        $this->db->query($sql, $params);
+        return $this->db->query($sql, $params);
     }
     public function updateJob($id, $data)
     {

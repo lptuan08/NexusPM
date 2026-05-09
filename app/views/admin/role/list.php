@@ -24,13 +24,13 @@
 
 <div class="page-toolbar">
     <div class="d-flex align-items-center text-slate-600 fs-6">
-        <a href="<?= URLROOT; ?>/admin/settings" class="text-decoration-none text-slate-500 hover-text-primary">Hệ thống</a>
+        <a href="<?= URLROOT; ?>/settings" class="text-decoration-none text-slate-500 hover-text-primary">Hệ thống</a>
         <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
         <span class="page-title">Vai trò & Phân quyền</span>
     </div>
     <div class="page-actions">
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#roleModal"">
-            <i data-lucide=" plus" size="18"></i>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#roleModal" onclick="resetRoleForm()">
+            <i data-lucide="plus" size="18"></i>
             <span>Thêm vai trò</span>
         </button>
     </div>
@@ -130,7 +130,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="roleForm" action="<?= URLROOT ?>/admin/roles/create" method="POST">
-                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                <?php \App\helpers\SecurityHelper::csrfInput(); ?>
                 <div class="modal-body py-4">
                     <div class="row g-3 mb-3">
                         <div class="col-md-12">
@@ -185,7 +185,7 @@
             <div class="modal-footer border-top-0 justify-content-center pt-0 pb-4">
                 <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Hủy</button>
                 <form id="deleteForm" method="POST" action="">
-                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                    <?php \App\helpers\SecurityHelper::csrfInput(); ?>
                     <button type="submit" class="btn btn-danger px-4">Đồng ý xóa</button>
                 </form>
             </div>
@@ -194,7 +194,22 @@
 </div>
 
 <script>
+    function resetRoleForm() {
+        const form = document.getElementById('roleForm');
+        window.NexusPM?.clearFormValidation(form);
+
+        document.getElementById('roleModalTitle').innerText = 'Thêm vai trò mới';
+        form.action = `<?= URLROOT ?>/admin/roles/create`;
+        document.getElementById('roleName').value = '';
+        document.getElementById('roleSlug').value = '';
+        document.getElementById('roleDescription').value = '';
+        document.getElementById('roleIsActive').checked = true;
+        document.getElementById('roleIsSystem').value = '0';
+        document.getElementById('slugWarning').classList.add('d-none');
+    }
+
     function editRole(role) {
+        resetRoleForm();
         const modal = new bootstrap.Modal(document.getElementById('roleModal'));
         const slugInput = document.getElementById('roleSlug');
         const slugWarning = document.getElementById('slugWarning');
@@ -203,7 +218,7 @@
         document.getElementById('roleForm').action = `<?= URLROOT ?>/admin/roles/${role.id}/update`;
         document.getElementById('roleName').value = role.name;
         slugInput.value = role.slug;
-        document.getElementById('roleDescription').value = role.description;
+        document.getElementById('roleDescription').value = role.description || '';
         document.getElementById('roleIsActive').checked = parseInt(role.is_active) === 1;
 
         // Nếu là vai trò hệ thống, hạn chế sửa slug để tránh lỗi logic permission
@@ -213,24 +228,20 @@
             slugWarning.classList.add('d-none');
         }
 
-        document.getElementById('roleIsSystem').value = role.is_system;
+        document.getElementById('roleIsSystem').value = role.is_system || 0;
         modal.show();
     }
 
-    // Reset modal khi đóng
     document.getElementById('roleModal').addEventListener('hidden.bs.modal', function() {
-        document.getElementById('roleModalTitle').innerText = 'Thêm vai trò mới';
-        document.getElementById('roleForm').action = `<?= URLROOT ?>/admin/roles/create`;
-        document.getElementById('roleForm').reset();
-        document.getElementById('slugWarning').classList.add('d-none');
-        document.getElementById('roleIsActive').checked = true;
-        // Xóa class is-invalid và các thông báo lỗi khi đóng modal
-        document.getElementById('roleForm').querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        resetRoleForm();
     });
 
-    // Tự động mở modal nếu có lỗi validate từ server gửi về
     <?php if (!empty($errors)): ?>
         document.addEventListener('DOMContentLoaded', function() {
+            <?php if (!empty($old['id'])): ?>
+                document.getElementById('roleModalTitle').innerText = 'Chỉnh sửa vai trò';
+                document.getElementById('roleForm').action = `<?= URLROOT ?>/admin/roles/<?= (int)$old['id'] ?>/update`;
+            <?php endif; ?>
             const roleModal = new bootstrap.Modal(document.getElementById('roleModal'));
             roleModal.show();
         });

@@ -52,17 +52,17 @@
             </div>
             <div class="ui-card-body p-0">
                 <div class="info-list">
-                    <a href="<?= URLROOT ?>/settings/project-statuses" class="info-list-item text-decoration-none hover-bg-slate-100">
+                    <a href="<?= URLROOT ?>/settings/project" class="info-list-item text-decoration-none hover-bg-slate-100">
                         <div class="d-flex align-items-center gap-3">
                             <div class="text-slate-500"><i data-lucide="git-pull-request" size="18"></i></div>
                             <span class="text-slate-700 fw-medium">Trạng thái dự án</span>
                         </div>
                         <i data-lucide="chevron-right" class="text-slate-300" size="16"></i>
                     </a>
-                    <a href="<?= URLROOT ?>/settings/task-priorities" class="info-list-item text-decoration-none hover-bg-slate-100">
+                    <a href="<?= URLROOT ?>/settings/task" class="info-list-item text-decoration-none hover-bg-slate-100">
                         <div class="d-flex align-items-center gap-3">
-                            <div class="text-slate-500"><i data-lucide="list-ordered" size="18"></i></div>
-                            <span class="text-slate-700 fw-medium">Mức độ ưu tiên công việc</span>
+                            <div class="text-slate-500"><i data-lucide="list-todo" size="18"></i></div>
+                            <span class="text-slate-700 fw-medium">Trạng thái công việc</span>
                         </div>
                         <i data-lucide="chevron-right" class="text-slate-300" size="16"></i>
                     </a>
@@ -82,13 +82,13 @@
             </div>
             <div class="ui-card-body p-0">
                 <div class="info-list">
-                    <a href="<?= URLROOT ?>/admin/logs" class="info-list-item text-decoration-none hover-bg-slate-100">
+                    <span class="info-list-item text-decoration-none text-muted">
                         <div class="d-flex align-items-center gap-3">
                             <div class="text-slate-500"><i data-lucide="activity" size="18"></i></div>
                             <span class="text-slate-700 fw-medium">Nhật ký hoạt động</span>
                         </div>
-                        <i data-lucide="chevron-right" class="text-slate-300" size="16"></i>
-                    </a>
+                        <span class="text-slate-400 small">Sắp có</span>
+                    </span>
                 </div>
             </div>
         </div>

@@ -24,6 +24,27 @@ function setActiveSidebarLink() {
     });
 }
 
+function clearFormValidation(form) {
+    if (!form) return;
+
+    form.querySelectorAll('.is-invalid').forEach(element => {
+        element.classList.remove('is-invalid');
+    });
+
+    form.querySelectorAll('.border-danger').forEach(element => {
+        element.classList.remove('border-danger');
+    });
+
+    form.querySelectorAll('.invalid-feedback, .form-error-message').forEach(element => {
+        element.textContent = '';
+        element.classList.add('d-none');
+    });
+}
+
+window.NexusPM = Object.assign(window.NexusPM || {}, {
+    clearFormValidation
+});
+
 // Xử lý chọn tất cả checkbox trong bảng
 const selectAll = document.getElementById('selectAll');
 if (selectAll) {

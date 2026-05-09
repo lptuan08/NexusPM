@@ -30,7 +30,7 @@
 
 <div class="page-toolbar">
     <div class="d-flex align-items-center text-slate-600 fs-6">
-        <a href="<?= URLROOT; ?>/admin/settings" class="text-decoration-none text-slate-500 hover-text-primary">Hệ thống</a>
+        <a href="<?= URLROOT; ?>/settings" class="text-decoration-none text-slate-500 hover-text-primary">Hệ thống</a>
         <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
         <span class="page-title">Chức danh nhân viên</span>
     </div>
@@ -164,32 +164,22 @@
 
             jobTitleModal.show();
         <?php endif; ?>
+
+        document.getElementById('jobTitleModal').addEventListener('hidden.bs.modal', function() {
+            resetJobTitleForm();
+        });
     });
 
-    /**
-     * Làm mới form trong modal
-     */
     function resetJobTitleForm() {
         const form = document.getElementById('jobTitleForm');
-        //Reset form theo cách tiêu chuẩn
-        form.reset();
+        window.NexusPM?.clearFormValidation(form);
 
-        // Xóa bỏ các class báo lỗi và ẩn các thông báo lỗi cũ
-        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-        form.querySelectorAll('.invalid-feedback').forEach(el => el.innerText = '');
-
-
-        // Khôi phục trạng thái mặc định cho Form
         form.action = '<?= URLROOT ?>/settings/job/create';
         document.getElementById('field_id').value = '';
         document.getElementById('field_name').value = '';
         document.getElementById('jobTitleModalLabel').innerText = 'Thêm chức danh mới';
     }
 
-
-    /**
-     * Đổ dữ liệu vào modal để chỉnh sửa
-     */
     function editJobTitle(title) {
         resetJobTitleForm();
         const form = document.getElementById('jobTitleForm');

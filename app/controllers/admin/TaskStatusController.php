@@ -155,10 +155,24 @@ class TaskStatusController extends Controller
         Response::redirect(URLROOT . '/settings/task' . (isset($body['project_id']) && $body['project_id'] ? '?project_id=' . $body['project_id'] : ''));
     }
 
+    public function delete(string $id)
+    {
+        $body = $this->request->getBody();
+        $projectId = !empty($body['project_id']) ? (int)$body['project_id'] : null;
+
+        if ($this->modelTaskStatus->delete($id)) {
+            Helper::setFlash('success', 'Xóa trạng thái công việc thành công!');
+        } else {
+            Helper::setFlash('danger', 'Có lỗi xảy ra khi xóa trạng thái công việc.');
+        }
+
+        Response::redirect(URLROOT . '/settings/task' . ($projectId ? '?project_id=' . $projectId : ''));
+    }
+
     /**
      * Hàm validate chung cho Task Status
      */
-    private function validateStatus(array $data, int $projectId, $id = null)
+    private function validateStatus(array $data, ?int $projectId, $id = null)
     {
         $this->validator->required('name', $data['name'], 'Tên trạng thái');
         $this->validator->required('slug', $data['slug'], "Slug");

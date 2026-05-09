@@ -39,7 +39,7 @@ class TaskStatusModel extends Model
         return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function isSlugExists(string $slug, int $project_id, $excludeId = null)
+    public function isSlugExists(string $slug, ?int $project_id, $excludeId = null)
     {
         // dùng SELECT EXITST kiểm tra tồn tại
         $sql = "SELECT EXISTS(
@@ -125,7 +125,7 @@ class TaskStatusModel extends Model
             throw new Exception("Lỗi khi chỉnh sửa trạng thái công việc: " . $e->getMessage(), 500);
         }
     }
-    public function checkStatusFlags(int $project_id, string $statusFlags, $excludeId = null) // $statusFlasg = 'is_default' or 'is_done'
+    public function checkStatusFlags(?int $project_id, string $statusFlags, $excludeId = null) // $statusFlasg = 'is_default' or 'is_done'
     {
 
         if ($project_id == null) {
@@ -153,6 +153,12 @@ class TaskStatusModel extends Model
         $params = ['id' => $id];
         $result = $this->db->query($sql, $params);
         return $result;
+    }
+
+    public function delete($id)
+    {
+        $sql = "UPDATE {$this->table} SET deleted_at = CURRENT_TIMESTAMP WHERE id = :id";
+        return (bool)$this->db->query($sql, ['id' => $id]);
     }
 
     /**

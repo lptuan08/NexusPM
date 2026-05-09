@@ -7,7 +7,7 @@ use App\core\View;
 use App\core\Response;
 use App\helpers\Helper;
 use App\models\ProjectModel;
-use App\models\SettingModel;
+use App\models\ProjectStatusModel;
 use App\models\UserModel;
 
 /**
@@ -18,14 +18,14 @@ class ProjectController extends Controller
 {
     private ProjectModel $modelProject;
     private UserModel $modelUser;
-    private SettingModel $modelSetting;
+    private ProjectStatusModel $modelProjectStatus;
 
     public function __construct()
     {
         parent::__construct();
         $this->modelProject = $this->model('ProjectModel');
         $this->modelUser = $this->model('UserModel');
-        $this->modelSetting = $this->model('SettingModel');
+        $this->modelProjectStatus = $this->model('ProjectStatusModel');
     }
 
     /**
@@ -56,7 +56,7 @@ class ProjectController extends Controller
         $totalItem = $this->modelProject->countAll($filters);
         $projects = $this->modelProject->getProjectsByPage($page, $perPage, $filters);
         $totalPage = ceil($totalItem / $perPage);
-        $statusOptions = $this->modelSetting->getList(); // Lấy danh sách trạng thái để hiển thị trong bộ lọc
+        $statusOptions = $this->modelProjectStatus->getList(); // Lấy danh sách trạng thái để hiển thị trong bộ lọc
 
         View::render('projects/list', [
             'projects' => $projects,
@@ -264,7 +264,7 @@ class ProjectController extends Controller
     private function getProjectFormViewData(array $data = [])
     {
         $data['ownerOptions'] = $this->modelUser->getProjectOwnerOptions();
-        $data['statusOptions'] = $this->modelSetting->getList();
+        $data['statusOptions'] = $this->modelProjectStatus->getList();
         return $data;
     }
 
@@ -312,7 +312,7 @@ class ProjectController extends Controller
 
         // Kiểm tra tính hợp lệ của trạng thái từ Database
         if (!empty($data['status_id'])) {
-            $statusIds = array_column($this->modelSetting->getList(), 'id');
+            $statusIds = array_column($this->modelProjectStatus->getList(), 'id');
             if (!in_array($data['status_id'], $statusIds)) {
                 $this->validator->addError('status_id', 'Trạng thái dự án không hợp lệ');
             }

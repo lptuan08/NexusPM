@@ -56,7 +56,12 @@ class ProjectStatusController extends Controller
 
         if (!$this->validator->passes()) {
             $errors = $this->validator->getErrors();
-            return View::render('admin/settings/project_status', ['errors' => $errors, 'old' => $body]);
+            $statuses = $this->modelProjectStatus->getList();
+            return View::render('admin/settings/project_status', [
+                'statuses' => $statuses,
+                'errors' => $errors,
+                'old' => $body
+            ]);
         }
 
         $this->modelProjectStatus->addProjectStatus($data);
@@ -123,6 +128,17 @@ class ProjectStatusController extends Controller
             // Thực hiện cập nhật vào Database
             $this->modelProjectStatus->updateOrder($orderData);
             Helper::setFlash('success', 'Cập nhật thứ tự trạng thái thành công!');
+        }
+
+        Response::redirect(URLROOT . '/settings/project');
+    }
+
+    public function delete(string $id)
+    {
+        if ($this->modelProjectStatus->delete($id)) {
+            Helper::setFlash('success', 'Xóa trạng thái dự án thành công!');
+        } else {
+            Helper::setFlash('danger', 'Có lỗi xảy ra khi xóa trạng thái dự án.');
         }
 
         Response::redirect(URLROOT . '/settings/project');

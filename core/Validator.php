@@ -25,7 +25,11 @@ class Validator
 
     public function required($field, $value, $label = '')
     {
-        if (empty(trim($value))) {
+        $isEmpty = is_array($value)
+            ? empty($value)
+            : ($value === null || trim((string)$value) === '' || trim((string)$value) === '0');
+
+        if ($isEmpty) {
             $this->errors[$field] = ($label ?: $field) . " không được để trống";
             return false;
         }
@@ -40,7 +44,7 @@ class Validator
      */
     public function min($field, $value, $min, $label = '')
     {
-        if (strlen($value) < $min) {
+        if (strlen((string)$value) < $min) {
             $this->errors[$field] = ($label ?: $field) . " phải có ít nhất {$min} ký tự";
             return false;
         }
@@ -48,7 +52,7 @@ class Validator
     }
     public function max($field, $value, $max, $label = '')
     {
-        if (strlen($value) > $max) {
+        if (strlen((string)$value) > $max) {
             $this->errors[$field] = ($label ?: $field) . "Vượt quá {$max} ký tự cho phép";
             return false;
         }
@@ -60,7 +64,7 @@ class Validator
      */
     public function email($field, $value, $label = '')
     {
-        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+        if (!filter_var((string)$value, FILTER_VALIDATE_EMAIL)) {
             $this->errors[$field] = ($label ?: $field) . " không đúng định dạng email";
             return false;
         }
@@ -70,7 +74,7 @@ class Validator
     public function color($field, $value, $label = '')
     {
         $pattern = '/^#([a-fA-F0-9]{3}|[a-fA-F0-9]{6})$/';
-        if (!preg_match($pattern, $value)) {
+        if (!preg_match($pattern, (string)$value)) {
             $this->errors[$field] = ($label ?: $field) . " không đúng định dạng mã màu hex";
             return false;
         }

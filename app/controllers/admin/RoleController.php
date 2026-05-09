@@ -73,14 +73,21 @@ class RoleController extends Controller
     public function update(string $id)
     {
         if ($this->request->isPost()) {
+            $role = $this->modelRole->find($id);
+            if (!$role) {
+                Helper::setFlash('danger', 'Vai trò không tồn tại.');
+                Response::redirect(URLROOT . '/admin/roles');
+            }
+
             $body = $this->request->getBody();
 
             $data = [
+                'id'          => $id,
                 'name'        => $body['name'] ?? '',
                 'slug'        => $body['slug'] ?? '',
                 'description' => $body['description'] ?? '',
                 'is_active'   => isset($body['is_active']) ? 1 : 0,
-                'is_system'   => isset($body['is_system']) ? (int)$body['is_system'] : 0
+                'is_system'   => (int)($role['is_system'] ?? 0)
             ];
 
             if (!$this->validateForm($data, $id)) {

@@ -45,7 +45,7 @@ class JobController extends Controller
                 Helper::setFlash('success', "Thêm chức danh thành công");
                 Response::redirect(URLROOT . '/settings/job');
             } else {
-                Helper::setFlash('success', "Thêm chức danh không thành công");
+                Helper::setFlash('danger', "Thêm chức danh không thành công");
                 Response::redirect(URLROOT . '/settings/job');
             }
         } else {
@@ -54,7 +54,7 @@ class JobController extends Controller
                 Helper::setFlash('success', "Cập nhật chức danh thành công");
                 Response::redirect(URLROOT . '/settings/job');
             } else {
-                Helper::setFlash('success', "Cập nhật chức danh không thành công");
+                Helper::setFlash('danger', "Cập nhật chức danh không thành công");
                 Response::redirect(URLROOT . '/settings/job');
             }
         }
@@ -73,7 +73,7 @@ class JobController extends Controller
             Helper::setFlash('success', "Xóa chức danh thành công");
             Response::redirect(URLROOT . '/settings/job');
         }else{
-            Helper::setFlash('success', "Xóa chức danh không thành công");
+            Helper::setFlash('danger', "Xóa chức danh không thành công");
             Response::redirect(URLROOT . '/settings/job');
         }
     }
