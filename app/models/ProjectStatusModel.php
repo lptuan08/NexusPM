@@ -7,7 +7,7 @@ use App\core\Model;
 use PDO;
 use Exception;
 
-class SettingModel extends Model
+class ProjectStatusModel extends Model
 {
     protected $table = 'project_statuses';
 
@@ -18,7 +18,7 @@ class SettingModel extends Model
     }
 
 
-    public function isSlugExists($slug, $excludeId = null)
+    public function isSlugExists(string $slug, $excludeId = null)
     {
         $sql = "SELECT COUNT(*) FROM {$this->table} WHERE slug = :slug AND deleted_at IS NULL";
         $params = ['slug' => $slug];
@@ -30,7 +30,7 @@ class SettingModel extends Model
 
         return (int)$this->db->query($sql, $params)->fetchColumn() > 0;
     }
-    public function addProjectStatus($data)
+    public function addProjectStatus(array $data)
     {
 
 
@@ -59,7 +59,7 @@ class SettingModel extends Model
         }
     }
 
-    public function updateProjectStatus($id, $data)
+    public function updateProjectStatus(string $id, array $data)
     {
         $sql = "UPDATE {$this->table} SET 
                 name = :name, 
@@ -79,7 +79,7 @@ class SettingModel extends Model
     /**
      * Cập nhật thứ tự vị trí hàng loạt
      */
-    public function updateOrder($order)
+    public function updateOrder(array $order)
     {
         try {
             $this->db->beginTransaction();

@@ -314,13 +314,24 @@ body {
 .sidebar-section-title {
     padding-left: 32px !important;
     opacity: 1;
-    transition: opacity 0.2s;
-
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-wrapper.collapsed .sidebar-section-title {
-    opacity: 0;
-    pointer-events: none;
+    padding-left: 0 !important;
+    font-size: 0 !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 12px 0 !important;
+    opacity: 1;
+}
+
+.sidebar-wrapper.collapsed .sidebar-section-title::after {
+    content: "";
+    width: 18px;
+    height: 1px;
+    background-color: var(--slate-200);
 }
 
 /* --- KÍCH THƯỚC ICON CHUẨN --- */

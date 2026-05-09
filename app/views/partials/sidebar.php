@@ -25,14 +25,14 @@
                     <span class="nav-text">Tổng quan</span>
                 </a>
 
-                <a href="<?= URLROOT ?>/tasks" class="nav-link-custom <?= str_contains($currentUri, '/tasks') ? 'active' : '' ?>" title="Công việc">
-                    <i data-lucide="clipboard-list"></i>
-                    <span class="nav-text">Công việc</span>
+                <a href="<?= URLROOT ?>/projects" class="nav-link-custom <?= str_contains($currentUri, '/projects') ? 'active' : '' ?>" title="Dự án">
+                    <i data-lucide="folder-kanban"></i>
+                    <span class="nav-text">Dự án</span>
                 </a>
 
-                <a href="<?= URLROOT ?>/projects" class="nav-link-custom <?= str_contains($currentUri, '/projects') ? 'active' : '' ?>" title="Dự án">
-                    <i data-lucide="folder"></i>
-                    <span class="nav-text">Dự án</span>
+                <a href="<?= URLROOT ?>/tasks" class="nav-link-custom <?= str_contains($currentUri, '/tasks') ? 'active' : '' ?>" title="Công việc">
+                    <i data-lucide="check-square"></i>
+                    <span class="nav-text">Công việc</span>
                 </a>
 
                 <?php if ($isAdmin): ?>
@@ -46,20 +46,24 @@
                         <span class="nav-text">Nhân viên</span>
                     </a>
 
-
-                    <a href="<?= URLROOT ?>/admin/roles" class="nav-link-custom <?= str_contains($currentUri, '/admin/roles') ? 'active' : '' ?>" title="Vai trò & phân quyền">
-                        <i data-lucide="shield-check"></i>
-                        <span class="nav-text">Vai trò & phân quyền</span>
+                    <a href="<?= URLROOT ?>/settings/job" class="nav-link-custom <?= $currentUri === '/settings/job' ? 'active' : '' ?>" title="Chức danh nhân viên">
+                        <i data-lucide="briefcase"></i>
+                        <span class="nav-text">Chức danh nhân viên</span>
                     </a>
 
                     <a href="<?= URLROOT ?>/settings/project" class="nav-link-custom <?= $currentUri === '/settings/project' ? 'active' : '' ?>" title="Trạng thái dự án">
-                        <i data-lucide="layers"></i>
+                        <i data-lucide="tags"></i>
                         <span class="nav-text">Trạng thái dự án</span>
                     </a>
 
                     <a href="<?= URLROOT ?>/settings/task" class="nav-link-custom <?= $currentUri === '/settings/task' ? 'active' : '' ?>" title="Trạng thái công việc">
-                        <i data-lucide="list-checks"></i>
+                        <i data-lucide="list-todo"></i>
                         <span class="nav-text">Trạng thái công việc</span>
+                    </a>
+
+                    <a href="<?= URLROOT ?>/admin/roles" class="nav-link-custom <?= str_contains($currentUri, '/admin/roles') ? 'active' : '' ?>" title="Vai trò & phân quyền">
+                        <i data-lucide="shield-check"></i>
+                        <span class="nav-text">Vai trò & phân quyền</span>
                     </a>
                 <?php endif; ?>
             </nav>

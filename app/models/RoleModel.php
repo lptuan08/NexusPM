@@ -15,14 +15,12 @@ class RoleModel extends Model
         $sql = "SELECT * FROM {$this->table} WHERE deleted_at IS NULL ORDER BY id ASC";
         return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
+
     public function find($id)
     {
         $sql = "SELECT * FROM {$this->table} WHERE id = :id AND deleted_at IS NULL";
         return $this->db->query($sql, ['id' => $id])->fetch(PDO::FETCH_ASSOC);
     }
-
-
-
 
     public function isSlugExists(string $slug, $excludeId = null)
     {
@@ -63,7 +61,7 @@ class RoleModel extends Model
         return (bool)$result;
     }
 
-    public function add($data)
+    public function add(array $data)
     {
         $sql = "INSERT INTO {$this->table} (name, slug, description, is_active) VALUES (:name, :slug, :description, :is_active)";
         $params =  [

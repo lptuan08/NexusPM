@@ -1,9 +1,9 @@
 <!-- BREADCRUMB - THỐNG NHẤT VỚI LIST.PHP -->
 <div class="page-toolbar">
     <div class="d-flex align-items-center text-slate-600 fs-6">
-        <a href="<?= URLROOT; ?>/users" class="text-decoration-none text-slate-500 hover-text-primary">Nhân Viên</a>
-
-
+        <a href="<?= URLROOT; ?>/admin/settings" class="text-decoration-none text-slate-500 hover-text-primary">Hệ thống</a>
+        <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
+        <a href="<?= URLROOT; ?>/users" class="text-decoration-none text-slate-500 hover-text-primary">Nhân viên</a>
         <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
         <?php if (isset($user['name'])): ?>
             <a href="<?= URLROOT ?>/users/<?= $user['id'] ?>" class="text-decoration-none text-slate-500 hover-text-primary"><?= htmlspecialchars($user['name']) ?></a>

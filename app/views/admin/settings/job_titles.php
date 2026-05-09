@@ -30,7 +30,7 @@
 
 <div class="page-toolbar">
     <div class="d-flex align-items-center text-slate-600 fs-6">
-        <a href="<?= URLROOT; ?>/admin/settings" class="text-decoration-none text-slate-500 hover-text-primary">Thiết lập</a>
+        <a href="<?= URLROOT; ?>/admin/settings" class="text-decoration-none text-slate-500 hover-text-primary">Hệ thống</a>
         <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
         <span class="page-title">Chức danh nhân viên</span>
     </div>

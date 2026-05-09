@@ -3,19 +3,19 @@
 namespace App\controllers\admin;
 
 use App\core\Controller;
-use App\core\Request;
 use App\core\View;
 use App\core\Response;
 use App\helpers\Helper;
+use App\models\TaskStatusModel;
 
 
-class TaskSettingController extends Controller
+class TaskStatusController extends Controller
 {
-    protected $TaskSettingModel;
+    protected TaskStatusModel $modelTaskStatus;
     public function __construct()
     {
         parent::__construct();
-        $this->TaskSettingModel = $this->model('TaskSettingModel');
+        $this->modelTaskStatus = $this->model('TaskStatusModel');
     }
     public function list()
     {
@@ -25,8 +25,8 @@ class TaskSettingController extends Controller
         // Chuyển sang kiểu int nếu có giá trị, nếu không để null để xử lý "Toàn hệ thống"
         $projectId = ($projectId !== null && $projectId !== '') ? (int)$projectId : null;
 
-        $projects = $this->TaskSettingModel->listProject();
-        $statuses = $this->TaskSettingModel->getStatuses($projectId);
+        $projects = $this->modelTaskStatus->listProject();
+        $statuses = $this->modelTaskStatus->getStatuses($projectId);
 
         View::render('admin/settings/task_status', [
             'projects'  => $projects,
@@ -43,8 +43,8 @@ class TaskSettingController extends Controller
         $isValid = $this->validateStatus($data, $projectId);
 
         if (!$isValid) {
-            $projects = $this->TaskSettingModel->listProject();
-            $statuses = $this->TaskSettingModel->getStatuses($projectId);
+            $projects = $this->modelTaskStatus->listProject();
+            $statuses = $this->modelTaskStatus->getStatuses($projectId);
 
             View::render('admin/settings/task_status', [
                 'projects'  => $projects,
@@ -64,7 +64,7 @@ class TaskSettingController extends Controller
             'is_default' => isset($data['is_default']) ? (int)$data['is_default'] : 0,
             'is_done'   => isset($data['is_done']) ? (int)$data['is_done'] : 0
         ];
-        $this->TaskSettingModel->add($taskStatus);
+        $this->modelTaskStatus->add($taskStatus);
 
         Helper::setFlash('success', 'Thêm trạng thái công việc thành công!');
         if (!empty($projectId)) {
@@ -75,7 +75,7 @@ class TaskSettingController extends Controller
         Response::redirect(URLROOT . $url);
     }
 
-    public function edit($id)
+    public function edit(string $id)
     {
         if ($this->request->isPost()) {
 
@@ -86,8 +86,8 @@ class TaskSettingController extends Controller
             $isValid = $this->validateStatus($data, $projectId, $id);
 
             if (!$isValid) {
-                $projects = $this->TaskSettingModel->listProject();
-                $statuses = $this->TaskSettingModel->getStatuses($projectId);
+                $projects = $this->modelTaskStatus->listProject();
+                $statuses = $this->modelTaskStatus->getStatuses($projectId);
 
                 View::render('admin/settings/task_status', [
                     'projects'  => $projects,
@@ -115,7 +115,7 @@ class TaskSettingController extends Controller
 
 
             // Gọi model update...
-            $this->TaskSettingModel->update($id, $taskStatus);
+            $this->modelTaskStatus->update($id, $taskStatus);
             Helper::setFlash('success', 'Cập nhật trạng thái thành công!');
             Response::redirect(URLROOT . '/settings/task' . ($projectId ? '?project_id=' . $projectId : ''));
         }
@@ -147,7 +147,7 @@ class TaskSettingController extends Controller
             }
 
             // Thực hiện cập nhật vào Database
-            $this->TaskSettingModel->updateOrder($orderData);
+            $this->modelTaskStatus->updateOrder($orderData);
             Helper::setFlash('success', 'Cập nhật thứ tự trạng thái thành công!');
         }
 
@@ -158,14 +158,14 @@ class TaskSettingController extends Controller
     /**
      * Hàm validate chung cho Task Status
      */
-    private function validateStatus($data, $projectId, $id = null)
+    private function validateStatus(array $data, int $projectId, $id = null)
     {
         $this->validator->required('name', $data['name'], 'Tên trạng thái');
         $this->validator->required('slug', $data['slug'], "Slug");
         $this->validator->color('color', $data['color'] ?? '#3b82f6');
         // Kiểm tra tính duy nhất của slug trong phạm vi dự án
         if (!empty($data['slug'])) {
-            if ($this->TaskSettingModel->isSlugExists($data['slug'], $projectId, $id)) {
+            if ($this->modelTaskStatus->isSlugExists($data['slug'], $projectId, $id)) {
                 $this->validator->addError('slug', "Mã định danh (slug) đã tồn tại");
             }
         }

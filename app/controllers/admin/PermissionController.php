@@ -3,7 +3,6 @@
 namespace App\controllers\admin;
 
 use App\core\Controller;
-use App\core\Request;
 use App\core\View;
 use App\core\Response;
 use App\helpers\Helper;
@@ -22,7 +21,7 @@ class PermissionController extends Controller
         $this->modelPermission = $this->model('PermissionModel');
     }
 
-    public function RolePermissions($id)
+    public function RolePermissions(string $id)
     {
         // 1. Lấy thông tin vai trò để hiển thị tiêu đề
         $role = $this->modelRole->find($id);

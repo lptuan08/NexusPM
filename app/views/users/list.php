@@ -67,6 +67,8 @@
 
 <div class="page-toolbar">
     <div class="d-flex align-items-center text-slate-600 fs-6">
+        <a href="<?= URLROOT; ?>/admin/settings" class="text-decoration-none text-slate-500 hover-text-primary">Hệ thống</a>
+        <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
         <span class="page-title">Nhân viên</span>
     </div>
 
@@ -113,7 +115,7 @@
                                         ? URLROOT . '/uploads/avatars/' . $user['avatar']
                                         : "https://ui-avatars.com/api/?name=" . urlencode($displayName) . "&background=e8f0fe&color=1a73e8&rounded=true";
                                     ?>
-                                    
+
 
                                     <img src="<?= $avatarUrl ?>"
                                         alt="Avatar" class="avatar">
@@ -222,7 +224,7 @@
                                     <a class="page-link" href="<?= $buildPageUrl($p) ?>"><?= $p ?></a>
                                 <?php endif; ?>
                             </li>
-                        <?php endif;
+                <?php endif;
                     endfor;
                 endif; ?>
 

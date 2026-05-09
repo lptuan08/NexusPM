@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @var array $role
  * @var array $permissionsByGroup (Mảng quyền đã được nhóm theo module)
@@ -6,16 +7,13 @@
  */
 ?>
 <div class="page-toolbar">
-    <div class="d-flex align-items-center">
-        <a href="<?= URLROOT ?>/admin/roles" class="btn btn-icon-google me-2">
-            <i data-lucide="arrow-left"></i>
-        </a>
-        <div>
-            <h1 class="page-title">Phân quyền: <?= htmlspecialchars($role['name']) ?></h1>
-            <p class="page-subtitle text-primary fw-medium">ID: #<?= $role['id'] ?></p>
-        </div>
+    <div class="d-flex align-items-center text-slate-600 fs-6">
+        <a href="<?= URLROOT; ?>/admin/settings" class="text-decoration-none text-slate-500 hover-text-primary">Hệ thống</a>
+        <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
+        <a href="<?= URLROOT; ?>/admin/roles" class="text-decoration-none text-slate-500 hover-text-primary">Vai trò & Phân quyền</a>
+        <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
+        <span class="page-title">Phân quyền</span>
     </div>
-
     <div class="page-actions">
         <button type="button" class="btn btn-outline-secondary" onclick="window.location.reload();">
             <i data-lucide="refresh-cw"></i> Làm lại
@@ -46,12 +44,12 @@
                         <div class="d-flex flex-column gap-3">
                             <?php foreach ($permissions as $permission): ?>
                                 <div class="form-check d-flex align-items-center gap-2 min-vh-0">
-                                    <input class="form-check-input permission-checkbox" 
-                                           type="checkbox" 
-                                           name="permission_ids[]" 
-                                           value="<?= $permission['id'] ?>" 
-                                           id="perm_<?= $permission['id'] ?>"
-                                           <?= in_array($permission['id'], $activePermissions) ? 'checked' : '' ?>>
+                                    <input class="form-check-input permission-checkbox"
+                                        type="checkbox"
+                                        name="permission_ids[]"
+                                        value="<?= $permission['id'] ?>"
+                                        id="perm_<?= $permission['id'] ?>"
+                                        <?= in_array($permission['id'], $activePermissions) ? 'checked' : '' ?>>
                                     <label class="form-check-label flex-grow-1 cursor-pointer" for="perm_<?= $permission['id'] ?>">
                                         <span class="d-block fw-medium text-slate-800" style="font-size: 0.875rem;">
                                             <?= htmlspecialchars($permission['name']) ?>

@@ -75,13 +75,22 @@ return [
         // -----end USER------
 
         // Thiết lập hệ thống
-        '/settings/project' => [
+
+        '/settings' => [
             'controller' => 'admin/SettingsController',
+            'action' => 'index',
+            'middleware' => ['AuthMiddleware'] //bổ sung thêm quyền admin
+        ],
+
+
+
+        '/settings/project' => [
+            'controller' => 'admin/ProjectStatusController',
             'action' => 'list',
             'middleware' => ['AuthMiddleware'] //bổ sung thêm quyền admin
         ],
         '/settings/task' => [
-            'controller' => 'admin/TaskSettingController',
+            'controller' => 'admin/TaskStatusController',
             'action' => 'list',
             'middleware' => ['AuthMiddleware'] //bổ sung thêm quyền admin
         ],
@@ -166,33 +175,33 @@ return [
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
         '/settings/project/create' => [
-            'controller' => 'admin/SettingsController',
+            'controller' => 'admin/ProjectStatusController',
             'action'     => 'store',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
         '/settings/project/{id}/edit' => [
-            'controller' => 'admin/SettingsController',
+            'controller' => 'admin/ProjectStatusController',
             'action'     => 'update',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
         '/settings/project/reorder' => [
-            'controller' => 'admin/SettingsController',
+            'controller' => 'admin/ProjectStatusController',
             'action'     => 'reorder',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
         // TASK STATUS
         '/settings/task/create' => [
-            'controller' => 'admin/TaskSettingController',
+            'controller' => 'admin/TaskStatusController',
             'action'     => 'store',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
         '/settings/task/{id}/edit' => [
-            'controller' => 'admin/TaskSettingController',
+            'controller' => 'admin/TaskStatusController',
             'action' => 'edit',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
         '/settings/task/reorder' => [
-            'controller' => 'admin/TaskSettingController',
+            'controller' => 'admin/TaskStatusController',
             'action'     => 'reorder',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],

@@ -23,19 +23,18 @@
 </style>
 
 <div class="page-toolbar">
-    <div>
-        <h1 class="page-title">Vai trò & Phân quyền</h1>
-        <p class="page-subtitle">Quản lý danh sách vai trò và phân bổ quyền hạn truy cập.</p>
+    <div class="d-flex align-items-center text-slate-600 fs-6">
+        <a href="<?= URLROOT; ?>/admin/settings" class="text-decoration-none text-slate-500 hover-text-primary">Hệ thống</a>
+        <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
+        <span class="page-title">Vai trò & Phân quyền</span>
     </div>
-
     <div class="page-actions">
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#roleModal">
-            <i data-lucide="plus-circle"></i>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#roleModal"">
+            <i data-lucide=" plus" size="18"></i>
             <span>Thêm vai trò</span>
         </button>
     </div>
 </div>
-
 <div class="table-container">
     <div class="table-responsive">
         <table class="table table-custom align-middle">

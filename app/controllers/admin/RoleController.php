@@ -70,7 +70,7 @@ class RoleController extends Controller
         }
     }
 
-    public function update($id)
+    public function update(string $id)
     {
         if ($this->request->isPost()) {
             $body = $this->request->getBody();
@@ -103,7 +103,7 @@ class RoleController extends Controller
         }
     }
 
-    public function delete($id)
+    public function delete(string $id)
     {
         if (!$this->request->isPost()) {
             Response::redirect(URLROOT . '/admin/roles');

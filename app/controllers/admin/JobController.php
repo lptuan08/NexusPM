@@ -67,7 +67,7 @@ class JobController extends Controller
 
         return $this->validator->passes();
     }
-    public function deleted($id)
+    public function deleted(string $id)
     {
         if ($this->jobModal->deleteJob($id)) {
             Helper::setFlash('success', "Xóa chức danh thành công");

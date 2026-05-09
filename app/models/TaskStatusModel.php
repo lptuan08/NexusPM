@@ -6,7 +6,7 @@ use App\core\Model;
 use Exception;
 use PDO;
 
-class TaskSettingModel extends Model
+class TaskStatusModel extends Model
 {
     protected $table = 'task_statuses';
     // get list project (is_deleted = NULL)
@@ -39,7 +39,7 @@ class TaskSettingModel extends Model
         return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function isSlugExists($slug, $project_id, $excludeId = null)
+    public function isSlugExists(string $slug, int $project_id, $excludeId = null)
     {
         // dùng SELECT EXITST kiểm tra tồn tại
         $sql = "SELECT EXISTS(
@@ -67,7 +67,7 @@ class TaskSettingModel extends Model
         return (bool)$result;
     }
 
-    public function add($taskStatus)
+    public function add(array $taskStatus)
     {
         try {
             $this->db->beginTransaction();
@@ -125,7 +125,7 @@ class TaskSettingModel extends Model
             throw new Exception("Lỗi khi chỉnh sửa trạng thái công việc: " . $e->getMessage(), 500);
         }
     }
-    public function checkStatusFlags($project_id, $statusFlags, $excludeId = null) // $statusFlasg = 'is_default' or 'is_done'
+    public function checkStatusFlags(int $project_id, string $statusFlags, $excludeId = null) // $statusFlasg = 'is_default' or 'is_done'
     {
 
         if ($project_id == null) {
@@ -147,7 +147,7 @@ class TaskSettingModel extends Model
             $this->delStatusFlags($id, $statusFlags);
         }
     }
-    public function delStatusFlags($id, $statusFlags)
+    public function delStatusFlags(int $id, $statusFlags)
     {
         $sql = "UPDATE {$this->table} SET {$statusFlags} = 0 WHERE id = :id";
         $params = ['id' => $id];
@@ -181,7 +181,7 @@ class TaskSettingModel extends Model
     //  * Cập nhật thứ tự vị trí hàng loạt cho các trạng thái công việc
     //  * @param array $order Mảng chứa các mảng con ['id' => status_id, 'position' => new_position]
     //  */
-    public function updateOrder($order)
+    public function updateOrder(array $order)
     {
         try {
             $this->db->beginTransaction();
