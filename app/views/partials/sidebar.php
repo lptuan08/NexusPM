@@ -37,8 +37,10 @@
 
                 <?php if ($isAdmin): ?>
                     <!-- NHÓM NHÂN SỰ -->
-                    <div class="sidebar-section-title mt-2 text-xs fw-bold text-slate-400">
-                        Hệ thống
+                    <div class="sidebar-section-title mt-3 text-xs text-slate-400">
+                        <a href="<?= URLROOT ?>/settings" class="text-decoration-none text-slate-400 hover-text-primary" title="Hệ thống">
+                            Hệ thống
+                        </a>
                     </div>
 
                     <a href="<?= URLROOT ?>/users" class="nav-link-custom <?= str_contains($currentUri, '/users') ? 'active' : '' ?>" title="Nhân viên">
