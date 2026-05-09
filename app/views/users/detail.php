@@ -4,9 +4,6 @@
  * Việc định nghĩa ở đây giúp code bên dưới gọn gàng và dễ sửa đổi khi cần thêm trạng thái mới.
  */
 $projectStatusMap = [
-    1           => ['text' => 'Mới', 'class' => 'status-planning'],
-    2           => ['text' => 'Đang thực hiện', 'class' => 'status-active'],
-    3           => ['text' => 'Hoàn thành', 'class' => 'status-completed'],
     'planning'  => ['text' => 'Lên kế hoạch', 'class' => 'status-planning'],
     'active'    => ['text' => 'Đang thực hiện', 'class' => 'status-active'],
     'completed' => ['text' => 'Hoàn thành', 'class' => 'status-completed'],
@@ -117,7 +114,7 @@ $taskStatusMap = [
                     </div>
                     <div class="info-list-item">
                         <span class="info-label">Vai trò</span>
-                        <span class="badge-role <?= ($user['role'] === 'admin') ? 'role-director' : 'role-staff' ?>"><?= ($user['role'] === 'admin') ? 'Quản trị viên' : 'Nhân viên' ?></span>
+                        <span class="badge-role <?= ($user['role_slug'] === 'admin') ? 'role-director' : 'role-staff' ?>"><?= htmlspecialchars($user['role_name'] ?? 'N/A') ?></span>
                     </div>
                     <div class="info-list-item">
                         <span class="info-label">Ngày gia nhập</span>
@@ -156,15 +153,15 @@ $taskStatusMap = [
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if (!empty($projects)): foreach ($projects as $pj): ?>
+                                <?php if (!empty($projects)): foreach ($projects as $project): ?>
                                 <tr>
-                                    <td class="ps-4 fw-bold"><?= htmlspecialchars($pj['name']) ?></td>
-                                    <td><span class="text-muted small"><?= htmlspecialchars($pj['role']) ?></span></td>
+                                    <td class="ps-4 fw-bold"><?= htmlspecialchars($project['name']) ?></td>
+                                    <td><span class="text-muted small"><?= htmlspecialchars($project['role']) ?></span></td>
                                     <td>
-                                        <?php $st = $projectStatusMap[$pj['status']] ?? ['text' => $pj['status'], 'class' => 'status-muted']; ?>
-                                        <span class="status-pill <?= $st['class'] ?>"><?= $st['text'] ?></span>
+                                        <?php $statusInfo = $projectStatusMap[$project['status']] ?? ['text' => $project['status'] ?: 'N/A', 'class' => 'status-muted']; ?>
+                                        <span class="status-pill <?= $statusInfo['class'] ?>"><?= $statusInfo['text'] ?></span>
                                     </td>
-                                    <td class="pe-4 small"><?= date('d/m/Y', strtotime($pj['joined_at'])) ?></td>
+                                    <td class="pe-4 small"><?= date('d/m/Y', strtotime($project['joined_at'])) ?></td>
                                 </tr>
                                 <?php endforeach; else: ?>
                                     <tr><td colspan="4" class="table-empty">Chưa tham gia dự án nào.</td></tr>
@@ -200,8 +197,8 @@ $taskStatusMap = [
                                     </td>
                                     <td class="small"><?= $task['due_date'] ? date('d/m/Y', strtotime($task['due_date'])) : '-' ?></td>
                                     <td class="pe-4">
-                                        <?php $ts = $taskStatusMap[$task['status']] ?? ['text' => $task['status'], 'class' => 'status-muted']; ?>
-                                        <span class="status-pill <?= $ts['class'] ?>"><?= $ts['text'] ?></span>
+                                        <?php $taskStatus = $taskStatusMap[$task['status']] ?? ['text' => $task['status'] ?: 'N/A', 'class' => 'status-muted']; ?>
+                                        <span class="status-pill <?= $taskStatus['class'] ?>"><?= $taskStatus['text'] ?></span>
                                     </td>
                                 </tr>
                                 <?php endforeach; else: ?>

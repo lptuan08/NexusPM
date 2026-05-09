@@ -2,6 +2,12 @@
 
 /**
  * Giao diện quản lý trạng thái công việc (Thiết lập hệ thống)
+ * 
+ * @var array $statuses
+ * @var array $projects
+ * @var string|int|null $projectId
+ * @var array $old
+ * @var array $errors
  */
 ?>
 

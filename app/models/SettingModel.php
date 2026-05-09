@@ -18,7 +18,7 @@ class SettingModel extends Model
     }
 
 
-    public function isSlugExits($slug, $excludeId = null)
+    public function isSlugExists($slug, $excludeId = null)
     {
         $sql = "SELECT COUNT(*) FROM {$this->table} WHERE slug = :slug AND deleted_at IS NULL";
         $params = ['slug' => $slug];
@@ -53,7 +53,6 @@ class SettingModel extends Model
             ]);
             // Nếu mọi thứ ổn, xác nhận lưu vĩnh viễn các thay đổi
             $this->db->commit();
-            return $max;
         } catch (Exception $e) {
             $this->db->rollBack();
             throw new Exception("Lỗi khi thêm trạng thái dự án: " . $e->getMessage(), 500);

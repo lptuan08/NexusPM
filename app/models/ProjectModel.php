@@ -1,15 +1,19 @@
 <?php
+
 namespace App\models;
 
 use App\core\Model;
 use PDO;
 use Exception;
 
-/**
- * Model ProjectModel - Xử lý các tương tác cơ sở dữ liệu liên quan đến dự án
- */
+
 class ProjectModel extends Model
 {
+    /**
+     * @var \App\core\Database
+     */
+    protected $db;
+
     // Tên bảng tương ứng trong cơ sở dữ liệu
     protected $table = 'projects';
 
@@ -20,39 +24,78 @@ class ProjectModel extends Model
      * @param int $perPage Số bản ghi trên mỗi trang
      * @return array Danh sách dự án kèm thông tin người sở hữu
      */
-    public function getProjectsByPage($page, $perPage)
+    public function getProjectsByPage($page, $perPage, $filters = [])
     {
         // Tính toán vị trí bắt đầu lấy dữ liệu
         $offset = ($page - 1) * $perPage;
-        $perPage = (int)$perPage;
-        $offset = (int)$offset;
 
-        $sql = "SELECT p.*, u.name AS owner_name, u.email AS owner_email
+        $sql = "SELECT p.*, 
+                       u.name AS manager_name, 
+                       u.email AS owner_email, 
+                       ps.name as status_name, 
+                       ps.color as status_color, 
+                       ps.slug as status_slug
                 FROM {$this->table} p
                 LEFT JOIN users u ON p.owner_id = u.id
-                WHERE p.deleted_at IS NULL 
-                ORDER BY p.id DESC 
-                LIMIT {$perPage} OFFSET {$offset}";
+                LEFT JOIN project_statuses ps ON p.status_id = ps.id
+                WHERE p.deleted_at IS NULL";
 
-        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        $params = [];
+
+        // Lọc theo danh sách trạng thái (Checklist)
+        if (!empty($filters['status_id'])) {
+            $statusIds = array_map('intval', $filters['status_id']);
+            $sql .= " AND p.status_id IN (" . implode(',', $statusIds) . ")";
+        }
+
+        // Lọc theo khoảng thời gian
+        if (!empty($filters['start_date'])) {
+            $sql .= " AND p.start_date >= :start_date";
+            $params['start_date'] = $filters['start_date'];
+        }
+        if (!empty($filters['end_date'])) {
+            $sql .= " AND p.due_date <= :end_date";
+            $params['end_date'] = $filters['end_date'];
+        }
+
+        $sql .= " ORDER BY p.id DESC LIMIT :limit OFFSET :offset";
+        $params['limit'] = (int)$perPage;
+        $params['offset'] = (int)$offset;
+        return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
      * Lấy toàn bộ dự án có lọc theo tìm kiếm và trạng thái
+     * 
+     * @param array $filters Mảng chứa 'search' và 'status'
+     * @return array
      */
-    public function getAllProjectsWithFilters()
+    public function getAllProjectsWithFilters($filters = [])
     {
-        $sql = "SELECT p.*, u.name AS owner_name, u.email AS owner_email,
+        $sql = "SELECT p.*, u.name AS owner_name, u.email AS owner_email, ps.name as status_name, ps.color as status_color, ps.slug as status_slug,
                 (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id) as task_count,
                 (SELECT COUNT(*) FROM project_members pm WHERE pm.project_id = p.id) as member_count,
                 (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id AND t.status = 'done') as completed_task_count
                 FROM {$this->table} p
                 LEFT JOIN users u ON p.owner_id = u.id
+                LEFT JOIN project_statuses ps ON p.status_id = ps.id
                 WHERE p.deleted_at IS NULL";
+
+        $params = [];
+
+        if (!empty($filters['search'])) {
+            $sql .= " AND (p.name LIKE :search OR p.project_code LIKE :search)";
+            $params['search'] = '%' . $filters['search'] . '%';
+        }
+
+        if (!empty($filters['status_id'])) {
+            $sql .= " AND p.status_id = :status_id";
+            $params['status_id'] = $filters['status_id'];
+        }
 
         $sql .= " ORDER BY p.id DESC";
 
-        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
@@ -63,9 +106,10 @@ class ProjectModel extends Model
      */
     public function find($id)
     {
-        $sql = "SELECT p.*, u.name AS owner_name, u.email AS owner_email, u.avatar AS owner_avatar
+        $sql = "SELECT p.*, u.name AS owner_name, u.email AS owner_email, u.avatar AS owner_avatar, ps.name as status_name, ps.color as status_color, ps.slug as status_slug
                 FROM {$this->table} p
                 LEFT JOIN users u ON p.owner_id = u.id
+                LEFT JOIN project_statuses ps ON p.status_id = ps.id
                 WHERE p.id = :id AND p.deleted_at IS NULL";
 
         return $this->db->query($sql, ['id' => $id])->fetch(PDO::FETCH_ASSOC);
@@ -117,13 +161,13 @@ class ProjectModel extends Model
             $this->db->beginTransaction();
 
             // 1. Chèn thông tin dự án cơ bản
-            $sql = "INSERT INTO {$this->table} (name, description, status, owner_id, start_date, due_date) 
-                    VALUES (:name, :description, :status, :owner_id, :start_date, :due_date)";
+            $sql = "INSERT INTO {$this->table} (name, description, status_id, owner_id, start_date, due_date) 
+                    VALUES (:name, :description, :status_id, :owner_id, :start_date, :due_date)";
 
             $this->db->query($sql, [
                 'name'        => $data['name'],
                 'description' => $data['description'],
-                'status'      => $data['status'],
+                'status_id'      => $data['status_id'],
                 'owner_id'    => $data['owner_id'],
                 'start_date' => $data['start_date'],
                 'due_date' => $data['due_date']
@@ -161,7 +205,7 @@ class ProjectModel extends Model
         $sql = "UPDATE {$this->table} SET 
                 name = :name, 
                 description = :description, 
-                status = :status, 
+                status_id = :status_id, 
                 owner_id = :owner_id,
                 start_date = :start_date, 
                 due_date = :due_date,
@@ -177,10 +221,10 @@ class ProjectModel extends Model
      */
     public function addMember($projectId, $userId, $role)
     {
-        
+
         $sql = "INSERT INTO project_members (project_id, user_id, role, joined_at) 
                 VALUES (:project_id, :user_id, :role, CURRENT_TIMESTAMP)";
-        
+
         return $this->db->query($sql, [
             'project_id' => $projectId,
             'user_id'    => $userId,
@@ -195,7 +239,42 @@ class ProjectModel extends Model
     {
         $sql = "SELECT COUNT(*) FROM project_members 
                 WHERE project_id = :project_id AND user_id = :user_id";
-        
+
         return (int)$this->db->query($sql, ['project_id' => $projectId, 'user_id' => $userId])->fetchColumn() > 0;
+    }
+
+    /**
+     * Thực hiện xóa mềm dự án (Cập nhật trường deleted_at)
+     * 
+     * @param int $id ID dự án
+     * @return bool
+     */
+    public function delete($id)
+    {
+        $sql = "UPDATE {$this->table} SET deleted_at = CURRENT_TIMESTAMP WHERE id = :id";
+        return (bool)$this->db->query($sql, ['id' => $id]);
+    }
+
+    public function countAll($filters = [])
+    {
+        $sql = "SELECT COUNT(*) FROM {$this->table} p WHERE p.deleted_at IS NULL";
+        $params = [];
+
+        if (!empty($filters['status_id'])) {
+            $statusIds = array_map('intval', $filters['status_id']);
+            $sql .= " AND p.status_id IN (" . implode(',', $statusIds) . ")";
+        }
+
+        if (!empty($filters['start_date'])) {
+            $sql .= " AND p.start_date >= :start_date";
+            $params['start_date'] = $filters['start_date'];
+        }
+
+        if (!empty($filters['end_date'])) {
+            $sql .= " AND p.due_date <= :end_date";
+            $params['end_date'] = $filters['end_date'];
+        }
+
+        return (int)$this->db->query($sql, $params)->fetchColumn();
     }
 }

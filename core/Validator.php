@@ -77,6 +77,18 @@ class Validator
         return true;
     }
 
+    // Kiểm tra số nguyên 0 hoặc 1
+    public function isValidStatus(string $field, $value, $label = '')
+    {
+        // Cho phép số 0, 1 hoặc chuỗi "0", "1"
+        $check = in_array($value, [0, 1, '0', '1'], true);
+        if (!$check) {
+            $this->errors[$field] = ($label ?: $field) . "Dữ liệu checkbok không hợp lệ";
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Kiểm tra hai giá trị có khớp nhau không (Dùng cho xác nhận mật khẩu)
      * @param string $matchValue Giá trị thứ nhất
@@ -168,6 +180,13 @@ class Validator
             $this->errors[$field] = "$label có độ phân giải quá lớn (tối đa 5000px)";
             return false;
         }
+
+
+
+
+
+
+
 
         return true;
     }

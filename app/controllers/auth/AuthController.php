@@ -107,7 +107,8 @@ class AuthController extends Controller
             'id'     => $user['id'],
             'name'   => $user['name'],
             'email'  => $user['email'],
-            'role'   => $user['role'],
+            'role_id' => $user['role_id'],
+            'role'   => $user['role_slug'], // Sử dụng slug để kiểm tra quyền trong code
             'avatar' => $user['avatar']
         ]);
         Session::set('is_logged_in', true);

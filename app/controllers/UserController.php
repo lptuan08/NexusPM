@@ -3,21 +3,24 @@ namespace App\controllers;
 
 use App\core\Controller;
 use App\core\View;
-use App\core\Validator;
 use App\core\Response;
-use App\core\Request;
 use App\helpers\Helper;
+use App\models\UserModel;
+use App\models\RoleModel;
 
 /**
- * Controller Users - Quản lý các hành động liên quan đến nhân sự
+ * @property \App\core\Request $request
+ * @property \App\core\Validator $validator
  */
 class UserController extends Controller
 {
-    private $modelUser;
+    private UserModel $modelUser;
+    private RoleModel $modelRole;
     public function __construct()
     {
         parent::__construct();
         $this->modelUser = $this->model('UserModel');
+        $this->modelRole = $this->model('RoleModel');
     }
 
     // =========================================================================
@@ -29,25 +32,42 @@ class UserController extends Controller
      */
     public function index()
     {
-        $perPage = 5; //số bản ghi mỗi trang
+        $perPage = 5; 
+        $query = $this->request->getBody();
 
-        $currentPage = (int)$this->request->input('page', 1);
+        $currentPage = (int)($query['page'] ?? 1);
         if ($currentPage < 1) $currentPage = 1;
 
-        $users = $this->modelUser->getUserByPage($currentPage, $perPage);
-        $totalUsers = $this->modelUser->count();
+        $filters = [
+            'search' => $query['search'] ?? null,
+            'job_title' => $query['job_title'] ?? [],
+            'role_id' => $query['role_id'] ?? [],
+            'created_at_start' => $query['created_at_start'] ?? null,
+            'created_at_end' => $query['created_at_end'] ?? null,
+        ];
+
+        // Đảm bảo dữ liệu là mảng cho bộ lọc IN
+        if (!is_array($filters['job_title']) && !empty($filters['job_title'])) $filters['job_title'] = [$filters['job_title']];
+        if (!is_array($filters['role_id']) && !empty($filters['role_id'])) $filters['role_id'] = [$filters['role_id']];
+
+        $users = $this->modelUser->getUserByPage($currentPage, $perPage, $filters);
+        $totalUsers = $this->modelUser->countAll($filters);
         $totalPages = ceil($totalUsers / $perPage);
-        $pages = $totalPages > 0 ? range(1, $totalPages) : [];
+
+        $jobTitleOptions = $this->modelUser->getUniqueJobTitles();
+        $roleOptions = $this->modelRole->getRoles();
+
         View::render('users/list', [
             'data' => $users,
+            'jobTitleOptions' => $jobTitleOptions,
+            'roleOptions' => $roleOptions,
+            'currentFilters' => $filters,
             'pageTitle' => 'Nhân viên',
             'extra_css' => 'users',
             'totalUsers' => $totalUsers,
             'perPage' => $perPage,
             'currentPage' => $currentPage,
             'totalPage' => $totalPages,
-            'pages' => $pages
-            // 'extra_js' => 'user_list'
         ]);
     }
 
@@ -81,9 +101,11 @@ class UserController extends Controller
     public function create()
     {
         $jobTitle = $this->modelUser->getJobTitle();
+        $roles = $this->modelRole->getRoles();
 
         View::render('users/create', [
             'job_titles' => $jobTitle,
+            'roles' => $roles,
             'extra_css' => 'users',
             'pageTitle' => 'Thêm nhân viên mới', // Tiêu đề trang
             'action_url' => URLROOT . '/users/create'
@@ -95,26 +117,21 @@ class UserController extends Controller
     {
         if ($this->request->isPost()) {
             $data = $this->getFormData();
-            $validator = new Validator();
 
-            $validator->required('name', $data['name'], 'Họ tên');
-            $validator->required('email', $data['email'], 'Email');
-            $validator->email('email', $data['email'], 'Email');
-            $validator->required('role', $data['role'], 'Quyền hạn');
-            $validator->required('job_title_id', $data['job_title_id'], 'Chức danh');
-            $validator->image('avatar', 'Ảnh đại diện');
-            $validator->required('password', $data['password'], 'Password');
-            $validator->min('password', $data['password'], 4);
+            $this->validateUserData($data);
+            $this->validator->required('password', $data['password'] ?? '', 'Mật khẩu');
+            $this->validator->min('password', $data['password'] ?? '', 4, 'Mật khẩu');
 
             // Kiểm tra email trùng lặp
             if (!empty($data['email']) && $this->modelUser->isEmailExists($data['email'])) {
-                $validator->addError('email', 'Email này đã tồn tại trên hệ thống');
+                $this->validator->addError('email', 'Email này đã tồn tại trên hệ thống');
             }
 
-            if (!$validator->passes()) {
+            if (!$this->validator->passes()) {
                 return View::render('users/create', [
                     'job_titles' => $this->modelUser->getJobTitle(),
-                    'errors' => $validator->getErrors(),
+                    'roles' => $this->modelRole->getRoles(),
+                    'errors' => $this->validator->getErrors(),
                     'old' => $this->request->getBody(),
                     'extra_css' => 'users',
                     'pageTitle' => 'Thêm nhân viên mới',
@@ -141,11 +158,13 @@ class UserController extends Controller
     {
         $user = $this->modelUser->getUserById($id);
         $job_titles = $this->modelUser->getJobTitle();
+        $roles = $this->modelRole->getRoles();
         if (!$user) Response::redirect(URLROOT . '/users');
 
         View::render('users/create', [
             'user' => $user,
             'job_titles' => $job_titles,
+            'roles' => $roles,
             'extra_css' => 'users',
             'pageTitle' => 'Chỉnh sửa nhân viên',
             'action_url' => URLROOT . "/users/{$id}/edit" // URL cho form cập nhật
@@ -166,25 +185,20 @@ class UserController extends Controller
         if ($this->request->isPost()) {
             // 2. Lấy dữ liệu và validate
             $data = $this->getFormData(true);
-            $validator = new Validator();
 
-            $validator->required('name', $data['name'], 'Họ tên');
-            $validator->required('email', $data['email'], 'Email');
-            $validator->email('email', $data['email'], 'Email');
-            $validator->required('role', $data['role'], 'Quyền hạn');
-            $validator->required('job_title_id', $data['job_title_id'], 'Chức danh');
-            $validator->image('avatar', 'Ảnh đại diện');
+            $this->validateUserData($data);
 
             // Kiểm tra email trùng lặp (trừ user hiện tại)
             if (!empty($data['email']) && $this->modelUser->isEmailExists($data['email'], $id)) {
-                $validator->addError('email', 'Email này đã được sử dụng bởi nhân viên khác');
+                $this->validator->addError('email', 'Email này đã được sử dụng bởi nhân viên khác');
             }
 
-            if (!$validator->passes()) {
+            if (!$this->validator->passes()) {
                 return View::render('users/create', [
                     'user'       => $user, // Truyền thông tin user cũ để form hiển thị đúng
                     'job_titles' => $this->modelUser->getJobTitle(),
-                    'errors'     => $validator->getErrors(),
+                    'roles'      => $this->modelRole->getRoles(),
+                    'errors'     => $this->validator->getErrors(),
                     'old'        => $this->request->getBody(),
                     'extra_css'  => 'users',
                     'pageTitle'      => 'Chỉnh sửa nhân viên',
@@ -203,7 +217,7 @@ class UserController extends Controller
             }
 
             // 4. Cập nhật vào DB và chuyển hướng
-            $this->modelUser->updateUser($id, $data);
+            $this->modelUser->update($id, $data);
             Helper::setFlash('success', 'Thông tin nhân viên đã được cập nhật');
             Response::redirect(URLROOT . "/users/$id");
         }
@@ -227,7 +241,7 @@ class UserController extends Controller
         $data = [
             'name'          => $body['name'] ?? '',
             'email'         => $body['email'] ?? '',
-            'role'          => $body['role'] ?? 'member',
+            'role_id'       => $body['role_id'] ?? null,
             'job_title_id'  => $body['job_title_id'] ?? null,
             'is_active'     => isset($body['is_active']) ? 1 : 0,
         ];
@@ -362,5 +376,18 @@ class UserController extends Controller
 
         return $result; // 
 
+    }
+
+    /**
+     * Validate dữ liệu người dùng chung cho cả create và update
+     */
+    private function validateUserData(array $data)
+    {
+        $this->validator->required('name', $data['name'], 'Họ tên');
+        $this->validator->required('email', $data['email'], 'Email');
+        $this->validator->email('email', $data['email'], 'Email');
+        $this->validator->required('role_id', $data['role_id'], 'Quyền hạn');
+        $this->validator->required('job_title_id', $data['job_title_id'], 'Chức danh');
+        $this->validator->image('avatar', 'Ảnh đại diện');
     }
 }

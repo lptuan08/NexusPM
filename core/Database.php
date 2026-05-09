@@ -28,11 +28,22 @@ class Database
      */
     public function query($sql, $params = [])
     {
+        // $check = [$sql, $params];
+        // var_dump($check);
+        // die();
         try {
-
             $statement = $this->__conn->prepare($sql); // Kiểm tra câu lệnh SQL trước khi thực thi
-            $statement->execute($params);
-            // $statement->debugDumpParams();
+            foreach ($params as $key => $value) {
+                // Kiểm tra nếu là số nguyên thì dùng PARAM_INT, còn lại dùng PARAM_STR
+                $type = is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR;
+
+                // Hỗ trợ cả mảng không key (?) và mảng có key (:name)
+                $paramKey = is_int($key) ? $key + 1 : $key;
+
+                $statement->bindValue($paramKey, $value, $type);
+            }
+            $statement->execute();
+
             return $statement;
         } catch (PDOException $e) {
             throw new Exception("Lỗi truy vấn: " . $e->getMessage(), 500);
@@ -73,6 +84,7 @@ class Database
         $params = array_merge($data, $conditionParams);
 
         $sql = "UPDATE $table SET $updateStr WHERE $condition";
+
         return $this->query($sql, $params);
     }
 

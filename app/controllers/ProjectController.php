@@ -1,24 +1,31 @@
 <?php
+
 namespace App\controllers;
 
 use App\core\Controller;
 use App\core\View;
 use App\core\Response;
 use App\helpers\Helper;
+use App\models\ProjectModel;
+use App\models\SettingModel;
+use App\models\UserModel;
 
 /**
- * Controller ProjectController - Quản lý các hoạt động liên quan đến dự án
+ * @property \App\core\Request $request
+ * @property \App\core\Validator $validator
  */
 class ProjectController extends Controller
 {
-    private $modelProject;
-    private $modelUser;
+    private ProjectModel $modelProject;
+    private UserModel $modelUser;
+    private SettingModel $modelSetting;
 
     public function __construct()
     {
         parent::__construct();
         $this->modelProject = $this->model('ProjectModel');
         $this->modelUser = $this->model('UserModel');
+        $this->modelSetting = $this->model('SettingModel');
     }
 
     /**
@@ -26,14 +33,40 @@ class ProjectController extends Controller
      */
     public function index()
     {
-        // Lấy tham số tìm kiếm và lọc
-        // Lấy toàn bộ dự án dựa theo filter (không phân trang để chia 2 phần)
-        // Lưu ý: Nếu dữ liệu cực lớn, ta nên dùng query riêng cho 2 phần kèm pagination
-        $allProjects = $this->modelProject->getAllProjectsWithFilters();
-        
+        $query = $this->request->getBody();
+        if (isset($query['page'])) {
+            $page = (int) $query['page'];
+        } else {
+            $page = 1;
+        }
+        $perPage = 5; // Số dự án trên mỗi trang (có thể cấu hình)
+
+        // Lấy các tham số lọc từ request
+        $filters = [
+            'status_id' => $query['status_id'] ?? [],
+            'start_date' => $query['start_date'] ?? null,
+            'end_date' => $query['end_date'] ?? null,
+        ];
+
+        // Đảm bảo status_id là một mảng nếu chỉ có một giá trị được chọn
+        if (!is_array($filters['status_id']) && !empty($filters['status_id'])) {
+            $filters['status_id'] = [$filters['status_id']];
+        }
+
+        $totalItem = $this->modelProject->countAll($filters);
+        $projects = $this->modelProject->getProjectsByPage($page, $perPage, $filters);
+        $totalPage = ceil($totalItem / $perPage);
+        $statusOptions = $this->modelSetting->getList(); // Lấy danh sách trạng thái để hiển thị trong bộ lọc
+
         View::render('projects/list', [
-            'projects' => $allProjects,
-            'pageTitle' => 'Quản lý dự án',
+            'projects' => $projects,
+            'currentPage' => $page,
+            'perPage' => $perPage,
+            'totalItem' => $totalItem,
+            'totalPage' => $totalPage,
+            'statusOptions' => $statusOptions,
+            'currentFilters' => $filters,
+            'pageTitle' => 'Danh sách dự án',
         ]);
     }
 
@@ -216,7 +249,7 @@ class ProjectController extends Controller
         return [
             'name' => $body['name'] ?? '',
             'description' => $body['description'] ?? '',
-            'status' => $body['status'] ?? 'planning',
+            'status_id' => isset($body['status_id']) ? (int) $body['status_id'] : 0,
             'owner_id' => isset($body['owner_id']) ? (int) $body['owner_id'] : 0,
             'start_date' => !empty($body['start_date']) ? $body['start_date'] : null,
             'due_date' => !empty($body['due_date']) ? $body['due_date'] : null,
@@ -231,6 +264,7 @@ class ProjectController extends Controller
     private function getProjectFormViewData(array $data = [])
     {
         $data['ownerOptions'] = $this->modelUser->getProjectOwnerOptions();
+        $data['statusOptions'] = $this->modelSetting->getList();
         return $data;
     }
 
@@ -274,12 +308,14 @@ class ProjectController extends Controller
     private function validateProjectData(array $data)
     {
         $this->validator->required('name', $data['name'], 'Tên dự án');
-        $this->validator->required('status', $data['status'], 'Trạng thái');
+        $this->validator->required('status_id', $data['status_id'], 'Trạng thái');
 
-        // Kiểm tra tính hợp lệ của trạng thái
-        $allowedStatuses = ['planning', 'active', 'on_hold', 'completed'];
-        if (!in_array($data['status'], $allowedStatuses, true)) {
-            $this->validator->addError('status', 'Trạng thái dự án không hợp lệ');
+        // Kiểm tra tính hợp lệ của trạng thái từ Database
+        if (!empty($data['status_id'])) {
+            $statusIds = array_column($this->modelSetting->getList(), 'id');
+            if (!in_array($data['status_id'], $statusIds)) {
+                $this->validator->addError('status_id', 'Trạng thái dự án không hợp lệ');
+            }
         }
 
         // Kiểm tra chủ dự án

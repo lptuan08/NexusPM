@@ -244,7 +244,8 @@ body {
 /* Khi sidebar thu gọn, logo sẽ được giới hạn lại để chỉ hiện phần biểu tượng */
 .sidebar-wrapper.collapsed .sidebar-logo {
     max-width: 32px;
-    object-position: left; /* Giữ lại phần icon bên trái nếu logo là dạng ngang */
+    object-position: left;
+    /* Giữ lại phần icon bên trái nếu logo là dạng ngang */
     object-fit: cover;
 }
 
@@ -314,6 +315,7 @@ body {
     padding-left: 32px !important;
     opacity: 1;
     transition: opacity 0.2s;
+
 }
 
 .sidebar-wrapper.collapsed .sidebar-section-title {
@@ -368,15 +370,18 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px; /* Khoảng cách icon và text chuẩn sidebar */
+    gap: 8px;
+    /* Khoảng cách icon và text chuẩn sidebar */
     font-weight: 500;
     font-size: 0.875rem;
     padding: 0.5rem 1.25rem;
-    border-radius: 24px; /* Bo góc dạng viên thuốc đồng nhất sidebar */
+    border-radius: 24px;
+    /* Bo góc dạng viên thuốc đồng nhất sidebar */
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.btn svg, .btn i {
+.btn svg,
+.btn i {
     width: 18px;
     height: 18px;
     flex-shrink: 0;
@@ -407,7 +412,8 @@ body {
 
 /* Nút Success (Xanh lá - An toàn/Thêm mới/Lưu) */
 .btn-success {
-    background-color: #1e8e3e; /* Xanh lá chuẩn Material */
+    background-color: #1e8e3e;
+    /* Xanh lá chuẩn Material */
     border: none;
     color: #ffffff;
 }
@@ -419,7 +425,8 @@ body {
 
 /* Nút Danger (Đỏ - Cảnh báo/Xóa) */
 .btn-danger {
-    background-color: #d93025; /* Đỏ chuẩn Material */
+    background-color: #d93025;
+    /* Đỏ chuẩn Material */
     border: none;
     color: #ffffff;
 }
@@ -480,7 +487,7 @@ body {
 }
 
 .table-custom th {
-    border-bottom: 1px solid var(--slate-200);
+    border-bottom: 0.5px solid #f0f0f0;
     border-top: none;
     font-weight: 500;
     color: var(--slate-500);
@@ -490,7 +497,7 @@ body {
 }
 
 .table-custom td {
-    border-bottom: 1px solid var(--slate-200);
+    border-bottom: 0.5px solid #f0f0f0;
     padding: 0.75rem 1.25rem;
     color: var(--slate-800);
     vertical-align: middle;
@@ -512,7 +519,8 @@ body {
 /* Specific font sizes for table cells */
 .table-custom .text-stt {
     font-size: 0.75rem;
-    font-family: 'Roboto Mono', monospace; /* Using a monospace font for STT */
+    font-family: 'Roboto Mono', monospace;
+    /* Using a monospace font for STT */
     color: var(--slate-500);
 }
 
@@ -696,6 +704,7 @@ body {
 .text-xs {
     font-size: 0.75rem !important;
 }
+
 /* General UI */
 .search-input {
     padding-left: 2.5rem;
@@ -802,7 +811,8 @@ header {
 
 /* --- MODAL XÁC NHẬN XÓA (REUSABLE) --- */
 .modal-confirm .modal-content {
-    border-radius: 28px; /* Bo góc lớn chuẩn Material Design 3 */
+    border-radius: 28px;
+    /* Bo góc lớn chuẩn Material Design 3 */
     border: none;
     padding: 1.5rem;
 }
@@ -977,7 +987,8 @@ header {
 .form-body-stack {
     display: flex;
     flex-direction: column;
-    gap: 24px; /* Khoảng cách Google tiêu chuẩn */
+    gap: 24px;
+    /* Khoảng cách Google tiêu chuẩn */
 }
 
 /* Group label và input */
@@ -1032,13 +1043,13 @@ textarea.form-control {
     border-radius: var(--radius-md);
 }
 
-.input-group > .form-control:not(:first-child),
-.input-group > .form-select:not(:first-child) {
+.input-group>.form-control:not(:first-child),
+.input-group>.form-select:not(:first-child) {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
 }
 
-.input-group > .input-group-text:first-child {
+.input-group>.input-group-text:first-child {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
 }

@@ -1,18 +1,11 @@
 <?php
 $isEdit = !empty($project['id']);
-$currentStatus = $old['status'] ?? $project['status'] ?? 'planning';
+$currentStatusId = (int) ($old['status_id'] ?? $project['status_id'] ?? 0);
 $currentOwnerId = (int) ($old['owner_id'] ?? $project['owner_id'] ?? 0);
 $currentName = $old['name'] ?? $project['name'] ?? '';
 $currentDescription = $old['description'] ?? $project['description'] ?? '';
 $currentStartDate = $old['start_date'] ?? $project['start_date'] ?? '';
 $currentDueDate = $old['due_date'] ?? $project['due_date'] ?? '';
-
-$statusOptions = [
-    'planning' => 'Lên kế hoạch',
-    'active' => 'Đang thực hiện',
-    'on_hold' => 'Tạm dừng',
-    'completed' => 'Hoàn thành',
-];
 ?>
 
 <style>
@@ -104,13 +97,16 @@ $statusOptions = [
                                 <!-- Trạng thái -->
                                 <div class="mb-3">
                                     <label class="form-label">Trạng thái <span class="text-danger">*</span></label>
-                                    <select name="status" class="form-select <?= isset($errors['status']) ? 'is-invalid' : '' ?>">
-                                        <?php foreach ($statusOptions as $value => $label): ?>
-                                            <option value="<?= $value ?>" <?= $currentStatus === $value ? 'selected' : '' ?>><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></option>
+                                    <select name="status_id" class="form-select <?= isset($errors['status_id']) ? 'is-invalid' : '' ?>">
+                                        <option value="">Chọn trạng thái</option>
+                                        <?php foreach (($statusOptions ?? []) as $status): ?>
+                                            <option value="<?= (int) $status['id'] ?>" <?= $currentStatusId === (int) $status['id'] ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($status['name'], ENT_QUOTES, 'UTF-8') ?>
+                                            </option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <?php if (isset($errors['status'])): ?>
-                                        <div class="invalid-feedback d-block"><?= htmlspecialchars($errors['status'], ENT_QUOTES, 'UTF-8') ?></div>
+                                    <?php if (isset($errors['status_id'])): ?>
+                                        <div class="invalid-feedback d-block"><?= htmlspecialchars($errors['status_id'], ENT_QUOTES, 'UTF-8') ?></div>
                                     <?php endif; ?>
                                 </div>
 

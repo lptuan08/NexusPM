@@ -2,6 +2,10 @@
 
 /**
  * Giao diện quản lý trạng thái dự án (Thiết lập hệ thống)
+ * 
+ * @var array $statuses
+ * @var array $old
+ * @var array $errors
  */
 ?>
 
@@ -71,14 +75,6 @@
     </div>
 </div>
 
-<!-- Cảnh báo quyền Admin -->
-<div class="alert alert-danger d-flex align-items-center border-0 shadow-sm" role="alert">
-    <i data-lucide="alert-triangle" class="me-3"></i>
-    <div>
-        <strong>Cảnh báo quản trị (Admin):</strong> Đây là chức năng thiết lập hệ thống cốt lõi. Vui lòng cẩn trọng khi thêm, sửa hoặc thay đổi vị trí các trạng thái vì điều này sẽ ảnh hưởng trực tiếp đến toàn bộ dự án đang vận hành.
-    </div>
-</div>
-
 <!-- Bảng danh sách trạng thái -->
 <div class="table-container">
         <div class="table-responsive">
@@ -89,7 +85,7 @@
                         <th scope="col">Tên trạng thái</th>
                         <th scope="col">Slug</th>
                         <th scope="col">Mã màu</th>
-                        <th scope="col">Trạng thái hoạt động</th>
+                        <th scope="col" class="text-center">Kích hoạt</th>
                         <th scope="col" class="text-center status-actions-col">Hành động</th>
                     </tr>
                 </thead>
@@ -111,8 +107,10 @@
                                         <code><?= htmlspecialchars($status['color'] ?? '#94a3b8') ?></code>
                                     </div>
                                 </td>
-                                <td>
-                                    <span class="ui-badge <?= ($status['is_active'] ?? false) ? 'status-active' : 'status-muted' ?>"><?= ($status['is_active'] ?? false) ? 'Đã kích hoạt' : 'Vô hiệu hóa' ?></span>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center">
+                                        <input class="form-check-input" type="checkbox" <?= ($status['is_active'] ?? false) ? 'checked' : '' ?> disabled>
+                                    </div>
                                 </td>
                                 <td class="text-center">
                                     <div class="d-inline-flex align-items-center gap-1">
@@ -135,6 +133,14 @@
             </table>
         </div>
     </div>
+
+<!-- Cảnh báo quyền Admin -->
+<div class="alert alert-danger d-flex align-items-center border-0 shadow-sm mt-4" role="alert">
+    <i data-lucide="alert-triangle" class="me-3"></i>
+    <div>
+        <strong>Cảnh báo quản trị (Admin):</strong> Đây là chức năng thiết lập hệ thống cốt lõi. Vui lòng cẩn trọng khi thêm, sửa hoặc thay đổi vị trí các trạng thái vì điều này sẽ ảnh hưởng trực tiếp đến toàn bộ dự án đang vận hành.
+    </div>
+</div>
 
 <!-- Modal Form Trạng thái -->
 <div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">

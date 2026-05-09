@@ -75,11 +75,18 @@
 
                         <div>
                             <label class="form-label">Quyền hạn hệ thống</label>
-                            <?php $currentRole = $old['role'] ?? $user['role'] ?? 'member'; ?>
-                            <select name="role" class="form-select">
-                                <option value="member" <?= $currentRole == 'member' ? 'selected' : '' ?>>Thành viên (Member)</option>
-                                <option value="admin" <?= $currentRole == 'admin' ? 'selected' : '' ?>>Quản trị viên (Admin)</option>
+                            <?php $currentRoleId = $old['role_id'] ?? $user['role_id'] ?? ''; ?>
+                            <select name="role_id" class="form-select <?= isset($errors['role_id']) ? 'is-invalid' : '' ?>" required>
+                                <option value="" selected disabled>Chọn vai trò</option>
+                                <?php if (!empty($roles)): ?>
+                                    <?php foreach ($roles as $role): ?>
+                                        <option value="<?= $role['id'] ?>" <?= $currentRoleId == $role['id'] ? 'selected' : '' ?>><?= htmlspecialchars($role['name']) ?></option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </select>
+                            <?php if (isset($errors['role_id'])): ?>
+                                <div class="invalid-feedback d-block"><?= $errors['role_id'] ?></div>
+                            <?php endif; ?>
                         </div>
 
                         <div>

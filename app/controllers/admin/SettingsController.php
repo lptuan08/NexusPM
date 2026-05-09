@@ -6,11 +6,13 @@ use App\core\Controller;
 use App\core\View;
 use App\core\Response;
 use App\helpers\Helper;
+use App\models\SettingModel;
+
 // use App\core\Validator;
 
 class SettingsController extends Controller
 {
-    protected $modelSetting;
+    protected SettingModel $modelSetting;
     public function __construct()
     {
         parent::__construct();

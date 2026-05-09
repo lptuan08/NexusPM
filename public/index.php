@@ -41,7 +41,7 @@ try {
     $app = new Router($routes);
     $url = Request::uri();
     $app->dispatch($url);
-    if (APP_DEBUG) Helper::debug_mvc_widget(); // Chỉ hiển thị widget debug khi APP_DEBUG là true
+    // if (APP_DEBUG) Helper::debug_mvc_widget(); // Chỉ hiển thị widget debug khi APP_DEBUG là true
 } catch (Exception $e) {
     ErrorHandler::handle($e);
 }

@@ -85,6 +85,25 @@ return [
             'action' => 'list',
             'middleware' => ['AuthMiddleware'] //bổ sung thêm quyền admin
         ],
+        '/settings/job' => [
+            'controller' => 'admin/JobController',
+            'action' => 'list',
+            'middleware' => ['AuthMiddleware'] //bổ sung thêm quyền admin
+        ],
+
+        // ROLE
+        '/admin/roles' => [
+            'controller' => 'admin/RoleController',
+            'action' => 'index',
+            'middleware' => ['AuthMiddleware']
+        ],
+        '/admin/roles/{id}/permissions' => [
+            'controller' => 'admin/PermissionController',
+            'action' => 'RolePermissions',
+            'middleware' => ['AuthMiddleware']
+        ],
+
+
 
     ],
 
@@ -177,6 +196,53 @@ return [
             'action'     => 'reorder',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
+
+        // JOB
+        '/settings/job/create' => [
+            'controller' => 'admin/JobController',
+            'action'     => 'store',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+        '/settings/job/{id}/edit' => [
+            'controller' => 'admin/JobController',
+            'action'     => 'store',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+        '/settings/job/{id}/delete' => [
+            'controller' => 'admin/JobController',
+            'action'     => 'deleted',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+
+
+
+        //ROLE
+        '/admin/roles/create' => [
+            'controller' => 'admin/RoleController',
+            'action'     => 'store',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+        // Cập nhật vai trò
+        '/admin/roles/{id}/update' => [
+            'controller' => 'admin/RoleController',
+            'action'     => 'update',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+        // Xóa vai trò
+        '/admin/roles/{id}/delete' => [
+            'controller' => 'admin/RoleController',
+            'action'     => 'delete',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+
+        '/admin/roles/{id}/permissions' => [
+            'controller' => 'admin/PermissionController',
+            'action' => 'RolePermissionsEdit',
+            'middleware' => ['AuthMiddleware']
+        ],
+
+
+
 
     ]
 ];

@@ -86,4 +86,16 @@ class Request
     {
         return $this->getMethod() === 'GET';
     }
+
+    //getQuery
+    public function getQuery(){
+        $data = [];
+        foreach ($_GET as $key => $value) {
+            $data[$key] = $this->sanitize($value);
+        }
+        return $data;
+        
+    }
+    
+    
 }

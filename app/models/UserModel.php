@@ -19,14 +19,55 @@ class UserModel extends Model
 
     public function getAllUsers()
     {
-        $sql = "SELECT u.id, u.employee_code, u.name, u.email, u.avatar, u.role, 
-                       jt.name AS job_title 
+        $sql = "SELECT u.id, u.employee_code, u.name, u.email, u.avatar, u.role_id, u.is_active,
+                       jt.name AS job_title, r.name AS role_name, r.slug AS role_slug
                 FROM {$this->table} AS u
                 LEFT JOIN job_titles AS jt ON jt.id = u.job_title_id
+                LEFT JOIN roles AS r ON r.id = u.role_id
                 WHERE u.deleted_at IS NULL
                 ORDER BY u.id DESC";
 
         return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+    public function countAll($filters = [])
+    {
+        $sql = "SELECT COUNT(*) FROM {$this->table} u 
+                LEFT JOIN job_titles jt ON u.job_title_id = jt.id
+                WHERE u.deleted_at IS NULL";
+        $params = [];
+
+        if (!empty($filters['search'])) {
+            $sql .= " AND (u.name LIKE :search OR u.email LIKE :search OR u.employee_code LIKE :search)";
+            $params['search'] = '%' . $filters['search'] . '%';
+        }
+        if (!empty($filters['job_title'])) {
+            $placeholders = [];
+            foreach ($filters['job_title'] as $i => $title) {
+                $key = "jt_" . $i;
+                $placeholders[] = ":" . $key;
+                $params[$key] = $title;
+            }
+            $sql .= " AND jt.name IN (" . implode(',', $placeholders) . ")";
+        }
+        if (!empty($filters['role_id'])) {
+            $placeholders = [];
+            foreach ($filters['role_id'] as $i => $role) {
+                $key = "role_id_" . $i;
+                $placeholders[] = ":" . $key;
+                $params[$key] = $role;
+            }
+            $sql .= " AND u.role_id IN (" . implode(',', $placeholders) . ")";
+        }
+        if (!empty($filters['created_at_start'])) {
+            $sql .= " AND u.created_at >= :start";
+            $params['start'] = $filters['created_at_start'] . ' 00:00:00';
+        }
+        if (!empty($filters['created_at_end'])) {
+            $sql .= " AND u.created_at <= :end";
+            $params['end'] = $filters['created_at_end'] . ' 23:59:59';
+        }
+
+        return (int)$this->db->query($sql, $params)->fetchColumn();
     }
 
     /**
@@ -34,20 +75,13 @@ class UserModel extends Model
      */
     public function getUserById($id)
     {
-        $sql = "SELECT u.*, jt.name AS job_title 
+        $sql = "SELECT u.*, jt.name AS job_title, r.name AS role_name, r.slug AS role_slug
                 FROM {$this->table} AS u
                 LEFT JOIN job_titles AS jt ON u.job_title_id = jt.id
+                LEFT JOIN roles AS r ON r.id = u.role_id
                 WHERE u.id = :id AND u.deleted_at IS NULL";
 
         return $this->db->query($sql, ['id' => $id])->fetch(PDO::FETCH_ASSOC);
-    }
-
-    /**
-     * Thêm mới nhân viên
-     */
-    public function addUser($data)
-    {
-        return $this->insert($data);
     }
 
     /**
@@ -84,22 +118,6 @@ class UserModel extends Model
     public function getLastUser()
     {
         return $this->db->lastInsertId();
-    }
-
-    /**
-     * Cập nhật thông tin nhân viên
-     */
-    public function updateUser($id, $data)
-    {
-        return $this->update($id, $data);
-    }
-
-    /**
-     * Xóa nhân viên
-     */
-    public function deleteUser($id)
-    {
-        return $this->delete($id);
     }
 
     /**
@@ -155,13 +173,15 @@ class UserModel extends Model
                 p.id, 
                 p.name,
                 p.description,
-                p.status,
+                p.status_id,
+                ps.slug AS status,
                 p.start_date,
                 p.due_date, 
                 pm.role, 
                 pm.joined_at
                 FROM project_members pm
                 JOIN projects p ON pm.project_id = p.id
+                LEFT JOIN project_statuses ps ON p.status_id = ps.id
                 WHERE pm.user_id = :user_id";
         return $this->db->query($sql, ['user_id' => $userId])->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -175,34 +195,70 @@ class UserModel extends Model
                 t.title, 
                 t.due_date, 
                 t.priority, 
-                t.status, 
+                t.status_id,
+                ts.slug AS status,
                 p.name as project_name
                 FROM tasks t
                 JOIN projects p ON t.project_id = p.id
+                LEFT JOIN task_statuses ts ON t.status_id = ts.id
                 WHERE t.assigned_to = :user_id
                 ORDER BY t.due_date ASC";
         return $this->db->query($sql, ['user_id' => $userId])->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getUserByPage($page, $perPage)
+    public function getUserByPage($page, $perPage, $filters = [])
     {
-
         // công thức tính phân trang
         $offset = ($page - 1) * $perPage;
-        // mặc định câu truy vấn sẽ được bind sang kiểu string sql truyền bằng tham số
-        // chuyển sang kiểu int, truyền thẳng vẫn an toàn
-        $perPage = (int)$perPage;
-        $offset = (int)$offset;
+
         // câu lệnh sql
-        $sql = "SELECT u.*, jt.name AS job_title 
+        $sql = "SELECT u.*, jt.name AS job_title, r.name AS role_name, r.slug AS role_slug
                 FROM {$this->table} AS u
                 LEFT JOIN job_titles AS jt ON u.job_title_id = jt.id
-                WHERE u.deleted_at IS NULL 
-                ORDER BY u.id DESC 
-                LIMIT {$perPage} OFFSET {$offset}";
-        $stmt = $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-        return $stmt;
+                LEFT JOIN roles AS r ON r.id = u.role_id
+                WHERE u.deleted_at IS NULL";
+        
+        $params = [];
+
+        if (!empty($filters['search'])) {
+            $sql .= " AND (u.name LIKE :search OR u.email LIKE :search OR u.employee_code LIKE :search)";
+            $params['search'] = '%' . $filters['search'] . '%';
+        }
+        if (!empty($filters['job_title'])) {
+            $placeholders = [];
+            foreach ($filters['job_title'] as $i => $title) {
+                $key = "jt_" . $i;
+                $placeholders[] = ":" . $key;
+                $params[$key] = $title;
+            }
+            $sql .= " AND jt.name IN (" . implode(',', $placeholders) . ")";
+        }
+        if (!empty($filters['role_id'])) {
+            $placeholders = [];
+            foreach ($filters['role_id'] as $i => $roleId) {
+                $key = "role_id_" . $i;
+                $placeholders[] = ":" . $key;
+                $params[$key] = $roleId;
+            }
+            $sql .= " AND u.role_id IN (" . implode(',', $placeholders) . ")";
+        }
+        if (!empty($filters['created_at_start'])) {
+            $sql .= " AND u.created_at >= :start";
+            $params['start'] = $filters['created_at_start'] . ' 00:00:00';
+        }
+        if (!empty($filters['created_at_end'])) {
+            $sql .= " AND u.created_at <= :end";
+            $params['end'] = $filters['created_at_end'] . ' 23:59:59';
+        }
+
+        $sql .= " ORDER BY u.id DESC LIMIT :limit OFFSET :offset";
+        $params['limit'] = (int)$perPage;
+        $params['offset'] = (int)$offset;
+
+        return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
     }
 
-   
+    public function getUniqueJobTitles() {
+        return $this->db->query("SELECT DISTINCT name FROM job_titles ORDER BY name")->fetchAll(PDO::FETCH_COLUMN);
+    }
 }

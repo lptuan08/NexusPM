@@ -1,15 +1,5 @@
 <?php
 /**
- * Cấu hình ánh xạ trạng thái dự án sang tên hiển thị và màu sắc tương ứng
- */
-$projectStatusMap = [
-    'planning' => ['text' => 'Lên kế hoạch', 'tone' => 'info', 'color' => '#2563eb'],
-    'active'   => ['text' => 'Đang thực hiện', 'tone' => 'success', 'color' => '#0f766e'],
-    'on_hold'  => ['text' => 'Tạm dừng', 'tone' => 'warning', 'color' => '#b45309'],
-    'completed' => ['text' => 'Hoàn thành', 'tone' => 'primary', 'color' => '#7c3aed'],
-];
-
-/**
  * Ánh xạ trạng thái công việc
  */
 $taskStatusMap = [
@@ -27,12 +17,10 @@ $priorityMap = [
     'low' => ['text' => 'Thấp', 'class' => 'priority-low'],
 ];
 
-// Lấy thông tin trạng thái hiện tại của dự án
-$currentStatus = $projectStatusMap[$project['status']] ?? [
-    'text' => ucfirst((string) $project['status']),
-    'tone' => 'secondary',
-    'color' => '#64748b',
-];
+// Sử dụng dữ liệu trạng thái đã join từ database
+$statusName = $project['status_name'] ?? 'Không rõ';
+$statusSlug = $project['status_slug'] ?? '';
+$statusColor = $project['status_color'] ?? '#64748b';
 
 // Khởi tạo các biến thống kê công việc
 $todayTs = strtotime(date('Y-m-d'));
@@ -66,7 +54,7 @@ $isOverdueProject = false;
 if (!empty($project['due_date'])) {
     $dueTs = strtotime($project['due_date']);
     $remainingDays = (int) floor(($dueTs - $todayTs) / 86400);
-    $isOverdueProject = $remainingDays < 0 && ($project['status'] ?? '') !== 'completed';
+    $isOverdueProject = $remainingDays < 0 && $statusSlug !== 'completed';
 }
 
 // Xác định Trưởng dự án (Lead/Manager/Owner) từ danh sách thành viên
@@ -141,7 +129,6 @@ $leadMemberAvatar = $buildAvatar(
     /* Card Header chứa thông tin tiêu đề và banner */
     .project-detail-header {
         background: #fff;
-        border: 1px solid #e2e8f0;
         border-radius: 1.5rem;
         box-shadow: 0 20px 45px -32px rgba(15, 23, 42, 0.35);
         overflow: hidden;
@@ -167,22 +154,20 @@ $leadMemberAvatar = $buildAvatar(
 
     /* Các thành phần panel và card thống kê */
     .project-stat-card,
-    .project-panel,
-    .project-table-card {
+    .project-panel {
         background: #fff;
-        border: 1px solid #e2e8f0;
         border-radius: 1.25rem;
         box-shadow: 0 18px 40px -34px rgba(15, 23, 42, 0.4);
     }
 
     .project-stat-card {
-        padding: 1.25rem;
+        padding: 0.85rem 1.15rem;
         height: 100%;
     }
 
     .project-stat-icon {
-        width: 52px;
-        height: 52px;
+        width: 42px;
+        height: 42px;
         border-radius: 1rem;
         display: inline-flex;
         align-items: center;
@@ -190,8 +175,8 @@ $leadMemberAvatar = $buildAvatar(
     }
 
     .project-stat-icon svg {
-        width: 22px;
-        height: 22px;
+        width: 18px;
+        height: 18px;
     }
 
     .project-soft-blue { background: #dbeafe; color: #1d4ed8; }
@@ -209,7 +194,8 @@ $leadMemberAvatar = $buildAvatar(
     /* Thanh tiến độ dự án */
     .project-meta-label {
         color: #64748b;
-        font-size: 0.82rem;
+        font-size: 0.75rem;
+        line-height: 1.2;
     }
 
     .project-progress {
@@ -245,11 +231,6 @@ $leadMemberAvatar = $buildAvatar(
     .project-tabset .nav-link:hover {
         color: #0f172a;
         border-bottom-color: #2563eb;
-    }
-
-    .project-member-row,
-    .project-timeline-item {
-        border-bottom: 1px solid #f1f5f9;
     }
 
     .project-member-row:last-child,
@@ -301,11 +282,22 @@ $leadMemberAvatar = $buildAvatar(
         color: #334155;
     }
 
-    .project-scroll-list {
-        max-height: 520px;
+    /* Khu vực cuộn nội dung chính của Tab */
+    .project-main-tab-content {
+        height: 600px; /* Độ cao cố định tối ưu cho dashboard */
         overflow-y: auto;
         overflow-x: hidden;
-        padding-right: 8px;
+        padding-right: 10px;
+        scrollbar-gutter: stable;
+    }
+
+    .project-main-tab-content::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .project-main-tab-content::-webkit-scrollbar-thumb {
+        background-color: #e2e8f0;
+        border-radius: 10px;
     }
 
     .project-member-picker {
@@ -384,9 +376,8 @@ $leadMemberAvatar = $buildAvatar(
                         <span class="project-pill project-banner-pill-outline">
                             <?= $projectCode ?>
                         </span>
-                        <span class="project-pill project-banner-pill-soft">
-                            <i data-lucide="sparkles"></i>
-                            <?= htmlspecialchars($currentStatus['text'], ENT_QUOTES, 'UTF-8') ?>
+                        <span class="project-pill project-banner-pill-soft" style="border-left: 4px solid <?= $statusColor ?>; background: rgba(255,255,255,0.1);">
+                            <?= htmlspecialchars($statusName, ENT_QUOTES, 'UTF-8') ?>
                         </span>
                     </div>
                 </div>
@@ -420,7 +411,7 @@ $leadMemberAvatar = $buildAvatar(
                             </div>
                             <div class="overflow-hidden">
                                 <div class="project-meta-label">Thời hạn & Còn lại</div>
-                                <div class="fw-bold text-slate-900 mb-1 project-date-compact">
+                                <div class="fw-bold text-slate-900 project-date-compact">
                                     <?= !empty($project['start_date']) ? date('d/m', strtotime($project['start_date'])) : '??' ?> - <?= !empty($project['due_date']) ? date('d/m/Y', strtotime($project['due_date'])) : '??' ?>
                                 </div>
                                 <div class="small fw-semibold <?= $isOverdueProject ? 'text-danger' : 'text-primary' ?>">
@@ -439,7 +430,7 @@ $leadMemberAvatar = $buildAvatar(
                             </div>
                             <div class="overflow-hidden">
                                 <div class="project-meta-label">Trưởng dự án</div>
-                                <div class="fs-5 fw-bold text-slate-900 text-truncate" title="<?= $ownerName ?>"><?= $ownerName ?></div>
+                                <div class="fw-bold text-slate-900 text-truncate" style="font-size: 1.05rem;" title="<?= $ownerName ?>"><?= $ownerName ?></div>
                             </div>
                         </div>
                     </div>
@@ -453,7 +444,7 @@ $leadMemberAvatar = $buildAvatar(
                             </div>
                             <div>
                                 <div class="project-meta-label">Tổng công việc</div>
-                                <div class="fs-3 fw-bold text-slate-900"><?= $totalTasks ?></div>
+                                <div class="fs-4 fw-bold text-slate-900"><?= $totalTasks ?></div>
                             </div>
                         </div>
                     </div>
@@ -467,7 +458,7 @@ $leadMemberAvatar = $buildAvatar(
                             </div>
                             <div>
                                 <div class="project-meta-label">Tiến độ dự án</div>
-                                <div class="fs-3 fw-bold text-slate-900"><?= $progressPercent ?>%</div>
+                                <div class="fs-4 fw-bold text-slate-900"><?= $progressPercent ?>%</div>
                             </div>
                         </div>
                     </div>
@@ -478,13 +469,13 @@ $leadMemberAvatar = $buildAvatar(
 
     <div class="row g-4">
         <!-- Cột Nội dung chính (Tabs) -->
-        <div class="col-xl-8">
+        <div class="col-12">
             <div class="project-panel p-4 p-lg-5">
                 <!-- Danh sách Tab -->
                 <ul class="nav project-tabset mb-4" id="projectDetailTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview-pane" type="button" role="tab">
-                            Tổng quan
+                        <button class="nav-link active" id="members-tab" data-bs-toggle="tab" data-bs-target="#members-pane" type="button" role="tab">
+                            Thành viên
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -492,14 +483,62 @@ $leadMemberAvatar = $buildAvatar(
                             Công việc
                         </button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview-pane" type="button" role="tab">
+                            Tổng quan
+                        </button>
+                    </li>
                 </ul>
 
                 <!-- Nội dung tương ứng của từng Tab -->
-                <div class="tab-content">
-                    <!-- Tab: Tổng quan (Hiển thị các công việc mới nhất) -->
-                    <div class="tab-pane fade show active" id="overview-pane" role="tabpanel">
-                        <div class="text-slate-600 project-description">
-                            <?= nl2br(htmlspecialchars($projectDescription !== '' ? $projectDescription : 'Dự án này hiện chưa có thông tin mô tả chi tiết.', ENT_QUOTES, 'UTF-8')) ?>
+                <div class="tab-content project-main-tab-content">
+                    <!-- Tab: Thành viên -->
+                    <div class="tab-pane fade show active" id="members-pane" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <div class="project-section-title mb-1">Thành viên tham gia</div>
+                                <div class="project-mini-note">Danh sách nhân sự đang thực hiện dự án này.</div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addMembersModal">
+                                <i data-lucide="user-plus"></i>
+                                <span>Thêm thành viên</span>
+                            </button>
+                        </div>
+
+                        <div class="project-table-card">
+                            <?php if (!empty($members)): ?>
+                                <div class="row g-4">
+                                    <?php foreach ($members as $member): ?>
+                                        <div class="col-md-6 col-lg-4">
+                                            <div class="project-member-row p-3 border rounded-3 h-100">
+                                                <div class="d-flex align-items-center justify-content-between gap-3 mb-2">
+                                                    <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                                        <img src="<?= $buildAvatar($member, 'name', 'avatar', 48) ?>" alt="avatar" class="project-member-avatar">
+                                                        <div class="overflow-hidden">
+                                                            <div class="fw-semibold text-slate-900 text-truncate">
+                                                                <a href="<?= URLROOT ?>/users/<?= (int) $member['id'] ?>" class="text-decoration-none text-slate-900 hover-text-primary">
+                                                                    <?= htmlspecialchars((string) $member['name'], ENT_QUOTES, 'UTF-8') ?>
+                                                                </a>
+                                                            </div>
+                                                            <div class="project-mini-note text-truncate"><?= htmlspecialchars((string) ($member['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                                        </div>
+                                                    </div>
+                                                    <span class="project-pill project-member-role-pill">
+                                                        <?= htmlspecialchars((string) ($member['role'] ?? 'Thành viên'), ENT_QUOTES, 'UTF-8') ?>
+                                                    </span>
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="project-mini-note">
+                                                        Tham gia từ <?= !empty($member['joined_at']) ? date('d/m/Y', strtotime($member['joined_at'])) : '-' ?>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php else: ?>
+                                <div class="text-center py-4 text-slate-500">Dự án này hiện chưa có thành viên nào tham gia.</div>
+                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -571,54 +610,12 @@ $leadMemberAvatar = $buildAvatar(
                         </div>
                     </div>
 
-                </div>
-            </div>
-        </div>
-
-        <!-- Cột Sidebar bên phải (Thành viên) -->
-        <div class="col-xl-4">
-            <div class="project-panel p-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <div class="project-section-title mb-1">Thành viên tham gia</div>
-                        <div class="project-mini-note">Danh sách nhân sự đang thực hiện dự án này.</div>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addMembersModal">
-                        <i data-lucide="user-plus"></i>
-                        <span>Thêm thành viên</span>
-                    </button>
-                </div>
-
-                <div class="project-table-card p-3 p-lg-4">
-                    <?php if (!empty($members)): ?>
-                        <div class="d-flex flex-column project-scroll-list">
-                            <?php foreach ($members as $member): ?>
-                                <div class="project-member-row py-3">
-                                    <div class="d-flex flex-column gap-3">
-                                        <div class="d-flex align-items-center justify-content-between gap-3">
-                                            <div class="d-flex align-items-center gap-3 overflow-hidden">
-                                            <img src="<?= $buildAvatar($member, 'name', 'avatar', 48) ?>" alt="avatar" class="project-member-avatar">
-                                                <div class="overflow-hidden">
-                                                    <div class="fw-semibold text-slate-900 text-truncate"><?= htmlspecialchars((string) $member['name'], ENT_QUOTES, 'UTF-8') ?></div>
-                                                    <div class="project-mini-note text-truncate"><?= htmlspecialchars((string) ($member['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
-                                                </div>
-                                            </div>
-                                            <span class="project-pill project-member-role-pill">
-                                                <?= htmlspecialchars((string) ($member['role'] ?? 'Thành viên'), ENT_QUOTES, 'UTF-8') ?>
-                                            </span>
-                                        </div>
-                                        <div class="d-flex align-items-center justify-content-end">
-                                            <span class="project-mini-note">
-                                                Tham gia từ <?= !empty($member['joined_at']) ? date('d/m/Y', strtotime($member['joined_at'])) : '-' ?>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
+                    <!-- Tab: Tổng quan -->
+                    <div class="tab-pane fade" id="overview-pane" role="tabpanel">
+                        <div class="text-slate-600 project-description">
+                            <?= nl2br(htmlspecialchars($projectDescription !== '' ? $projectDescription : 'Dự án này hiện chưa có thông tin mô tả chi tiết.', ENT_QUOTES, 'UTF-8')) ?>
                         </div>
-                    <?php else: ?>
-                        <div class="text-center py-4 text-slate-500">Dự án này hiện chưa có thành viên nào tham gia.</div>
-                    <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
