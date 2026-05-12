@@ -86,6 +86,61 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
         background-color: #f8fafc !important; /* Đồng bộ màu nền bg-slate-50 */
         box-shadow: inset 0 -1px 0 #e2e8f0; /* Tạo đường kẻ dưới header khi scroll */
     }
+
+    /* Dropdown chọn dự án: kích thước, vị trí, vùng cuộn danh sách */
+    .tasks-project-dropdown > .dropdown-menu {
+        min-width: min(100vw - 1.5rem, 20rem);
+        max-width: min(100vw - 1.5rem, 22rem);
+        padding: 0.375rem 0;
+        margin-top: 0.35rem !important;
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 40px -10px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(226, 232, 240, 0.8);
+        z-index: 1080;
+    }
+
+    .tasks-project-dropdown .project-dropdown-scroll {
+        max-height: min(52vh, 17.5rem);
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tasks-project-dropdown .project-dropdown-scroll .dropdown-item {
+        padding-top: 0.55rem;
+        padding-bottom: 0.55rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        white-space: normal;
+        gap: 0.5rem;
+    }
+
+    .tasks-project-dropdown .project-dropdown-scroll .dropdown-item span:first-child {
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+    }
+
+    .tasks-project-dropdown .dropdown-item.text-primary {
+        font-size: 0.9375rem;
+    }
+
+    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+
+    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
 </style>
 
 <div class="page-toolbar">
@@ -100,24 +155,26 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 px-1">
     <!-- Bên trái: thông tin dự án & dropdown -->
     <div class="d-flex align-items-center gap-3">
-        <div class="dropdown">
-            <button class="btn btn-link p-0 text-decoration-none d-flex align-items-center gap-2 shadow-none border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <h4 class="mb-0 fw-bold text-slate-900">
+        <div class="dropdown tasks-project-dropdown">
+            <button class="btn btn-link p-0 text-decoration-none d-flex align-items-center gap-2 shadow-none border-0" type="button" data-bs-toggle="dropdown" data-bs-offset="0,8" aria-expanded="false">
+                <h4 class="mb-0 fw-bold text-slate-900 text-start" style="max-width: min(70vw, 28rem);">
                     <?= $selectedProject ? htmlspecialchars($selectedProject['name']) : 'Tất cả công việc' ?>
                 </h4>
-                <i data-lucide="chevron-right" class="text-slate-400 mt-1" size="20"></i>
+                <i data-lucide="chevron-down" class="text-slate-400 flex-shrink-0" size="20"></i>
             </button>
-            <ul class="dropdown-menu shadow-xl border-0 py-2" style="min-width: 280px;">
+            <ul class="dropdown-menu dropdown-menu-start shadow-xl border-0">
                 <li><a class="dropdown-item py-2 fw-medium text-primary" href="<?= URLROOT ?>/tasks">Tất cả dự án</a></li>
-                <li><hr class="dropdown-divider opacity-50"></li>
-                <?php foreach($projects as $p): ?>
-                    <li>
-                        <a class="dropdown-item py-2 d-flex align-items-center justify-content-between <?= (isset($filters['project_id']) && $filters['project_id'] == $p['id']) ? 'active' : '' ?>" href="<?= URLROOT ?>/tasks?project_id=<?= $p['id'] ?>">
-                            <span><?= htmlspecialchars($p['name']) ?></span>
-                            <span class="text-xs <?= (isset($filters['project_id']) && $filters['project_id'] == $p['id']) ? 'text-white' : 'text-slate-400' ?>"><?= $p['project_code'] ?></span>
-                        </a>
-                    </li>
-                <?php endforeach; ?>
+                <li><hr class="dropdown-divider opacity-50 my-1"></li>
+                <li class="px-0 py-0">
+                    <div class="project-dropdown-scroll">
+                        <?php foreach ($projects as $p): ?>
+                            <a class="dropdown-item d-flex align-items-center justify-content-between <?= (isset($filters['project_id']) && (string) $filters['project_id'] === (string) $p['id']) ? 'active' : '' ?>" href="<?= URLROOT ?>/tasks?project_id=<?= (int) $p['id'] ?>">
+                                <span class="text-truncate"><?= htmlspecialchars($p['name']) ?></span>
+                                <span class="text-xs flex-shrink-0 ms-2 <?= (isset($filters['project_id']) && (string) $filters['project_id'] === (string) $p['id']) ? 'text-white' : 'text-slate-400' ?>"><?= htmlspecialchars((string) ($p['project_code'] ?? '')) ?></span>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </li>
             </ul>
         </div>
         
@@ -187,7 +244,8 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                             default          => 'status-muted'
                         };
                         
-                        $isOverdue = !empty($task['due_date']) && strtotime($task['due_date']) < strtotime(date('Y-m-d')) && ($task['status_slug'] ?? '') !== 'done';
+                        $isDoneStatus = !empty($task['status_is_done']) || ($task['status_slug'] ?? '') === 'done';
+                        $isOverdue = !empty($task['due_date']) && strtotime($task['due_date']) < strtotime(date('Y-m-d')) && !$isDoneStatus;
                         ?>
                         <tr>
                             <td class="text-center text-stt"><?= ($currentPage - 1) * $perPage + $index + 1 ?></td>

@@ -94,4 +94,12 @@ abstract class Model
     {
         return $this->db->rollBack();
     }
+
+    /**
+     * ID bản ghi vừa INSERT (cùng kết nối PDO).
+     */
+    public function lastInsertId(): int
+    {
+        return (int) $this->db->lastInsertId();
+    }
 }

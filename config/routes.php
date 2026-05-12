@@ -268,7 +268,7 @@ return [
         '/tasks/store' => [
             'controller' => 'TaskController',
             'action'     => 'store',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => ['AuthMiddleware','VerifyCsrfToken']
         ],
     ]
 ];

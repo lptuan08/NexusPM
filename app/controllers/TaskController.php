@@ -59,6 +59,7 @@ class TaskController extends Controller
             'users'           => $this->userModel->getAllUsers(),
             'statuses'        => $statuses,
             'filters'         => $filters,
+            'pagination'      => [],
             'selectedProject' => $selectedProject,
             'pageTitle'       => 'Danh sách công việc'
         ]);
@@ -93,24 +94,31 @@ class TaskController extends Controller
 
         // Thu thập các tham số lọc từ URL
         View::render('tasks/list', [
-            'tasks'      => $tasks,
-            'projects'   => $allProject,
-            'users'      => $this->userModel->getAllUsers(),
-            'statuses'   => $statusTask,
-            'selectedProject' => $selectedProject,
-            'pageTitle'  => 'Danh sách công việc'
+            'tasks'             => $tasks,
+            'projects'          => $allProject,
+            'users'             => $this->userModel->getAllUsers(),
+            'statuses'          => $statusTask,
+            'filters'           => ['project_id' => $id],
+            'pagination'        => [],
+            'selectedProject'   => $selectedProject,
+            'pageTitle'         => 'Danh sách công việc'
         ]);
     }
 
     public function create()
     {
+        $query = $this->request->getQuery();
+        $prefillProjectId = isset($query['project_id']) && $query['project_id'] !== '' && $query['project_id'] !== null
+            ? (int) $query['project_id']
+            : null;
+
         View::render('tasks/create', [
             'projects' => $this->projectModel->getAllProjects(),
             'users' => $this->userModel->getAllUsers(),
-            'statuses' => $this->statusModel->getList(),
+            'statuses' => $this->statusModel->getList($prefillProjectId),
             'pageTitle' => 'Tạo công việc mới',
-            'action_url' => URLROOT . '/tasks/create',
-            'old' => $this->request->getBody()
+            'action_url' => URLROOT . '/tasks/store',
+            'old' => $this->request->getBody(),
         ]);
     }
 
@@ -121,49 +129,85 @@ class TaskController extends Controller
     {
         if (!$this->request->isPost()) {
             Response::redirect(URLROOT . '/tasks/create');
+            return;
         }
 
+        $body = $this->request->getBody();
         $data = $this->getFormData();
 
-        // Validate dữ liệu
         $this->validator->required('title', $data['title'], 'Tiêu đề');
         $this->validator->required('project_id', $data['project_id'], 'Dự án');
         $this->validator->required('status_id', $data['status_id'], 'Trạng thái');
 
+        if ($this->validator->passes()) {
+            $projectId = (int) $data['project_id'];
+            $statusId = (int) $data['status_id'];
+
+            if (!$this->projectModel->find($projectId)) {
+                $this->validator->addError('project_id', 'Dự án không tồn tại hoặc đã bị xóa.');
+            } elseif (!$this->statusModel->belongsToProject($statusId, $projectId)) {
+                $this->validator->addError('status_id', 'Trạng thái không thuộc dự án đã chọn.');
+            }
+        }
+
         if (!$this->validator->passes()) {
+            $statusProjectId = !empty($body['project_id']) ? (int) $body['project_id'] : null;
             return View::render('tasks/create', [
                 'projects' => $this->projectModel->getAllProjects(),
                 'users' => $this->userModel->getAllUsers(),
-                'statuses' => $this->statusModel->getList(),
+                'statuses' => $this->statusModel->getList($statusProjectId),
                 'errors' => $this->validator->getErrors(),
-                'old' => $this->request->getBody(),
+                'old' => $body,
                 'pageTitle' => 'Tạo công việc mới',
-                'action_url' => URLROOT . '/tasks/create'
+                'action_url' => URLROOT . '/tasks/store',
             ]);
         }
 
-        if ($this->taskModel->create($data)) {
+        $assigneeId = !empty($data['assigned_to']) ? (int) $data['assigned_to'] : null;
+        unset($data['assigned_to']);
+
+        try {
+            $this->taskModel->beginTransaction();
+            $this->taskModel->create($data);
+            $taskId = $this->taskModel->lastInsertId();
+            if ($taskId < 1) {
+                throw new \RuntimeException('Không lấy được ID công việc sau khi lưu.');
+            }
+            if ($assigneeId) {
+                $this->taskModel->assignUserToTask($taskId, $assigneeId);
+            }
+            $this->taskModel->commit();
             Helper::setFlash('success', 'Thêm công việc mới thành công!');
             Response::redirect(URLROOT . '/tasks');
-        } else {
-            Helper::setFlash('danger', 'Có lỗi xảy ra trong quá trình lưu dữ liệu.');
+        } catch (\Throwable $e) {
+            $this->taskModel->rollBack();
+            Helper::setFlash('danger', 'Không thể lưu công việc. Kiểm tra dữ liệu và thử lại.');
             Response::redirect(URLROOT . '/tasks/create');
         }
     }
 
-    private function getFormData()
+    private function getFormData(): array
     {
         $body = $this->request->getBody();
+        $allowedPriority = ['low', 'medium', 'high', 'urgent'];
+        $priority = $body['priority'] ?? 'medium';
+        if (!in_array($priority, $allowedPriority, true)) {
+            $priority = 'medium';
+        }
+        $now = date('Y-m-d H:i:s');
+
         return [
-            'title'           => $body['title'] ?? '',
-            'description'     => $body['description'] ?? '',
-            'project_id'      => !empty($body['project_id']) ? (int)$body['project_id'] : null,
-            'assigned_to'     => !empty($body['assigned_to']) ? (int)$body['assigned_to'] : null,
-            'status_id'       => !empty($body['status_id']) ? (int)$body['status_id'] : null,
-            'priority'        => $body['priority'] ?? 'medium',
-            'due_date'        => !empty($body['due_date']) ? $body['due_date'] : null,
-            'estimated_hours' => !empty($body['estimated_hours']) ? (float)$body['estimated_hours'] : 0,
-            'created_at'      => date('Y-m-d H:i:s')
+            'title' => $body['title'] ?? '',
+            'description' => $body['description'] ?? '',
+            'project_id' => !empty($body['project_id']) ? (int) $body['project_id'] : null,
+            'assigned_to' => !empty($body['assigned_to']) ? (int) $body['assigned_to'] : null,
+            'status_id' => !empty($body['status_id']) ? (int) $body['status_id'] : null,
+            'priority' => $priority,
+            'due_date' => !empty($body['due_date']) ? $body['due_date'] : null,
+            'estimated_hours' => isset($body['estimated_hours']) && $body['estimated_hours'] !== ''
+                ? (float) $body['estimated_hours']
+                : 0.0,
+            'created_at' => $now,
         ];
     }
 }

@@ -206,6 +206,21 @@ class TaskStatusModel extends Model
     }
 
 
+    /**
+     * Kiểm tra trạng thái công việc có thuộc đúng dự án (workflow theo project) hay không.
+     */
+    public function belongsToProject(int $statusId, int $projectId): bool
+    {
+        $sql = "SELECT COUNT(*) FROM {$this->table}
+                WHERE id = :id AND project_id = :project_id AND deleted_at IS NULL";
+        $count = (int) $this->db->query($sql, [
+            'id'          => $statusId,
+            'project_id'  => $projectId,
+        ])->fetchColumn();
+
+        return $count > 0;
+    }
+
     // TAKS CONTROLLER
     public function getList($id = null)
     {

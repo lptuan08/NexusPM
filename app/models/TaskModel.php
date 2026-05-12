@@ -9,6 +9,51 @@ class TaskModel extends Model
 {
     protected $table = 'tasks';
 
+    /**
+     * Cột chọn chung cho danh sách task (JOIN project, assignee, trạng thái).
+     */
+    private function selectListColumns(): string
+    {
+        return "t.*,
+                p.name AS project_name,
+                u.name AS assigned_name,
+                u.avatar AS assigned_avatar,
+                ts.name AS status_name,
+                ts.slug AS status_slug,
+                ts.color AS status_color,
+                ts.is_done AS status_is_done";
+    }
+
+    /**
+     * JOIN: assignee lấy từ task_assignments (bản ghi mới nhất theo assigned_at).
+     */
+    private function fromListJoins(): string
+    {
+        return "FROM {$this->table} t
+                LEFT JOIN projects p ON t.project_id = p.id
+                LEFT JOIN users u ON u.id = (
+                    SELECT ta_sub.user_id
+                    FROM task_assignments ta_sub
+                    WHERE ta_sub.task_id = t.id
+                    ORDER BY ta_sub.assigned_at DESC, ta_sub.user_id DESC
+                    LIMIT 1
+                )
+                LEFT JOIN task_statuses ts ON t.status_id = ts.id";
+    }
+
+    /**
+     * Gán người thực hiện (bảng task_assignments).
+     */
+    public function assignUserToTask(int $taskId, int $userId): bool
+    {
+        $sql = "INSERT INTO task_assignments (task_id, user_id, assigned_at)
+                VALUES (:task_id, :user_id, NOW())";
+        return (bool) $this->db->query($sql, [
+            'task_id' => $taskId,
+            'user_id' => $userId,
+        ]);
+    }
+
     public function getAllTask()
     {
         $sql = "SELECT * FROM {$this->table} WHERE deleted_at IS NULL ORDER BY id DESC";
@@ -33,7 +78,10 @@ class TaskModel extends Model
             $params[':project_id'] = (int)$filters['project_id'];
         }
         if (!empty($filters['assigned_to'])) {
-            $whereClauses[] = "t.assigned_to = :assigned_to";
+            $whereClauses[] = "EXISTS (
+                SELECT 1 FROM task_assignments ta_f
+                WHERE ta_f.task_id = t.id AND ta_f.user_id = :assigned_to
+            )";
             $params[':assigned_to'] = (int)$filters['assigned_to'];
         }
         if (!empty($filters['status_id'])) {
@@ -42,14 +90,8 @@ class TaskModel extends Model
         }
 
         $whereSql = implode(' AND ', $whereClauses);
-        $sql = "SELECT t.*, 
-                       p.name as project_name, 
-                       u.name as assigned_name, u.avatar as assigned_avatar,
-                       ts.name as status_name, ts.slug as status_slug, ts.color as status_color
-                FROM {$this->table} t
-                LEFT JOIN projects p ON t.project_id = p.id
-                LEFT JOIN users u ON t.assigned_to = u.id
-                LEFT JOIN task_statuses ts ON t.status_id = ts.id
+        $sql = 'SELECT ' . $this->selectListColumns() . '
+                ' . $this->fromListJoins() . "
                 WHERE $whereSql ORDER BY t.id DESC";
 
         return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
@@ -57,20 +99,22 @@ class TaskModel extends Model
 
     public function getTaskByIdProject($id = null)
     {
-        //project_id = id
-        if ($id == null) {
-            $sql = "SELECT * FROM {$this->table} WHERE project_id IS NULL AND deleted_at IS NULL ORDER BY id DESC";
-            return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-        } else {
-            $sql = "SELECT * FROM {$this->table} WHERE project_id = :id AND deleted_at IS NULL ORDER BY id DESC";
-            $params = ['id' => $id];
-            return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
-        }
-    }
+        $whereClauses = ['t.deleted_at IS NULL'];
+        $params = [];
 
-    public function create($data)
-    {
-        return $this->db->insert($this->table, $data);
+        if ($id === null) {
+            $whereClauses[] = 't.project_id IS NULL';
+        } else {
+            $whereClauses[] = 't.project_id = :id';
+            $params['id'] = $id;
+        }
+
+        $whereSql = implode(' AND ', $whereClauses);
+        $sql = 'SELECT ' . $this->selectListColumns() . '
+                ' . $this->fromListJoins() . "
+                WHERE $whereSql ORDER BY t.id DESC";
+
+        return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function countAll($filters = [])
@@ -87,7 +131,10 @@ class TaskModel extends Model
             $params[':project_id'] = $filters['project_id'];
         }
         if (!empty($filters['assigned_to'])) {
-            $sql .= " AND assigned_to = :assigned_to";
+            $sql .= " AND EXISTS (
+                SELECT 1 FROM task_assignments ta_f
+                WHERE ta_f.task_id = {$this->table}.id AND ta_f.user_id = :assigned_to
+            )";
             $params[':assigned_to'] = $filters['assigned_to'];
         }
         if (!empty($filters['status_id'])) {
@@ -102,7 +149,7 @@ class TaskModel extends Model
     public function getTasksByPage($page, $perPage, $filters = [])
     {
         $offset = ($page - 1) * $perPage;
-        $whereClauses = ["deleted_at IS NULL"];
+        $whereClauses = ['t.deleted_at IS NULL'];
         $params = [];
 
         if (!empty($filters['search'])) {
@@ -114,7 +161,10 @@ class TaskModel extends Model
             $params[':project_id'] = (int)$filters['project_id'];
         }
         if (!empty($filters['assigned_to'])) {
-            $whereClauses[] = "t.assigned_to = :assigned_to";
+            $whereClauses[] = "EXISTS (
+                SELECT 1 FROM task_assignments ta_f
+                WHERE ta_f.task_id = t.id AND ta_f.user_id = :assigned_to
+            )";
             $params[':assigned_to'] = (int)$filters['assigned_to'];
         }
         if (!empty($filters['status_id'])) {
@@ -123,14 +173,8 @@ class TaskModel extends Model
         }
 
         $whereSql = implode(' AND ', $whereClauses);
-        $sql = "SELECT t.*, 
-                       p.name as project_name, 
-                       u.name as assigned_name, u.avatar as assigned_avatar,
-                       ts.name as status_name, ts.slug as status_slug, ts.color as status_color
-                FROM {$this->table} t
-                LEFT JOIN projects p ON t.project_id = p.id
-                LEFT JOIN users u ON t.assigned_to = u.id
-                LEFT JOIN task_statuses ts ON t.status_id = ts.id
+        $sql = 'SELECT ' . $this->selectListColumns() . '
+                ' . $this->fromListJoins() . "
                 WHERE $whereSql ORDER BY t.id DESC LIMIT :offset, :perPage";
 
         $params[':offset'] = $offset;
