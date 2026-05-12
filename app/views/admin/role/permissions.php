@@ -15,14 +15,14 @@
         <span class="page-title">Phân quyền</span>
     </div>
     <div class="page-actions">
-        <button type="button" class="btn btn-outline-secondary" onclick="window.location.reload();">
-            <i data-lucide="refresh-cw"></i> Làm lại
-        </button>
         <a href="<?= URLROOT ?>/admin/roles" class="btn btn-outline-secondary">
-            Hủy bỏ
+            <i data-lucide="arrow-left"></i>Quay lại
         </a>
+        <button type="button" class="btn btn-outline-secondary" onclick="window.location.reload();">
+            <i data-lucide="refresh-cw"></i> Khôi phục
+        </button>
         <button type="submit" form="permissionsForm" class="btn btn-primary px-4">
-            <i data-lucide="save"></i> Lưu phân quyền
+            <i data-lucide="save"></i> Lưu lại
         </button>
     </div>
 </div>

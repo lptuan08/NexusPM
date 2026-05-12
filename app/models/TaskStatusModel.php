@@ -204,4 +204,36 @@ class TaskStatusModel extends Model
             throw $e; // Ném lại lỗi để Controller xử lý
         }
     }
+
+
+    // TAKS CONTROLLER
+    public function getList($id = null)
+    {
+        if ($id == null) {
+            $sql = "SELECT id, name FROM {$this->table} WHERE project_id IS NULL AND deleted_at IS NULL ORDER BY position DESC";
+            return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $sql = "SELECT id, name FROM {$this->table} WHERE project_id = :project_id AND deleted_at IS NULL ORDER BY position ASC";
+            return $this->db->query($sql, ['project_id' => $id])->fetchAll(PDO::FETCH_ASSOC);
+        }
+    }
+
+    /**
+     * Sao chép toàn bộ trạng thái công việc mặc định hệ thống (project_id NULL) sang một dự án.
+     */
+    public function cloneGlobalStatusesToProject(int $projectId): void
+    {
+        $globals = $this->getStatuses(null);
+        foreach ($globals as $row) {
+            $this->add([
+                'name'       => $row['name'],
+                'slug'       => $row['slug'],
+                'color'      => $row['color'],
+                'project_id' => $projectId,
+                'is_active'  => (int) ($row['is_active'] ?? 1),
+                'is_default' => (int) ($row['is_default'] ?? 0),
+                'is_done'    => (int) ($row['is_done'] ?? 0),
+            ]);
+        }
+    }
 }

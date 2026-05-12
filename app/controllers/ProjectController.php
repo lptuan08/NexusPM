@@ -84,8 +84,6 @@ class ProjectController extends Controller
         $members = $this->modelProject->getProjectMembers($id);
         $tasks = $this->modelProject->getProjectTasks($id);
 
-        // Đảm bảo chủ dự án có trong danh sách thành viên để hiển thị đồng nhất
-        $members = $this->ensureOwnerInMembers($project, $members);
 
         // Lấy danh sách toàn bộ nhân viên để hiển thị trong Modal thêm thành viên
         $allUsers = $this->modelUser->getAllUsers();
@@ -104,12 +102,16 @@ class ProjectController extends Controller
      */
     public function create()
     {
-        View::render('projects/create', $this->getProjectFormViewData([
-            'pageTitle' => 'Tạo dự án mới',
-            'action_url' => URLROOT . '/projects/create',
-        ]));
+        if ($this->request->isGet()) {
+            return View::render('projects/create', $this->getProjectFormViewData([
+                'pageTitle' => 'Tạo dự án mới',
+                'action_url' => URLROOT . '/projects/create'
+            ]));
+        } else {
+            $data = $this->request->getBody();
+            var_dump($data);
+        }
     }
-
 
 
     /**
@@ -268,39 +270,7 @@ class ProjectController extends Controller
         return $data;
     }
 
-    /**
-     * Kiểm tra và thêm chủ dự án vào danh sách thành viên nếu chưa có
-     * (Hữu ích khi hiển thị danh sách nhân sự tham gia dự án ở trang chi tiết)
-     * @return array
-     */
-    private function ensureOwnerInMembers(array $project, array $members)
-    {
-        if (empty($project['owner_id'])) {
-            return $members;
-        }
-
-        foreach ($members as $member) {
-            if ((int) ($member['id'] ?? 0) === (int) $project['owner_id']) {
-                return $members;
-            }
-        }
-
-        if (empty($project['owner_name'])) {
-            return $members;
-        }
-
-        $members[] = [
-            'id' => $project['owner_id'],
-            'name' => $project['owner_name'],
-            'avatar' => $project['owner_avatar'] ?? null,
-            'email' => $project['owner_email'] ?? '',
-            'role' => 'Chủ dự án',
-            'joined_at' => $project['created_at'] ?? null,
-        ];
-
-        return $members;
-    }
-
+  
     /**
      * Thực hiện kiểm tra các quy tắc nghiệp vụ cho dữ liệu dự án
      * @param array $data

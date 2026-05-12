@@ -31,7 +31,7 @@
     <div class="page-actions">
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#roleModal" onclick="resetRoleForm()">
             <i data-lucide="plus" size="18"></i>
-            <span>Thêm vai trò</span>
+            <span>Thêm mới</span>
         </button>
     </div>
 </div>

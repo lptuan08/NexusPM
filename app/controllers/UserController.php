@@ -32,7 +32,7 @@ class UserController extends Controller
      */
     public function index()
     {
-        $perPage = 5; 
+        $perPage = 7; 
         $query = $this->request->getBody();
 
         $currentPage = (int)($query['page'] ?? 1);

@@ -8,49 +8,43 @@
 return [
     // NHÓM CÁC TRANG HIỂN THỊ (Lấy dữ liệu - GET)
     'GET' => [
-        // Trang chủ quản trị
+        // --- Dashboard ---
         '/' => [
             'controller' => 'DashboardController',
             'action'     => 'index',
             'middleware' => ['AuthMiddleware']
         ],
 
-        // Đăng nhập
+        // --- Authentication ---
         '/login' => [
             'controller' => 'auth/AuthController',
-            'action'     => 'login', // Hiển thị form đăng nhập
+            'action'     => 'login',
             'middleware' => []
         ],
 
-        // -----USER-----
+        // --- User Management ---
         '/users' => [
             'controller' => 'UserController',
             'action'     => 'index',
             'middleware' => ['AuthMiddleware']
         ],
-
-        // Form thêm mới
         '/users/create' => [
             'controller' => 'UserController',
-            'action'     => 'create', // Chỉ render view form
+            'action'     => 'create',
             'middleware' => ['AuthMiddleware']
         ],
-
-        // Form chỉnh sửa (Tham số động)
         '/users/{id}/edit' => [
             'controller' => 'UserController',
             'action'     => 'edit',
             'middleware' => ['AuthMiddleware']
         ],
-
-        // Chi tiết người dùng
         '/users/{id}' => [
             'controller' => 'UserController',
             'action'     => 'show',
             'middleware' => ['AuthMiddleware']
         ],
 
-        // -----PROJECTS-----
+        // --- Project Management ---
         '/projects' => [
             'controller' => 'ProjectController',
             'action'     => 'index',
@@ -71,9 +65,16 @@ return [
             'action'     => 'edit',
             'middleware' => ['AuthMiddleware']
         ],
+
+        // --- Task Management ---
         '/tasks' => [
             'controller' => 'TaskController',
             'action'     => 'index',
+            'middleware' => ['AuthMiddleware']
+        ],
+        '/tasks/list' => [
+            'controller' => 'TaskController',
+            'action'     => 'list',
             'middleware' => ['AuthMiddleware']
         ],
         '/tasks/create' => [
@@ -81,36 +82,38 @@ return [
             'action'     => 'create',
             'middleware' => ['AuthMiddleware']
         ],
+        '/tasks/{id}/list' => [
+            'controller' => 'TaskController',
+            'action'     => 'listIdProject',
+            'middleware' => ['AuthMiddleware']
+        ],
+        '/tasks/{id}/kanban' => [
+            'controller' => 'TaskController',
+            'action'     => 'kanban',
+            'middleware' => ['AuthMiddleware']
+        ],
 
-        // -----end USER------
-
-        // Thiết lập hệ thống
-
+        // --- Admin Settings ---
         '/settings' => [
             'controller' => 'admin/SettingsController',
             'action' => 'index',
-            'middleware' => ['AuthMiddleware'] //bổ sung thêm quyền admin
+            'middleware' => ['AuthMiddleware']
         ],
-
-
-
         '/settings/project' => [
             'controller' => 'admin/ProjectStatusController',
             'action' => 'list',
-            'middleware' => ['AuthMiddleware'] //bổ sung thêm quyền admin
+            'middleware' => ['AuthMiddleware']
         ],
         '/settings/task' => [
             'controller' => 'admin/TaskStatusController',
             'action' => 'list',
-            'middleware' => ['AuthMiddleware'] //bổ sung thêm quyền admin
+            'middleware' => ['AuthMiddleware']
         ],
         '/settings/job' => [
             'controller' => 'admin/JobController',
             'action' => 'list',
-            'middleware' => ['AuthMiddleware'] //bổ sung thêm quyền admin
+            'middleware' => ['AuthMiddleware']
         ],
-
-        // ROLE
         '/admin/roles' => [
             'controller' => 'admin/RoleController',
             'action' => 'index',
@@ -121,14 +124,11 @@ return [
             'action' => 'RolePermissions',
             'middleware' => ['AuthMiddleware']
         ],
-
-
-
     ],
 
     // NHÓM CÁC HÀNH ĐỘNG XỬ LÝ (Gửi dữ liệu - POST)
     'POST' => [
-        // Xử lý đăng nhập (Khi nhấn nút Submit login)
+        // --- Authentication ---
         '/login' => [
             'controller' => 'auth/AuthController',
             'action'     => 'handleLogin', // Hàm kiểm tra tài khoản/mật khẩu
@@ -142,28 +142,24 @@ return [
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
 
-        // Lưu người dùng mới vào Database
+        // --- User Management ---
         '/users/create' => [
             'controller' => 'UserController',
-            'action'     => 'store', // Hàm thực hiện INSERT DB (form tạo mới sẽ POST đến đây)
+            'action'     => 'store',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
-
-        // Cập nhật người dùng sau khi chỉnh sửa
         '/users/{id}/edit' => [
             'controller' => 'UserController',
-            'action'     => 'update', // Hàm thực hiện UPDATE DB
+            'action'     => 'update',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
-
-        // Xóa người dùng (Bắt buộc dùng POST để an toàn)
         '/users/{id}/delete' => [
             'controller' => 'UserController',
-            'action'     => 'delete', // Hàm thực hiện DELETE DB
+            'action'     => 'delete',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
 
-        // -----PROJECTS POST-----
+        // --- Project Management ---
         '/projects/create' => [
             'controller' => 'ProjectController',
             'action'     => 'store',
@@ -184,14 +180,11 @@ return [
             'action'     => 'addMembers',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
+
+        // --- Admin Settings: Project Status ---
         '/settings/project/create' => [
             'controller' => 'admin/ProjectStatusController',
             'action'     => 'store',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
-        ],
-        '/settings/project/{id}/edit' => [
-            'controller' => 'admin/ProjectStatusController',
-            'action'     => 'update',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
         '/settings/project/reorder' => [
@@ -199,25 +192,31 @@ return [
             'action'     => 'reorder',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
+        '/settings/project/{id}/edit' => [
+            'controller' => 'admin/ProjectStatusController',
+            'action'     => 'update',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
         '/settings/project/{id}/delete' => [
             'controller' => 'admin/ProjectStatusController',
             'action'     => 'delete',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
-        // TASK STATUS
+
+        // --- Admin Settings: Task Status ---
         '/settings/task/create' => [
             'controller' => 'admin/TaskStatusController',
             'action'     => 'store',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
-        '/settings/task/{id}/edit' => [
-            'controller' => 'admin/TaskStatusController',
-            'action' => 'edit',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
-        ],
         '/settings/task/reorder' => [
             'controller' => 'admin/TaskStatusController',
             'action'     => 'reorder',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+        '/settings/task/{id}/edit' => [
+            'controller' => 'admin/TaskStatusController',
+            'action' => 'edit',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
         '/settings/task/{id}/delete' => [
@@ -226,7 +225,7 @@ return [
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
 
-        // JOB
+        // --- Admin Settings: Job Titles ---
         '/settings/job/create' => [
             'controller' => 'admin/JobController',
             'action'     => 'store',
@@ -243,35 +242,33 @@ return [
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
 
-
-
-        //ROLE
+        // --- Admin Settings: Roles & Permissions ---
         '/admin/roles/create' => [
             'controller' => 'admin/RoleController',
             'action'     => 'store',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
-        // Cập nhật vai trò
         '/admin/roles/{id}/update' => [
             'controller' => 'admin/RoleController',
             'action'     => 'update',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
-        // Xóa vai trò
         '/admin/roles/{id}/delete' => [
             'controller' => 'admin/RoleController',
             'action'     => 'delete',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
-
         '/admin/roles/{id}/permissions' => [
             'controller' => 'admin/PermissionController',
             'action' => 'RolePermissionsEdit',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
 
-
-
-
+        // --- Task Management ---
+        '/tasks/store' => [
+            'controller' => 'TaskController',
+            'action'     => 'store',
+            'middleware' => ['AuthMiddleware']
+        ],
     ]
 ];

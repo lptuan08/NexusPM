@@ -76,7 +76,7 @@
         </button>
         <a href="<?= URLROOT; ?>/projects/create" class="btn btn-primary">
             <i data-lucide="plus"></i>
-            <span>Tạo dự án mới</span>
+            <span>Thêm mới</span>
         </a>
     </div>
 </div>

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\models;
 
 use App\core\Model;
@@ -13,10 +14,7 @@ class UserModel extends Model
     // 1. NHÓM CRUD NHÂN VIÊN (DANH SÁCH, CHI TIẾT, THÊM, SỬA, XÓA)
     // =========================================================================
 
-    /**
-     * Lấy danh sách toàn bộ nhân viên kèm theo tên chức danh
-     */
-
+    // Lấy danh sách tất cả user
     public function getAllUsers()
     {
         $sql = "SELECT u.id, u.employee_code, u.name, u.email, u.avatar, u.role_id, u.is_active,
@@ -70,9 +68,7 @@ class UserModel extends Model
         return (int)$this->db->query($sql, $params)->fetchColumn();
     }
 
-    /**
-     * Lấy thông tin chi tiết một nhân viên theo ID
-     */
+    // Detail.php 
     public function getUserById($id)
     {
         $sql = "SELECT u.*, jt.name AS job_title, r.name AS role_name, r.slug AS role_slug
@@ -84,6 +80,8 @@ class UserModel extends Model
         return $this->db->query($sql, ['id' => $id])->fetch(PDO::FETCH_ASSOC);
     }
 
+
+    // create.php
     /**
      * Thêm nhân viên và tự động tạo mã nhân viên trong một Transaction
      */
@@ -115,10 +113,6 @@ class UserModel extends Model
         }
     }
 
-    public function getLastUser()
-    {
-        return $this->db->lastInsertId();
-    }
 
     /**
      * Kiểm tra Email đã tồn tại trong hệ thống chưa
@@ -192,17 +186,19 @@ class UserModel extends Model
     public function getUserTasks($userId)
     {
         $sql = "SELECT 
+                t.id,
                 t.title, 
                 t.due_date, 
                 t.priority, 
                 t.status_id,
                 ts.slug AS status,
-                p.name as project_name
-                FROM tasks t
-                JOIN projects p ON t.project_id = p.id
-                LEFT JOIN task_statuses ts ON t.status_id = ts.id
-                WHERE t.assigned_to = :user_id
-                ORDER BY t.due_date ASC";
+                p.name AS project_name
+            FROM task_assignments ta
+            JOIN tasks t ON ta.task_id = t.id
+            JOIN projects p ON t.project_id = p.id
+            LEFT JOIN task_statuses ts ON t.status_id = ts.id
+            WHERE ta.user_id = :user_id
+            ORDER BY t.due_date ASC";
         return $this->db->query($sql, ['user_id' => $userId])->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -217,7 +213,7 @@ class UserModel extends Model
                 LEFT JOIN job_titles AS jt ON u.job_title_id = jt.id
                 LEFT JOIN roles AS r ON r.id = u.role_id
                 WHERE u.deleted_at IS NULL";
-        
+
         $params = [];
 
         if (!empty($filters['search'])) {
@@ -258,7 +254,8 @@ class UserModel extends Model
         return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getUniqueJobTitles() {
+    public function getUniqueJobTitles()
+    {
         return $this->db->query("SELECT DISTINCT name FROM job_titles ORDER BY name")->fetchAll(PDO::FETCH_COLUMN);
     }
 }

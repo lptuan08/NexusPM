@@ -16,6 +16,7 @@ class ProjectModel extends Model
 
     // Tên bảng tương ứng trong cơ sở dữ liệu
     protected $table = 'projects';
+    protected $tableProjectMember = 'project_members';
 
     /**
      * Lấy danh sách dự án có phân trang
@@ -70,6 +71,12 @@ class ProjectModel extends Model
      * @param array $filters Mảng chứa 'search' và 'status'
      * @return array
      */
+    public function getAllProjects()
+    {
+        $sql = "SELECT id, name, project_code FROM {$this->table} WHERE deleted_at IS NULL ORDER BY created_at DESC";
+        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function getAllProjectsWithFilters($filters = [])
     {
         $sql = "SELECT p.*, u.name AS owner_name, u.email AS owner_email, ps.name as status_name, ps.color as status_color, ps.slug as status_slug,
@@ -115,6 +122,10 @@ class ProjectModel extends Model
         return $this->db->query($sql, ['id' => $id])->fetch(PDO::FETCH_ASSOC);
     }
 
+
+
+
+
     /**
      * Lấy danh sách thành viên của một dự án
      * 
@@ -123,7 +134,7 @@ class ProjectModel extends Model
      */
     public function getProjectMembers($projectId)
     {
-        $sql = "SELECT u.id, u.name, u.avatar, u.email, pm.role, pm.joined_at 
+        $sql = "SELECT u.id, u.name, u.avatar, u.email, pm.role, pm.joined_at, pm.is_active, pm.left_at 
                 FROM project_members pm
                 JOIN users u ON pm.user_id = u.id
                 WHERE pm.project_id = :project_id AND u.deleted_at IS NULL";
@@ -139,11 +150,24 @@ class ProjectModel extends Model
      */
     public function getProjectTasks($projectId)
     {
-        $sql = "SELECT t.*, u.name as assigned_name, u.avatar as assigned_avatar
-                FROM tasks t
-                LEFT JOIN users u ON t.assigned_to = u.id
-                WHERE t.project_id = :project_id
-                ORDER BY t.created_at DESC";
+        $sql = "SELECT 
+                        ta.task_id,
+                        ta.user_id,
+                        ta.assigned_at,
+                        ta.assigned_by,
+                        u.name AS assigned_name,
+                        u.avatar AS assigned_avatar,
+                        t.title,
+                        t.project_id,
+                        t.status_id,
+                        t.priority
+                    FROM task_assignments ta
+                    INNER JOIN tasks t 
+                        ON ta.task_id = t.id
+                    LEFT JOIN users u 
+                        ON ta.user_id = u.id
+                    WHERE t.project_id = :project_id
+                    ORDER BY ta.assigned_at DESC";
 
         return $this->db->query($sql, ['project_id' => $projectId])->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -157,6 +181,8 @@ class ProjectModel extends Model
      */
     public function createWithProjectCode($data)
     {
+        var_dump($data);
+        // die();
         try {
             $this->db->beginTransaction();
 
@@ -212,8 +238,16 @@ class ProjectModel extends Model
                 updated_at = CURRENT_TIMESTAMP
                 WHERE id = :id";
 
-        $data['id'] = $id;
-        return $this->db->query($sql, $data);
+        $params = [
+            'name'        => $data['name'],
+            'description' => $data['description'],
+            'status_id'   => $data['status_id'],
+            'owner_id'    => $data['owner_id'],
+            'start_date'  => $data['start_date'],
+            'due_date'    => $data['due_date'],
+            'id'          => $id
+        ];
+        return $this->db->query($sql, $params);
     }
 
     /**

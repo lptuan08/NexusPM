@@ -93,7 +93,7 @@
         </button>
         <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#statusModal" onclick="resetStatusForm()">
             <i data-lucide="plus" size="18"></i>
-            <span>Thêm trạng thái</span>
+            <span>Thêm mới</span>
         </button>
     </div>
 </div>
@@ -306,6 +306,30 @@
     </div>
 </div>
 
+<!-- Modal Xác nhận xóa -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-content border-0 shadow-lg">
+            <form id="deleteStatusForm" action="" method="POST">
+                <?php \App\helpers\SecurityHelper::csrfInput(); ?>
+                <input type="hidden" name="project_id" value="<?= htmlspecialchars((string)($projectId ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                <div class="modal-body p-4 text-center">
+                    <div class="text-danger mb-3">
+                        <i data-lucide="alert-circle" size="48"></i>
+                    </div>
+                    <h5 class="fw-bold text-slate-900 mb-2">Xác nhận xóa</h5>
+                    <p class="text-slate-500 mb-4">Bạn có chắc chắn muốn xóa trạng thái <br><strong id="delete_item_name" class="text-slate-700"></strong>? Hành động này không thể hoàn tác.</p>
+
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-white shadow-sm" data-bs-dismiss="modal">Hủy bỏ</button>
+                        <button type="submit" class="btn btn-danger shadow-sm px-4">Xác nhận xóa</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -407,26 +431,10 @@
      * @param {string} name Tên trạng thái để hiển thị trong thông báo
      */
     function deleteStatus(id, name) {
-        if (confirm(`Bạn có chắc chắn muốn xóa trạng thái "${name}" không?`)) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `<?= URLROOT ?>/settings/task/${id}/delete`;
+        document.getElementById('delete_item_name').innerText = name;
+        document.getElementById('deleteStatusForm').action = `<?= URLROOT ?>/settings/task/${id}/delete`;
 
-            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrf_token';
-            csrfInput.value = csrfToken;
-            form.appendChild(csrfInput);
-
-            const projectInput = document.createElement('input');
-            projectInput.type = 'hidden';
-            projectInput.name = 'project_id';
-            projectInput.value = '<?= htmlspecialchars((string)($projectId ?? ''), ENT_QUOTES, 'UTF-8') ?>';
-            form.appendChild(projectInput);
-
-            document.body.appendChild(form);
-            form.submit();
-        }
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
     }
 </script>

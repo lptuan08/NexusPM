@@ -33,6 +33,7 @@ class Database
         // die();
         try {
             $statement = $this->__conn->prepare($sql); // Kiểm tra câu lệnh SQL trước khi thực thi
+
             foreach ($params as $key => $value) {
                 // Kiểm tra nếu là số nguyên thì dùng PARAM_INT, còn lại dùng PARAM_STR
                 $type = is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR;
@@ -46,7 +47,28 @@ class Database
 
             return $statement;
         } catch (PDOException $e) {
-            throw new Exception("Lỗi truy vấn: " . $e->getMessage(), 500);
+
+            echo "<pre>";
+
+            echo "━━━━━━━━━━ SQL ERROR ━━━━━━━━━━\n\n";
+
+            echo "Message:\n";
+            echo $e->getMessage();
+
+            echo "\n\n━━━━━━━━━━ QUERY ━━━━━━━━━━\n\n";
+
+            echo $sql;
+
+            echo "\n\n━━━━━━━━━━ PARAMS ━━━━━━━━━━\n\n";
+
+            print_r($params);
+
+            echo "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+
+            echo "</pre>";
+
+            exit;
+            // throw new Exception("Lỗi truy vấn: " . $e->getMessage(), 500);
         }
     }
 

@@ -1,40 +1,55 @@
 <?php
 /**
- * Ánh xạ trạng thái công việc
+ * Giao diện chi tiết dự án
+ * 
+ * @var array $project Thông tin dự án
+ * @var array $members Danh sách thành viên tham gia
+ * @var array $tasks Danh sách công việc thuộc dự án
+ * @var array $allUsers Danh sách toàn bộ người dùng (cho modal thêm thành viên)
+ * @var string $pageTitle Tiêu đề trang
  */
-$taskStatusMap = [
-    'todo' => ['text' => 'Chưa làm', 'class' => 'status-muted'],
-    'in_progress' => ['text' => 'Đang làm', 'class' => 'status-active'],
-    'done' => ['text' => 'Hoàn thành', 'class' => 'status-completed'],
+
+$project = $project ?? [];
+$members = $members ?? [];
+$tasks = $tasks ?? [];
+$allUsers = $allUsers ?? [];
+
+/**
+ * Ánh xạ màu sắc và tên hiển thị cho vai trò thành viên
+ */
+$roleMap = [
+    'manager' => ['text' => 'Manager', 'class' => 'role-pill-manager'],
+    'member'  => ['text' => 'Member',  'class' => 'role-pill-member'],
+    'viewer'  => ['text' => 'Viewer',  'class' => 'role-pill-viewer'],
 ];
 
 /**
- * Ánh xạ mức độ ưu tiên công việc
+ * Ánh xạ trạng thái công việc
  */
-$priorityMap = [
-    'high' => ['text' => 'Cao', 'class' => 'priority-high'],
-    'medium' => ['text' => 'Trung bình', 'class' => 'priority-medium'],
-    'low' => ['text' => 'Thấp', 'class' => 'priority-low'],
-];
-
-// Sử dụng dữ liệu trạng thái đã join từ database
-$statusName = $project['status_name'] ?? 'Không rõ';
-$statusSlug = $project['status_slug'] ?? '';
-$statusColor = $project['status_color'] ?? '#64748b';
-
 // Khởi tạo các biến thống kê công việc
 $todayTs = strtotime(date('Y-m-d'));
 $totalTasks = count($tasks);
 $completedTasks = 0;
 $inProgressTasks = 0;
+
+// Sắp xếp danh sách thành viên: Manager luôn ở trên đầu
+usort($members, function($a, $b) {
+    $roleOrder = ['manager' => 1, 'member' => 2, 'viewer' => 3];
+    $orderA = $roleOrder[$a['role'] ?? 'member'] ?? 99;
+    $orderB = $roleOrder[$b['role'] ?? 'member'] ?? 99;
+    return $orderA <=> $orderB;
+});
+
 $todoTasks = 0;
 $overdueTasks = 0;
 
 // Duyệt qua danh sách công việc để tính toán số liệu thống kê
+// Giả định 'status_slug' có sẵn từ database
 foreach ($tasks as $task) {
-    if (($task['status'] ?? '') === 'done') {
+    $taskStatusSlug = $task['status_slug'] ?? '';
+    if ($taskStatusSlug === 'done') {
         $completedTasks++;
-    } elseif (($task['status'] ?? '') === 'in_progress') {
+    } elseif ($taskStatusSlug === 'in_progress') {
         $inProgressTasks++;
     } else {
         $todoTasks++;
@@ -42,7 +57,7 @@ foreach ($tasks as $task) {
 
     // Kiểm tra công việc trễ hạn (hạn chót < hôm nay và chưa hoàn thành)
     if (!empty($task['due_date']) && strtotime($task['due_date']) < $todayTs && ($task['status'] ?? '') !== 'done') {
-        $overdueTasks++;
+        $overdueTasks++; // Giữ nguyên logic này, vì nó kiểm tra 'status' để xác định đã hoàn thành hay chưa
     }
 }
 
@@ -54,36 +69,8 @@ $isOverdueProject = false;
 if (!empty($project['due_date'])) {
     $dueTs = strtotime($project['due_date']);
     $remainingDays = (int) floor(($dueTs - $todayTs) / 86400);
-    $isOverdueProject = $remainingDays < 0 && $statusSlug !== 'completed';
+    $isOverdueProject = $remainingDays < 0 && ($project['status_slug'] ?? '') !== 'completed';
 }
-
-// Xác định Trưởng dự án (Lead/Manager/Owner) từ danh sách thành viên
-$leadMember = null;
-foreach ($members as $member) {
-    $memberRole = strtolower((string) ($member['role'] ?? ''));
-    if (
-        stripos($memberRole, 'manager') !== false ||
-        stripos($memberRole, 'lead') !== false ||
-        stripos($memberRole, 'owner') !== false ||
-        stripos($memberRole, 'chủ') !== false
-    ) {
-        $leadMember = $member;
-        break;
-    }
-}
-if ($leadMember === null && !empty($members)) {
-    $leadMember = $members[0];
-}
-
-// Chuẩn bị các biến hiển thị (xử lý escape HTML để bảo mật)
-$ownerName = htmlspecialchars((string) ($project['owner_name'] ?? 'Chưa xác định'), ENT_QUOTES, 'UTF-8');
-$ownerEmail = htmlspecialchars((string) ($project['owner_email'] ?? ''), ENT_QUOTES, 'UTF-8');
-$memberCount = count($members);
-$projectCode = htmlspecialchars((string) ($project['project_code'] ?? '-'), ENT_QUOTES, 'UTF-8');
-$projectName = htmlspecialchars((string) ($project['name'] ?? ''), ENT_QUOTES, 'UTF-8');
-$projectDescription = trim((string) ($project['description'] ?? ''));
-$deleteMessage = "Bạn có chắc chắn muốn xóa dự án {$project['name']}?";
-
 /**
  * Hàm closure để tạo URL ảnh đại diện.
  * Nếu người dùng có ảnh thực tế thì dùng ảnh đó, nếu không thì dùng UI Avatars.
@@ -102,20 +89,6 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
     $name = $person[$nameKey] ?? 'User';
     return 'https://ui-avatars.com/api/?name=' . urlencode((string) $name) . '&background=E2E8F0&color=0F172A&rounded=true&size=' . $size;
 };
-
-// Thông tin hiển thị cho Trưởng dự án
-$leadMemberName = htmlspecialchars((string) ($leadMember['name'] ?? ($project['owner_name'] ?? 'Chưa xác định')), ENT_QUOTES, 'UTF-8');
-$leadMemberEmail = htmlspecialchars((string) ($leadMember['email'] ?? ($project['owner_email'] ?? '')), ENT_QUOTES, 'UTF-8');
-$leadMemberRole = htmlspecialchars((string) ($leadMember['role'] ?? 'Chủ dự án'), ENT_QUOTES, 'UTF-8');
-$leadMemberAvatar = $buildAvatar(
-    [
-        'name' => $leadMember['name'] ?? ($project['owner_name'] ?? 'Owner'),
-        'avatar' => $leadMember['avatar'] ?? ($project['owner_avatar'] ?? null),
-    ],
-    'name',
-    'avatar',
-    80
-);
 ?>
 
 <style>
@@ -238,6 +211,75 @@ $leadMemberAvatar = $buildAvatar(
         border-bottom: 0;
     }
 
+    /* Thẻ thành viên (tab Thành viên) */
+    .project-member-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 0.875rem;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .project-member-card:hover {
+        border-color: #cbd5e1 !important;
+        box-shadow: 0 10px 28px -22px rgba(15, 23, 42, 0.35);
+    }
+
+    .project-member-card-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 8px -4px rgba(15, 23, 42, 0.25);
+    }
+
+    .project-member-card-name {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        line-height: 1.25;
+    }
+
+    .project-member-card-email {
+        font-size: 0.8125rem;
+        color: #64748b;
+        line-height: 1.3;
+    }
+
+    .project-member-role-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        line-height: 1.2;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .project-member-card-meta {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .project-member-card-meta svg,
+    .project-member-card-meta i {
+        width: 13px;
+        height: 13px;
+        flex-shrink: 0;
+    }
+
+    .project-members-split {
+        height: 0;
+        margin: 1.25rem 0;
+        border: 0;
+        border-top: 1px dashed #cbd5e1;
+    }
+
     .project-member-avatar {
         width: 44px;
         height: 44px;
@@ -277,9 +319,34 @@ $leadMemberAvatar = $buildAvatar(
         object-fit: cover;
     }
 
-    .project-member-role-pill {
-        background: #f8fafc;
-        color: #334155;
+    /* Thu nhỏ kích thước nhãn */
+    .project-pill-sm {
+        padding: 0.25rem 0.6rem;
+        font-size: 0.725rem;
+        line-height: 1;
+    }
+
+    .project-member-role-pill.role-pill-manager,
+    .project-member-role-pill.role-pill-member,
+    .project-member-role-pill.role-pill-viewer {
+        border-width: 1px;
+    }
+
+    /* Định nghĩa màu sắc cho các Role Pills */
+    .role-pill-manager {
+        background: #dbeafe !important;
+        color: #1e40af !important;
+        border: 1px solid #bfdbfe !important;
+    }
+    .role-pill-member {
+        background: #f1f5f9 !important;
+        color: #475569 !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+    .role-pill-viewer {
+        background: #f0fdf4 !important;
+        color: #15803d !important;
+        border: 1px solid #bbf7d0 !important;
     }
 
     /* Khu vực cuộn nội dung chính của Tab */
@@ -348,6 +415,17 @@ $leadMemberAvatar = $buildAvatar(
         color: #64748b;
     }
 
+    .btn-outline-delete {
+        color: #ffffff !important;
+        border-color: rgba(255, 255, 255, 0.4) !important;
+    }
+
+    .btn-outline-delete:hover {
+        background-color: var(--red-600) !important;
+        border-color: var(--red-600) !important;
+        color: #ffffff !important;
+    }
+
     @media (max-width: 991.98px) {
         .project-detail-shell {
             margin: -1rem;
@@ -362,7 +440,7 @@ $leadMemberAvatar = $buildAvatar(
         <div class="d-flex align-items-center text-slate-600 fs-6">
             <a href="<?= URLROOT; ?>/projects" class="text-decoration-none text-slate-500 hover-text-primary">Dự án</a>
             <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
-            <span class="page-title"><?= $projectName ?></span>
+            <span class="page-title"><?= htmlspecialchars((string)($project['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
         </div>
     </div>
 
@@ -371,29 +449,29 @@ $leadMemberAvatar = $buildAvatar(
         <div class="project-detail-banner p-4 p-lg-5">
             <div class="d-flex flex-column flex-xl-row justify-content-between gap-4 position-relative project-banner-content">
                 <div class="pe-xl-4">
-                    <h1 class="h2 fw-bold mb-3"><?= $projectName ?></h1>
+                    <h1 class="h2 fw-bold mb-3"><?= htmlspecialchars((string)($project['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></h1>
                     <div class="d-flex flex-wrap align-items-center gap-2">
                         <span class="project-pill project-banner-pill-outline">
-                            <?= $projectCode ?>
+                            <?= htmlspecialchars((string)($project['project_code'] ?? '-'), ENT_QUOTES, 'UTF-8') ?>
                         </span>
-                        <span class="project-pill project-banner-pill-soft" style="border-left: 4px solid <?= $statusColor ?>; background: rgba(255,255,255,0.1);">
-                            <?= htmlspecialchars($statusName, ENT_QUOTES, 'UTF-8') ?>
+                        <span class="project-pill project-banner-pill-soft" style="border-left: 4px solid <?= $project['status_color'] ?? '#64748b' ?>; background: rgba(255,255,255,0.1);">
+                            <?= htmlspecialchars((string)($project['status_name'] ?? 'Không rõ'), ENT_QUOTES, 'UTF-8') ?>
                         </span>
                     </div>
                 </div>
 
                 <!-- Các nút hành động chính -->
                 <div class="d-flex flex-wrap align-items-start gap-2 flex-shrink-0">
-                    <a href="<?= URLROOT ?>/projects/<?= $project['id'] ?>/edit" class="btn btn-light fw-semibold px-3 px-lg-4">
+                    <a href="<?= URLROOT ?>/projects/<?= $project['id'] ?? '' ?>/edit" class="btn btn-light fw-semibold px-3 px-lg-4">
                         <i data-lucide="pencil"></i>
                         <span>Chỉnh sửa</span>
                     </a>
                     <button
                         type="button"
-                        class="btn btn-outline-light fw-semibold px-3 px-lg-4"
-                        onclick="showDeleteModal('<?= URLROOT ?>/projects/<?= (int) $project['id'] ?>/delete', <?= htmlspecialchars(json_encode($deleteMessage, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
+                        class="btn btn-outline-delete fw-semibold px-3 px-lg-4"
+                        onclick="showDeleteModal('<?= URLROOT ?>/projects/<?= (int) ($project['id'] ?? 0) ?>/delete', 'Bạn có chắc chắn muốn xóa dự án <?= htmlspecialchars((string)($project['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>?')">
                         <i data-lucide="trash-2"></i>
-                        <span>Xóa dự án</span>
+                        <span>Xóa</span>
                     </button>
                 </div>
             </div>
@@ -429,8 +507,8 @@ $leadMemberAvatar = $buildAvatar(
                                 <i data-lucide="user-check"></i>
                             </div>
                             <div class="overflow-hidden">
-                                <div class="project-meta-label">Trưởng dự án</div>
-                                <div class="fw-bold text-slate-900 text-truncate" style="font-size: 1.05rem;" title="<?= $ownerName ?>"><?= $ownerName ?></div>
+                                <div class="project-meta-label">Project Sponsor</div>
+                                <div class="fw-bold text-slate-900 text-truncate" style="font-size: 1.05rem;" title="<?= htmlspecialchars((string)($project['owner_name'] ?? 'Chưa xác định'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars((string)($project['owner_name'] ?? 'Chưa xác định'), ENT_QUOTES, 'UTF-8') ?></div>
                             </div>
                         </div>
                     </div>
@@ -496,7 +574,6 @@ $leadMemberAvatar = $buildAvatar(
                     <div class="tab-pane fade show active" id="members-pane" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <div>
-                                <div class="project-section-title mb-1">Thành viên tham gia</div>
                                 <div class="project-mini-note">Danh sách nhân sự đang thực hiện dự án này.</div>
                             </div>
                             <button type="button" class="btn btn-sm btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addMembersModal">
@@ -507,35 +584,74 @@ $leadMemberAvatar = $buildAvatar(
 
                         <div class="project-table-card">
                             <?php if (!empty($members)): ?>
-                                <div class="row g-4">
-                                    <?php foreach ($members as $member): ?>
-                                        <div class="col-md-6 col-lg-4">
-                                            <div class="project-member-row p-3 border rounded-3 h-100">
-                                                <div class="d-flex align-items-center justify-content-between gap-3 mb-2">
-                                                    <div class="d-flex align-items-center gap-3 overflow-hidden">
-                                                        <img src="<?= $buildAvatar($member, 'name', 'avatar', 48) ?>" alt="avatar" class="project-member-avatar">
-                                                        <div class="overflow-hidden">
-                                                            <div class="fw-semibold text-slate-900 text-truncate">
-                                                                <a href="<?= URLROOT ?>/users/<?= (int) $member['id'] ?>" class="text-decoration-none text-slate-900 hover-text-primary">
-                                                                    <?= htmlspecialchars((string) $member['name'], ENT_QUOTES, 'UTF-8') ?>
+                                <?php
+                                $managers = array_values(array_filter($members, static function ($m) {
+                                    return ($m['role'] ?? '') === 'manager';
+                                }));
+                                $others = array_values(array_filter($members, static function ($m) {
+                                    return ($m['role'] ?? '') !== 'manager';
+                                }));
+
+                                $renderMemberCard = static function (array $member) use ($roleMap, $buildAvatar): void {
+                                    $roleSlug = $member['role'] ?? 'member';
+                                    $roleInfo = $roleMap[$roleSlug] ?? [
+                                        'text' => is_string($roleSlug) ? ucfirst((string) $roleSlug) : 'Member',
+                                        'class' => 'role-pill-member',
+                                    ];
+                                    ?>
+                                    <div class="col-sm-6 col-xl-4">
+                                        <div class="project-member-card p-3 h-100 d-flex flex-column">
+                                            <div class="d-flex align-items-start gap-2 flex-grow-1 min-w-0">
+                                                <img src="<?= $buildAvatar($member, 'name', 'avatar', 80) ?>" alt="" class="project-member-card-avatar" width="40" height="40">
+                                                <div class="flex-grow-1 min-w-0 d-flex flex-column gap-1">
+                                                    <div class="d-flex align-items-start justify-content-between gap-2 min-w-0">
+                                                        <div class="min-w-0 flex-grow-1">
+                                                            <div class="project-member-card-name text-slate-900 text-truncate">
+                                                                <a href="<?= URLROOT ?>/users/<?= (int) ($member['id'] ?? 0) ?>" class="text-decoration-none text-slate-900 hover-text-primary">
+                                                                    <?= htmlspecialchars((string) ($member['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
                                                                 </a>
                                                             </div>
-                                                            <div class="project-mini-note text-truncate"><?= htmlspecialchars((string) ($member['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                                            <?php if (!empty($member['email'])): ?>
+                                                                <div class="project-member-card-email text-truncate" title="<?= htmlspecialchars((string) $member['email'], ENT_QUOTES, 'UTF-8') ?>">
+                                                                    <?= htmlspecialchars((string) $member['email'], ENT_QUOTES, 'UTF-8') ?>
+                                                                </div>
+                                                            <?php endif; ?>
                                                         </div>
+                                                        <span class="project-member-role-pill <?= htmlspecialchars($roleInfo['class'], ENT_QUOTES, 'UTF-8') ?>">
+                                                            <?= htmlspecialchars($roleInfo['text'], ENT_QUOTES, 'UTF-8') ?>
+                                                        </span>
                                                     </div>
-                                                    <span class="project-pill project-member-role-pill">
-                                                        <?= htmlspecialchars((string) ($member['role'] ?? 'Thành viên'), ENT_QUOTES, 'UTF-8') ?>
-                                                    </span>
-                                                </div>
-                                                <div class="text-end">
-                                                    <span class="project-mini-note">
-                                                        Tham gia từ <?= !empty($member['joined_at']) ? date('d/m/Y', strtotime($member['joined_at'])) : '-' ?>
-                                                    </span>
                                                 </div>
                                             </div>
+                                            <div class="project-member-card-meta mt-2 pt-2 border-top border-slate-200">
+                                                <i data-lucide="calendar" aria-hidden="true"></i>
+                                                <span><?= !empty($member['joined_at']) ? 'Tham gia ' . date('d/m/Y', strtotime((string) $member['joined_at'])) : 'Chưa có ngày tham gia' ?></span>
+                                            </div>
                                         </div>
-                                    <?php endforeach; ?>
-                                </div>
+                                    </div>
+                                    <?php
+                                };
+                                ?>
+
+                                <?php if (!empty($managers)): ?>
+                                    <div class="row g-3">
+                                        <?php foreach ($managers as $member) {
+                                            $renderMemberCard($member);
+                                        } ?>
+                                    </div>
+                                <?php endif; ?>
+
+                                <?php if (!empty($managers) && !empty($others)): ?>
+                                    <hr class="project-members-split" role="presentation">
+                                <?php endif; ?>
+
+                                <?php if (!empty($others)): ?>
+                                    <div class="row g-3 <?= !empty($managers) ? 'mt-0' : '' ?>">
+                                        <?php foreach ($others as $member) {
+                                            $renderMemberCard($member);
+                                        } ?>
+                                    </div>
+                                <?php endif; ?>
                             <?php else: ?>
                                 <div class="text-center py-4 text-slate-500">Dự án này hiện chưa có thành viên nào tham gia.</div>
                             <?php endif; ?>
@@ -549,7 +665,7 @@ $leadMemberAvatar = $buildAvatar(
                                 <div class="project-section-title mb-1">Công việc dự án</div>
                                 <div class="project-mini-note">Quản lý và theo dõi các đầu việc chi tiết.</div>
                             </div>
-                            <a href="<?= URLROOT ?>/tasks/create?project_id=<?= $project['id'] ?>" class="btn btn-sm btn-primary px-3 shadow-sm">
+                            <a href="<?= URLROOT ?>/tasks/create?project_id=<?= $project['id'] ?? '' ?>" class="btn btn-sm btn-primary px-3 shadow-sm">
                                 <i data-lucide="plus"></i>
                                 <span>Thêm công việc</span>
                             </a>
@@ -613,7 +729,7 @@ $leadMemberAvatar = $buildAvatar(
                     <!-- Tab: Tổng quan -->
                     <div class="tab-pane fade" id="overview-pane" role="tabpanel">
                         <div class="text-slate-600 project-description">
-                            <?= nl2br(htmlspecialchars($projectDescription !== '' ? $projectDescription : 'Dự án này hiện chưa có thông tin mô tả chi tiết.', ENT_QUOTES, 'UTF-8')) ?>
+                            <?= nl2br(htmlspecialchars((string)($project['description'] ?? 'Dự án này hiện chưa có thông tin mô tả chi tiết.'), ENT_QUOTES, 'UTF-8')) ?>
                         </div>
                     </div>
                 </div>
@@ -629,16 +745,15 @@ $leadMemberAvatar = $buildAvatar(
                     <h5 class="fw-bold text-slate-900 mb-0">Thêm thành viên mới</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="<?= URLROOT ?>/projects/<?= $project['id'] ?>/addMembers" method="POST">
+                <form action="<?= URLROOT ?>/projects/<?= $project['id'] ?? '' ?>/addMembers" method="POST">
                     <?php \App\helpers\SecurityHelper::csrfInput(); ?>
                     <div class="modal-body px-4 py-3">
                         <div class="mb-4">
                             <label class="form-label">Quyền hạn trong dự án</label>
                             <select name="role" class="form-select">
-                                <option value="member" selected>Thành viên (Member)</option>
-                                <option value="lead">Trưởng nhóm (Lead)</option>
                                 <option value="manager">Quản lý (Manager)</option>
-                                <option value="observer">Người quan sát (Observer)</option>
+                                <option value="member" selected>Thành viên (Member)</option>
+                                <option value="viewer">Người quan sát (Viewer)</option>
                             </select>
                         </div>
                         
@@ -661,7 +776,7 @@ $leadMemberAvatar = $buildAvatar(
                                         ?>
                                             <tr>
                                                 <td>
-                                                    <input type="checkbox" name="user_ids[]" value="<?= $u['id'] ?>" class="form-check-input">
+                                                    <input type="checkbox" name="user_ids[]" value="<?= $u['id'] ?? '' ?>" class="form-check-input">
                                                 </td>
                                                 <td>
                                                     <div class="fw-semibold text-slate-900"><?= htmlspecialchars($u['name']) ?></div>

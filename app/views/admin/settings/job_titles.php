@@ -37,7 +37,7 @@
     <div class="page-actions">
         <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#jobTitleModal" onclick="resetJobTitleForm()">
             <i data-lucide="plus" size="18"></i>
-            <span>Thêm chức danh</span>
+            <span>Thêm mới</span>
         </button>
     </div>
 </div>

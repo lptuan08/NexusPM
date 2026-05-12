@@ -1,5 +1,5 @@
 <?php
-class Router
+class Routerxxxxxx
 {
     public $url;
     public $handleUrl;

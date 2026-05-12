@@ -70,75 +70,67 @@
         <!-- Mở modal thêm mới bằng data-attributes và gọi resetStatusForm để làm trống form -->
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#statusModal" onclick="resetStatusForm()">
             <i data-lucide="plus"></i>
-            <span>Thêm trạng thái</span>
+            <span>Thêm mới</span>
         </button>
     </div>
 </div>
 
 <!-- Bảng danh sách trạng thái -->
 <div class="table-container">
-        <div class="table-responsive">
-            <table class="table table-custom align-middle">
-                <thead class="bg-slate-50">
-                    <tr>
-                        <th scope="col" class="text-center status-position-col">Vị trí</th>
-                        <th scope="col">Tên trạng thái</th>
-                        <th scope="col">Slug</th>
-                        <th scope="col">Mã màu</th>
-                        <th scope="col" class="text-center">Kích hoạt</th>
-                        <th scope="col" class="text-center status-actions-col">Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (!empty($statuses)): ?>
-                        <?php foreach ($statuses as $index => $status): ?>
-                            <tr class="<?= ($status['is_locked'] ?? false) ? 'table-light text-muted' : '' ?>">
-                                <td class="text-center text-stt"><?= $status['position'] ?? ($index + 1) ?></td>
-                                <td class="text-name">
-                                    <?= htmlspecialchars($status['name']) ?>
-                                    <?php if ($status['is_locked'] ?? false): ?>
-                                        <span class="ui-badge priority-high ms-1">Mặc định</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td><span class="ui-badge status-muted"><?= htmlspecialchars($status['slug']) ?></span></td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <span class="color-box" style="background-color: <?= htmlspecialchars($status['color'] ?? '#94a3b8') ?>; <?= ($status['is_active'] ?? false) ? 'opacity: 0.5;' : '' ?>"></span>
-                                        <code><?= htmlspecialchars($status['color'] ?? '#94a3b8') ?></code>
-                                    </div>
-                                </td>
-                                <td class="text-center">
-                                    <div class="d-flex justify-content-center">
-                                        <input class="form-check-input" type="checkbox" <?= ($status['is_active'] ?? false) ? 'checked' : '' ?> disabled>
-                                    </div>
-                                </td>
-                                <td class="text-center">
-                                    <div class="d-inline-flex align-items-center gap-1">
-                                        <button class="btn btn-white btn-action" onclick='editStatus(<?= htmlspecialchars(json_encode($status, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)' <?= ($status['is_locked'] ?? false) ? 'disabled' : '' ?> title="Chỉnh sửa">
-                                            <i data-lucide="edit-3" size="14"></i>
-                                        </button>
-                                        <button class="btn btn-white btn-action text-danger" onclick="deleteStatus(<?= (int) $status['id'] ?>, <?= htmlspecialchars(json_encode($status['name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)" <?= ($status['is_locked'] ?? false) ? 'disabled' : '' ?> title="Xóa">
-                                            <i data-lucide="trash-2" size="14"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="6" class="table-empty">Chưa có dữ liệu trạng thái.</td>
+    <div class="table-responsive">
+        <table class="table table-custom align-middle">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th scope="col" class="text-center status-position-col">Vị trí</th>
+                    <th scope="col">Tên trạng thái</th>
+                    <th scope="col">Slug</th>
+                    <th scope="col">Mã màu</th>
+                    <th scope="col" class="text-center">Kích hoạt</th>
+                    <th scope="col" class="text-center status-actions-col">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($statuses)): ?>
+                    <?php foreach ($statuses as $index => $status): ?>
+                        <tr class="<?= ($status['is_locked'] ?? false) ? 'table-light text-muted' : '' ?>">
+                            <td class="text-center text-stt"><?= $status['position'] ?? ($index + 1) ?></td>
+                            <td class="text-name">
+                                <?= htmlspecialchars($status['name']) ?>
+                                <?php if ($status['is_locked'] ?? false): ?>
+                                    <span class="ui-badge priority-high ms-1">Mặc định</span>
+                                <?php endif; ?>
+                            </td>
+                            <td><span class="ui-badge status-muted"><?= htmlspecialchars($status['slug']) ?></span></td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="color-box" style="background-color: <?= htmlspecialchars($status['color'] ?? '#94a3b8') ?>; <?= ($status['is_active'] ?? false) ? 'opacity: 0.5;' : '' ?>"></span>
+                                    <code><?= htmlspecialchars($status['color'] ?? '#94a3b8') ?></code>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center">
+                                    <input class="form-check-input" type="checkbox" <?= ($status['is_active'] ?? false) ? 'checked' : '' ?> disabled>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-inline-flex align-items-center gap-1">
+                                    <button class="btn btn-white btn-action" onclick='editStatus(<?= htmlspecialchars(json_encode($status, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)' <?= ($status['is_locked'] ?? false) ? 'disabled' : '' ?> title="Chỉnh sửa">
+                                        <i data-lucide="edit-3" size="14"></i>
+                                    </button>
+                                    <button class="btn btn-white btn-action text-danger" onclick="deleteStatus(<?= (int) $status['id'] ?>, <?= htmlspecialchars(json_encode($status['name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)" <?= ($status['is_locked'] ?? false) ? 'disabled' : '' ?> title="Xóa">
+                                        <i data-lucide="trash-2" size="14"></i>
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-<!-- Cảnh báo quyền Admin -->
-<div class="alert alert-danger d-flex align-items-center border-0 shadow-sm mt-4" role="alert">
-    <i data-lucide="alert-triangle" class="me-3"></i>
-    <div>
-        <strong>Cảnh báo quản trị (Admin):</strong> Đây là chức năng thiết lập hệ thống cốt lõi. Vui lòng cẩn trọng khi thêm, sửa hoặc thay đổi vị trí các trạng thái vì điều này sẽ ảnh hưởng trực tiếp đến toàn bộ dự án đang vận hành.
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="6" class="table-empty">Chưa có dữ liệu trạng thái.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
     </div>
 </div>
 
@@ -220,7 +212,7 @@
                             <div class="d-flex align-items-center p-3 bg-white border rounded-3 sortable-item shadow-sm" data-id="<?= $status['id'] ?>">
                                 <!-- Input ẩn này sẽ gửi ID về server. Thứ tự trong mảng $_POST['status_ids'] phụ thuộc vào vị trí thẻ div này -->
                                 <input type="hidden" name="status_ids[]" value="<?= $status['id'] ?>">
-                                
+
                                 <div class="handle cursor-move me-3 text-slate-300">
                                     <i data-lucide="grip-vertical" size="18"></i>
                                 </div>
@@ -239,6 +231,29 @@
     </div>
 </div>
 
+<!-- Modal Xác nhận xóa -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-content border-0 shadow-lg">
+            <form id="deleteStatusForm" action="" method="POST">
+                <?php \App\helpers\SecurityHelper::csrfInput(); ?>
+                <div class="modal-body p-4 text-center">
+                    <div class="text-danger mb-3">
+                        <i data-lucide="alert-circle" size="48"></i>
+                    </div>
+                    <h5 class="fw-bold text-slate-900 mb-2">Xác nhận xóa</h5>
+                    <p class="text-slate-500 mb-4">Bạn có chắc chắn muốn xóa trạng thái <br><strong id="delete_item_name" class="text-slate-700"></strong>? Hành động này không thể hoàn tác.</p>
+
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-white shadow-sm" data-bs-dismiss="modal">Hủy bỏ</button>
+                        <button type="submit" class="btn btn-danger shadow-sm px-4">Xác nhận xóa</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -250,7 +265,7 @@
 
         // Khi thay đổi màu trên bảng chọn, cập nhật mã Hex vào ô text
         colorPicker.addEventListener('input', (e) => colorText.value = e.target.value.toUpperCase());
-        
+
         // Khi người dùng tự nhập mã Hex, kiểm tra định dạng và cập nhật ngược lại bảng chọn màu
         colorText.addEventListener('input', (e) => {
             if (/^#[0-9A-F]{6}$/i.test(e.target.value)) colorPicker.value = e.target.value;
@@ -264,10 +279,10 @@
         const sortableContainer = document.getElementById('sortableContainer');
         if (sortableContainer) {
             new Sortable(sortableContainer, {
-                animation: 150,      // Tốc độ hiệu ứng di chuyển (ms)
-                handle: '.handle',    // Chỉ cho phép kéo tại icon grip
+                animation: 150, // Tốc độ hiệu ứng di chuyển (ms)
+                handle: '.handle', // Chỉ cho phép kéo tại icon grip
                 ghostClass: 'sortable-ghost', // Class CSS áp dụng cho phần tử đang được kéo
-                forceFallback: true   // Đảm bảo hoạt động ổn định trên các trình duyệt di động
+                forceFallback: true // Đảm bảo hoạt động ổn định trên các trình duyệt di động
             });
         }
 
@@ -295,7 +310,7 @@
         const form = document.getElementById('statusForm');
         window.NexusPM?.clearFormValidation(form);
         form.action = '<?= URLROOT ?>/settings/project/create';
-        
+
         document.getElementById('field_id').value = '';
         document.getElementById('field_name').value = '';
         document.getElementById('field_slug').value = '';
@@ -309,7 +324,7 @@
 
         const form = document.getElementById('statusForm');
         form.action = `<?= URLROOT ?>/settings/project/${status.id}/edit`;
-        
+
         document.getElementById('statusModalLabel').innerText = 'Chỉnh sửa trạng thái';
         document.getElementById('field_id').value = status.id;
         document.getElementById('field_name').value = status.name;
@@ -327,20 +342,10 @@
      * @param {string} name Tên trạng thái để hiển thị trong thông báo
      */
     function deleteStatus(id, name) {
-        if (confirm(`Bạn có chắc chắn muốn xóa trạng thái "${name}" không?`)) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `<?= URLROOT ?>/settings/project/${id}/delete`;
+        document.getElementById('delete_item_name').innerText = name;
+        document.getElementById('deleteStatusForm').action = `<?= URLROOT ?>/settings/project/${id}/delete`;
 
-            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrf_token';
-            csrfInput.value = csrfToken;
-            form.appendChild(csrfInput);
-
-            document.body.appendChild(form);
-            form.submit();
-        }
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
     }
 </script>

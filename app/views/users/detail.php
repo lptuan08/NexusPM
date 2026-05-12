@@ -1,26 +1,18 @@
 <?php
-
 /**
- * Cấu hình hiển thị trạng thái và độ ưu tiên
- * Việc định nghĩa ở đây giúp code bên dưới gọn gàng và dễ sửa đổi khi cần thêm trạng thái mới.
+ * Giao diện chi tiết nhân viên
+ * 
+ * @var array $user Thông tin nhân viên
+ * @var array $projects Danh sách dự án tham gia
+ * @var array $tasks Danh sách công việc được giao
  */
-$projectStatusMap = [
-    'planning'  => ['text' => 'Lên kế hoạch', 'class' => 'status-planning'],
-    'active'    => ['text' => 'Đang thực hiện', 'class' => 'status-active'],
-    'completed' => ['text' => 'Hoàn thành', 'class' => 'status-completed'],
-];
 
-$priorityMap = [
-    'high'   => 'priority-high',
-    'medium' => 'priority-medium',
-    'low'    => 'priority-low',
-];
+// Khởi tạo giá trị mặc định để fix cảnh báo Intelephense
+$user = $user ?? [];
+$projects = $projects ?? [];
+$tasks = $tasks ?? [];
 
-$taskStatusMap = [
-    'todo'        => ['text' => 'Chưa làm', 'class' => 'status-muted'],
-    'in_progress' => ['text' => 'Đang làm', 'class' => 'status-active'],
-    'done'        => ['text' => 'Xong', 'class' => 'status-completed'],
-];
+
 ?>
 
 <!-- BREADCRUMB - ĐỒNG BỘ VỚI LIST.PHP -->
@@ -48,7 +40,7 @@ $taskStatusMap = [
                         href="javascript:void(0)"
                         onclick="showDeleteModal('<?= URLROOT ?>/users/<?= (int) $user['id'] ?>/delete', <?= htmlspecialchars(json_encode('Bạn có chắc chắn muốn xóa hồ sơ nhân viên ' . ($user['name'] ?? '') . '?', JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
                         <i data-lucide="trash-2"></i>
-                        Xóa hồ sơ nhân viên
+                        Xóa
                     </a>
                 </li>
             </ul>
@@ -68,7 +60,7 @@ $taskStatusMap = [
                 <p class="text-slate-500 small mb-4" id="deleteConfirmMessage">Hành động này không thể hoàn tác. Bạn có chắc chắn?</p>
 
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-outline-secondary w-100" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="button" class="btn btn-outline-secondary w-100" data-bs-dismiss="modal">Khôi phục</button>
                     <form id="deleteForm" method="POST" action="" class="w-100 m-0">
                         <?php App\helpers\SecurityHelper::csrfInput(); ?> <!-- Thêm CSRF token vào form xóa -->
                         <button type="submit" class="btn btn-danger w-100">Xác nhận xóa</button>
@@ -161,8 +153,8 @@ $taskStatusMap = [
                                                 <td class="ps-4 fw-bold"><?= htmlspecialchars($project['name']) ?></td>
                                                 <td><span class="text-muted small"><?= htmlspecialchars($project['role']) ?></span></td>
                                                 <td>
-                                                    <?php $statusInfo = $projectStatusMap[$project['status']] ?? ['text' => $project['status'] ?: 'N/A', 'class' => 'status-muted']; ?>
-                                                    <span class="status-pill <?= $statusInfo['class'] ?>"><?= $statusInfo['text'] ?></span>
+                                                    <?php $statusInfo = $projectStatusMap[$project['status_slug'] ?? $project['status']] ?? ['text' => $project['status_name'] ?? ($project['status'] ?: 'N/A'), 'class' => 'status-muted']; ?>
+                                                    <span class="status-pill <?= $statusInfo['class'] ?>"><?= htmlspecialchars($project['status_name'] ?? $statusInfo['text']) ?></span>
                                                 </td>
                                                 <td class="pe-4 small"><?= date('d/m/Y', strtotime($project['joined_at'])) ?></td>
                                             </tr>

@@ -25,7 +25,7 @@
     }
 
     .table-container {
-        height: calc(100vh - 300px);
+        height: calc(100vh - 240px);
         /* Tính toán chiều cao dựa trên màn hình (trừ header/toolbar/footer) */
         overflow-y: auto;
         position: relative;
@@ -81,7 +81,7 @@
 
         <a href="<?= URLROOT; ?>/users/create" class="btn btn-primary">
             <i data-lucide="user-plus"></i>
-            <span>Thêm nhân viên</span>
+            <span>Thêm mới</span>
         </a>
     </div>
 </div>
@@ -273,82 +273,92 @@
 
 <!-- Filter Modal -->
 <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-confirm-dialog">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
         <div class="modal-content shadow-lg border-0">
-            <div class="modal-header">
-                <h5 class="modal-title" id="filterModalLabel">Bộ lọc nhân viên</h5>
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold text-slate-800" id="filterModalLabel">Bộ lọc nâng cao</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <form action="" method="GET">
-                    <input type="hidden" name="page" value="1"> <!-- Reset to page 1 on filter -->
-                    <div class="mb-3">
-                        <label for="searchFilter" class="form-label fw-semibold small">Tìm kiếm</label>
-                        <input type="text" class="form-control form-control-sm" id="searchFilter" name="search"
-                            placeholder="Tên, Email, Mã NV..."
-                            value="<?= htmlspecialchars($currentFilters['search'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small">Chức danh</label>
-                        <?php if (!empty($jobTitleOptions)): ?>
-                            <?php foreach ($jobTitleOptions as $jobTitle): ?>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="job_title[]"
-                                        value="<?= htmlspecialchars($jobTitle, ENT_QUOTES, 'UTF-8') ?>"
-                                        id="jobTitleCheck<?= htmlspecialchars($jobTitle, ENT_QUOTES, 'UTF-8') ?>"
-                                        <?= in_array($jobTitle, $currentFilters['job_title'] ?? []) ? 'checked' : '' ?>>
-                                    <label class="form-check-label"
-                                        for="jobTitleCheck<?= htmlspecialchars($jobTitle, ENT_QUOTES, 'UTF-8') ?>">
-                                        <?= htmlspecialchars($jobTitle, ENT_QUOTES, 'UTF-8') ?>
-                                    </label>
+            <form action="" method="GET" class="m-0">
+                <div class="modal-body p-4">
+                    <input type="hidden" name="page" value="1">
+                    <div class="row g-4">
+                        <!-- Cột 1: Tìm kiếm & Chức danh -->
+                        <div class="col-md-6">
+                            <div class="mb-4">
+                                <label for="searchFilter" class="form-label fw-semibold small text-slate-600">Tìm kiếm</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white text-slate-400"><i data-lucide="search" size="18"></i></span>
+                                    <input type="text" class="form-control border-start-0" id="searchFilter" name="search"
+                                        placeholder="Tên, Email, Mã NV..."
+                                        value="<?= htmlspecialchars($currentFilters['search'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                                 </div>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <p class="small text-muted">Không có chức danh nào.</p>
-                        <?php endif; ?>
-                    </div>
+                            </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small">Vai trò</label>
-                        <?php if (!empty($roleOptions)): ?>
-                            <?php foreach ($roleOptions as $role): ?>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="role_id[]"
-                                        value="<?= $role['id'] ?>"
-                                        id="roleCheck<?= $role['id'] ?>"
-                                        <?= in_array($role['id'], $currentFilters['role_id'] ?? []) ? 'checked' : '' ?>>
-                                    <label class="form-check-label"
-                                        for="roleCheck<?= $role['id'] ?>">
-                                        <?= htmlspecialchars($role['name'], ENT_QUOTES, 'UTF-8') ?>
-                                    </label>
+                            <div class="mb-0">
+                                <label class="form-label fw-semibold small text-slate-600">Chức danh</label>
+                                <select name="job_title[]" class="form-select" multiple style="height: 160px;">
+                                    <?php if (!empty($jobTitleOptions)): ?>
+                                        <?php foreach ($jobTitleOptions as $jobTitle): ?>
+                                            <option value="<?= htmlspecialchars($jobTitle, ENT_QUOTES, 'UTF-8') ?>"
+                                                <?= in_array($jobTitle, $currentFilters['job_title'] ?? []) ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($jobTitle, ENT_QUOTES, 'UTF-8') ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                                <div class="form-text small mt-2">Giữ Ctrl/Cmd để chọn nhiều chức danh.</div>
+                            </div>
+                        </div>
+
+                        <!-- Cột 2: Vai trò & Ngày tạo -->
+                        <div class="col-md-6">
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold small text-slate-600">Vai trò hệ thống</label>
+                                <div class="border rounded p-3 bg-slate-50 overflow-auto" style="height: 125px;">
+                                    <?php if (!empty($roleOptions)): ?>
+                                        <?php foreach ($roleOptions as $role): ?>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="role_id[]"
+                                                    value="<?= $role['id'] ?>"
+                                                    id="roleCheck<?= $role['id'] ?>"
+                                                    <?= in_array($role['id'], $currentFilters['role_id'] ?? []) ? 'checked' : '' ?>>
+                                                <label class="form-check-label small" for="roleCheck<?= $role['id'] ?>">
+                                                    <?= htmlspecialchars($role['name'], ENT_QUOTES, 'UTF-8') ?>
+                                                </label>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </div>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <p class="small text-muted">Không có vai trò nào.</p>
-                        <?php endif; ?>
-                    </div>
+                            </div>
 
-                    <div class="mb-3">
-                        <label for="createdAtStartFilter" class="form-label fw-semibold small">Ngày tạo từ</label>
-                        <input type="date" class="form-control form-control-sm" id="createdAtStartFilter"
-                            name="created_at_start"
-                            value="<?= htmlspecialchars($currentFilters['created_at_start'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                            <div class="mb-0">
+                                <label class="form-label fw-semibold small text-slate-600">Ngày gia nhập hệ thống</label>
+                                <div class="d-flex flex-column gap-2">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-white text-slate-500 w-25">Từ</span>
+                                        <input type="date" class="form-control" name="created_at_start"
+                                            value="<?= htmlspecialchars($currentFilters['created_at_start'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                    </div>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-white text-slate-500 w-25">Đến</span>
+                                        <input type="date" class="form-control" name="created_at_end"
+                                            value="<?= htmlspecialchars($currentFilters['created_at_end'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-
-                    <div class="mb-3">
-                        <label for="createdAtEndFilter" class="form-label fw-semibold small">Ngày tạo đến</label>
-                        <input type="date" class="form-control form-control-sm" id="createdAtEndFilter"
-                            name="created_at_end"
-                            value="<?= htmlspecialchars($currentFilters['created_at_end'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                    </div>
-
-                    <div class="d-flex gap-2 pt-3 border-top mt-4">
-                        <button type="submit" class="btn btn-primary btn-sm w-100">Áp dụng</button>
-                        <a href="<?= URLROOT ?>/users" class="btn btn-outline-secondary btn-sm w-100">Đặt lại</a>
-                    </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer border-top p-3 bg-light">
+                    <a href="<?= URLROOT ?>/users" class="btn btn-outline-secondary px-4">Đặt lại bộ lọc</a>
+                    <button type="submit" class="btn btn-primary px-5">
+                        <i data-lucide="filter"></i>
+                        <span>Áp dụng</span>
+                    </button>
+                </div>
+            </form>
+        </div>
         </div>
     </div>
 </div>

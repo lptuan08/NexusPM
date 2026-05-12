@@ -1,4 +1,21 @@
 <?php
+/**
+ * Giao diện Thêm mới/Chỉnh sửa dự án
+ * 
+ * @var array|null $project Thông tin dự án (nếu đang edit)
+ * @var array|null $old Dữ liệu cũ từ form (nếu validation fail)
+ * @var array|null $errors Mảng lỗi validation
+ * @var string $action_url URL submit form
+ * @var array $ownerOptions Danh sách người phụ trách
+ * @var array $statusOptions Danh sách trạng thái dự án
+ */
+
+// Khởi tạo các biến để tránh cảnh báo Undefined variable từ Intelephense
+$project = $project ?? [];
+$old = $old ?? [];
+$errors = $errors ?? [];
+$action_url = $action_url ?? '';
+
 $isEdit = !empty($project['id']);
 $currentStatusId = (int) ($old['status_id'] ?? $project['status_id'] ?? 0);
 $currentOwnerId = (int) ($old['owner_id'] ?? $project['owner_id'] ?? 0);
@@ -27,7 +44,7 @@ $currentDueDate = $old['due_date'] ?? $project['due_date'] ?? '';
         <a href="<?= URLROOT; ?>/projects" class="text-decoration-none text-slate-500 hover-text-primary">Dự án</a>
         <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
         <?php if ($isEdit): ?>
-            <a href="<?= URLROOT ?>/projects/<?= $project['id'] ?>" class="text-decoration-none text-slate-500 hover-text-primary"><?= htmlspecialchars($project['name'], ENT_QUOTES, 'UTF-8') ?></a>
+            <a href="<?= URLROOT ?>/projects/<?= $project['id'] ?? '' ?>" class="text-decoration-none text-slate-500 hover-text-primary"><?= htmlspecialchars($project['name'] ?? '', ENT_QUOTES, 'UTF-8') ?></a>
             <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
             <span class="page-title">Chỉnh sửa</span>
         <?php else: ?>
