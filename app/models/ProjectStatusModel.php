@@ -96,4 +96,11 @@ class ProjectStatusModel extends Model
             throw $e;
         }
     }
+
+    //getAllStatus
+    public function getAllStatus()
+    {
+        $sql = "SELECT id, name, slug, color FROM {$this->table} WHERE deleted_at IS NULL ORDER BY position ASC";
+        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

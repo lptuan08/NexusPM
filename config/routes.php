@@ -55,6 +55,13 @@ return [
             'action'     => 'create',
             'middleware' => ['AuthMiddleware']
         ],
+        '/projects/createWizard' => [
+            'controller' => 'ProjectController',
+            'action'     => 'showStep',
+            'middleware' => ['AuthMiddleware']
+        ],
+
+
         '/projects/{id}' => [
             'controller' => 'ProjectController',
             'action'     => 'show',
@@ -63,6 +70,19 @@ return [
         '/projects/{id}/edit' => [
             'controller' => 'ProjectController',
             'action'     => 'edit',
+            'middleware' => ['AuthMiddleware']
+        ],
+
+        // --- API Routes ---
+        // '/api/projects' => [
+        //     'controller' => 'api/ApiController',
+        //     'action'     => 'projects',
+        //     'middleware' => [] // Để trống middleware để bạn có thể test nhanh qua trình duyệt
+        // ],
+
+        '/api/projects/wizard-data' => [
+            'controller' => 'api/ProjectApiController',
+            'action'     => 'getWizardData',
             'middleware' => ['AuthMiddleware']
         ],
 
@@ -124,6 +144,8 @@ return [
             'action' => 'RolePermissions',
             'middleware' => ['AuthMiddleware']
         ],
+
+        
     ],
 
     // NHÓM CÁC HÀNH ĐỘNG XỬ LÝ (Gửi dữ liệu - POST)
@@ -163,6 +185,11 @@ return [
         '/projects/create' => [
             'controller' => 'ProjectController',
             'action'     => 'store',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+        '/projects/createWizard' => [
+            'controller' => 'ProjectController',
+            'action'     => 'postStep',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
         '/projects/{id}/edit' => [
@@ -268,7 +295,7 @@ return [
         '/tasks/store' => [
             'controller' => 'TaskController',
             'action'     => 'store',
-            'middleware' => ['AuthMiddleware','VerifyCsrfToken']
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
     ]
 ];

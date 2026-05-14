@@ -181,8 +181,6 @@ class ProjectModel extends Model
      */
     public function createWithProjectCode($data)
     {
-        var_dump($data);
-        // die();
         try {
             $this->db->beginTransaction();
 

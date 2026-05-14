@@ -251,4 +251,10 @@ class TaskStatusModel extends Model
             ]);
         }
     }
+
+    // API
+    public function getTaskStatusDefault(){
+        $sql = "SELECT id, name, slug, color FROM {$this->table} WHERE project_id IS NULL AND deleted_at IS NULL ORDER BY position ASC";
+        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
