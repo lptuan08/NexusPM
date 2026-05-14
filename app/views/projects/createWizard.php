@@ -166,7 +166,23 @@ $serverOldBasicJson = json_encode(
     }
 
     .project-form-textarea {
-        min-height: 400px; /* Tăng chiều cao mô tả dự án ở bước 1 */
+        min-height: auto; 
+        margin-bottom: 15px;
+    }
+
+    .border-dashed {
+        border-style: dashed !important;
+    }
+
+    .color-box {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: inline-flex;
+        flex-shrink: 0;
+        border: 1px solid rgba(32, 33, 36, 0.1);
+        cursor: pointer; /* Để gợi ý rằng có thể tương tác */
+        margin-right: 0.5rem; /* Khoảng cách với text */
     }
 
     .task-status-row .form-control,
@@ -190,40 +206,15 @@ $serverOldBasicJson = json_encode(
         cursor: default;
     }
 
-    .member-picker-scroll {
-        max-height: 450px;
-        overflow-y: auto;
-        border: 1px solid var(--slate-200);
-        border-radius: var(--radius-md);
-        background: var(--slate-50);
-        padding: 1rem;
-        display: grid;
-        grid-template-columns: repeat(1, 1fr);
-        gap: 0.75rem;
-        scrollbar-gutter: stable;
-    }
-
-    @media (min-width: 768px) {
-        .member-picker-scroll {
-            grid-template-columns: repeat(2, 1fr); /* 2 nhân sự mỗi hàng trên tablet */
-        }
-    }
-
-    @media (min-width: 1200px) {
-        .member-picker-scroll {
-            grid-template-columns: repeat(3, 1fr); /* 3 nhân sự mỗi hàng trên desktop */
-        }
-    }
-
     .member-picker-row {
         border: 1px solid var(--slate-200);
         border-radius: var(--radius-md);
-        padding: 0.65rem 0.85rem;
-        margin-bottom: 0;
+        padding: 0.65rem 1.25rem;
         background: #fff;
         display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
+        flex-direction: row;
+        align-items: center;
+        gap: 1rem;
         transition: all 0.2s ease;
     }
 
@@ -232,9 +223,15 @@ $serverOldBasicJson = json_encode(
         border-color: var(--primary-200);
     }
 
-    .member-picker-row .member-role {
-        width: 100%;
-        max-width: none !important;
+    .member-picker-row .member-info-primary {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .member-picker-row .member-meta-field {
+        flex-shrink: 0;
+        font-size: 0.8125rem;
+        color: var(--slate-500);
     }
 
     .wizard-panel-footer {
@@ -326,17 +323,18 @@ $serverOldBasicJson = json_encode(
                                     <?php endif; ?>
                                 </div>
 
-                                <div class="mb-3">
-                                    <label class="form-label">Thời gian bắt đầu</label>
-                                    <input type="date" name="start_date" id="fld_start_date" class="form-control" value="<?= htmlspecialchars($currentStartDate, ENT_QUOTES, 'UTF-8') ?>">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label">Thời gian kết thúc</label>
-                                    <input type="date" name="due_date" id="fld_due_date" class="form-control <?= isset($errors['due_date']) ? 'is-invalid' : '' ?>" value="<?= htmlspecialchars($currentDueDate, ENT_QUOTES, 'UTF-8') ?>">
-                                    <?php if (isset($errors['due_date'])): ?>
-                                        <div class="invalid-feedback d-block"><?= htmlspecialchars($errors['due_date'], ENT_QUOTES, 'UTF-8') ?></div>
-                                    <?php endif; ?>
+                                <div class="row g-3 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label">Thời gian bắt đầu</label>
+                                        <input type="date" name="start_date" id="fld_start_date" class="form-control" value="<?= htmlspecialchars($currentStartDate, ENT_QUOTES, 'UTF-8') ?>">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Thời gian kết thúc</label>
+                                        <input type="date" name="due_date" id="fld_due_date" class="form-control <?= isset($errors['due_date']) ? 'is-invalid' : '' ?>" value="<?= htmlspecialchars($currentDueDate, ENT_QUOTES, 'UTF-8') ?>">
+                                        <?php if (isset($errors['due_date'])): ?>
+                                            <div class="invalid-feedback d-block"><?= htmlspecialchars($errors['due_date'], ENT_QUOTES, 'UTF-8') ?></div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
 
@@ -365,10 +363,6 @@ $serverOldBasicJson = json_encode(
                                 <i data-lucide="copy" size="16"></i>
                                 <span class="ms-1">Tải mẫu hệ thống</span>
                             </button>
-                            <button type="button" class="btn btn-outline-primary btn-sm" id="btnAddTaskStatusRow">
-                                <i data-lucide="plus" size="16"></i>
-                                <span class="ms-1">Thêm dòng</span>
-                            </button>
                         </div>
 
                         <div class="table-responsive mb-2 wizard-task-status-table">
@@ -377,16 +371,20 @@ $serverOldBasicJson = json_encode(
                                     <tr>
                                         <th>Tên</th>
                                         <th style="min-width:120px">Slug</th>
-                                        <th style="width:60px">Màu</th>
+                                        <th style="width:140px">Mã màu</th>
+                                        <th class="text-center" style="width:90px">Hoàn tất</th>
                                         <th class="text-center" style="width:90px">Mặc định</th>
-                                        <th class="text-center" style="width:90px">Hoàn thành</th>
                                         <th style="width:48px"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="taskStatusTableBody"></tbody>
                             </table>
                         </div>
-                        <p class="text-slate-500 small mb-0">Phải có đúng một trạng thái “Mặc định” và một trạng thái “Hoàn thành”.</p>
+
+                        <button type="button" class="btn btn-white w-100 py-2 border-dashed mt-2 mb-4" id="btnAddTaskStatusRow" style="border-width: 2px; color: var(--primary-600);">
+                            <i data-lucide="plus" size="18"></i>
+                            <span class="fw-bold">Thêm trạng thái mới</span>
+                        </button>
                     </div>
 
                     <div class="d-flex flex-wrap justify-content-between gap-2 wizard-panel-footer">
@@ -403,8 +401,8 @@ $serverOldBasicJson = json_encode(
 
                 <!-- Bước 3 -->
                 <div class="wizard-panel" data-step="3">
-                    <div class="wizard-panel-content">
-                        <div id="memberPicker" class="mb-4 member-picker-grid"></div>
+                    <div class="wizard-panel-content d-flex flex-column">
+                        <div id="memberPicker" class="mb-4"></div>
                     </div>
 
                     <div class="d-flex flex-wrap justify-content-between gap-2 wizard-panel-footer">
@@ -516,9 +514,16 @@ $serverOldBasicJson = json_encode(
                 '<td>' +
                     '<input type="text" class="form-control ts-slug" placeholder="doing" value="' + escapeAttr(row.slug) + '">' +
                 '</td>' +
-                '<td><input type="color" class="form-control form-control-color ts-color p-1" value="' + escapeAttr(row.color) + '"></td>' +
-                '<td class="text-center"><input type="radio" name="ts_default" class="form-check-input ts-def" ' + (row.is_default ? 'checked' : '') + '></td>' +
+                '<td>' +
+                    '<div class="ts-color-trigger d-flex align-items-center gap-2 px-2 border rounded-3 bg-white cursor-pointer" style="height: 38px;" title="Nhấp để đổi màu">' +
+                        '<span class="color-box ts-color-display mb-0" style="background-color: ' + escapeAttr(row.color) + '; margin-right: 0;"></span>' +
+                        '<code class="small text-slate-500 fw-mono ts-color-hex flex-grow-1">' + escapeAttr(row.color).toUpperCase() + '</code>' +
+                        /* Input ẩn đi, chỉ dùng để chứa giá trị và kích hoạt trình chọn màu của trình duyệt */
+                        '<input type="color" class="ts-color" style="visibility: hidden; width: 0; height: 0; position: absolute;" value="' + escapeAttr(row.color) + '">' +
+                    '</div>' +
+                '</td>' +
                 '<td class="text-center"><input type="radio" name="ts_done" class="form-check-input ts-done" ' + (row.is_done ? 'checked' : '') + '></td>' +
+                '<td class="text-center"><input type="radio" name="ts_default" class="form-check-input ts-def" ' + (row.is_default ? 'checked' : '') + '></td>' +
                 '<td><button type="button" class="btn btn-link text-danger p-0 btn-remove-ts" title="Xóa"><i data-lucide="trash-2" size="18"></i></button></td>';
             tbody.appendChild(tr);
 
@@ -539,8 +544,21 @@ $serverOldBasicJson = json_encode(
                 row.slug = slugInp.value;
                 persistWizard();
             });
-            tr.querySelector('.ts-color').addEventListener('input', function (e) {
+            
+            var colorInp = tr.querySelector('.ts-color');
+            var colorTrigger = tr.querySelector('.ts-color-trigger');
+            var hexText = tr.querySelector('.ts-color-hex');
+            var colorDisplay = tr.querySelector('.ts-color-display'); // Lấy thẻ span hiển thị màu
+
+            // Khi nhấp vào vùng hiển thị, kích hoạt input color ẩn
+            colorTrigger.addEventListener('click', function() {
+                colorInp.click();
+            });
+
+            colorInp.addEventListener('input', function (e) {
                 row.color = e.target.value;
+                hexText.textContent = e.target.value.toUpperCase();
+                colorDisplay.style.backgroundColor = e.target.value; // Cập nhật màu cho thẻ span
                 persistWizard();
             });
             tr.querySelector('.ts-def').addEventListener('change', function () {
@@ -582,7 +600,9 @@ $serverOldBasicJson = json_encode(
     /** Bước 3: render danh sách user + checkbox + select vai trò (role disable khi chưa tick). */
     function populateMemberPicker(users, roles) {
         var container = document.getElementById('memberPicker');
-        if (!container) return;
+        if (!container) { console.error('Member picker container not found.'); return; }
+        // Sử dụng g-2 để các hàng sát nhau hơn trong bảng danh sách
+        container.className = 'row g-2 pt-2 mb-4'; 
         container.innerHTML = '';
         
         var rolesHtml = (roles || []).map(function(r) {
@@ -590,22 +610,35 @@ $serverOldBasicJson = json_encode(
         }).join('');
 
         (users || []).forEach(function(u) {
-            var row = document.createElement('div');
+            var colDiv = document.createElement('div');
+            colDiv.className = 'col-12'; // Luôn chiếm 100% chiều ngang
+
+            var row = document.createElement('div'); // Thẻ thành viên thực tế
             row.className = 'member-picker-row';
             row.dataset.userId = u.id;
             
             row.innerHTML = 
-                '<div class="form-check mb-0">' +
+                '<div class="form-check mb-0 flex-shrink-0" style="width: 20px;">' +
                     '<input class="form-check-input member-cb" type="checkbox" id="member_cb_' + u.id + '">' +
-                    '<label class="form-check-label small fw-bold text-slate-800 d-block text-truncate" for="member_cb_' + u.id + '" title="' + escapeAttr(u.name) + '">' +
-                        escapeAttr(u.name) +
-                    '</label>' +
-                    (u.email ? '<div class="text-slate-500 small text-truncate" style="font-size: 0.7rem;">' + escapeAttr(u.email) + '</div>' : '') +
                 '</div>' +
-                '<select class="form-select form-select-sm member-role" disabled>' +
+                '<div class="member-info-primary min-w-0">' +
+                    '<div class="d-flex align-items-center gap-2">' +
+                        '<label class="form-check-label fw-bold text-slate-800 text-truncate mb-0" for="member_cb_' + u.id + '" title="' + escapeAttr(u.name) + '">' +
+                            escapeAttr(u.name) +
+                        '</label>' +
+                        '<span class="text-slate-400 small fw-normal flex-shrink-0">#' + escapeAttr(u.employee_code || '---') + '</span>' +
+                    '</div>' +
+                    (u.email ? '<div class="text-slate-500 small text-truncate" style="font-size: 0.75rem;" title="' + escapeAttr(u.email) + '">' + escapeAttr(u.email) + '</div>' : '') +
+                '</div>' +
+                '<div class="member-meta-field text-truncate d-none d-md-block" style="width: 200px;" title="' + escapeAttr(u.job_title || 'N/A') + '">' + 
+                    escapeAttr(u.job_title || 'Chưa cập nhật') + 
+                '</div>' +
+                '<select class="form-select form-select-sm member-role" style="width: 130px; flex-shrink: 0;" disabled>' +
                     rolesHtml +
                 '</select>';
-            container.appendChild(row);
+            
+            colDiv.appendChild(row); // Gắn thẻ thành viên vào cột
+            container.appendChild(colDiv); // Gắn cột vào container chính (đã là row Bootstrap)
         });
         
         bindMemberPickers();
