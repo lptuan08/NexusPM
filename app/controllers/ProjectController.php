@@ -112,7 +112,6 @@ class ProjectController extends Controller
             ]));
         } else {
             $data = $this->request->getBody();
-            var_dump($data);
         }
     }
 
@@ -191,7 +190,7 @@ class ProjectController extends Controller
             Response::redirect(URLROOT . '/projects');
         }
 
-        View::render('projects/create', $this->getProjectFormViewData([
+        View::render('projects/edit', $this->getProjectFormViewData([
             'project' => $project,
             'pageTitle' => 'Chỉnh sửa dự án',
             'action_url' => URLROOT . "/projects/{$id}/edit",
@@ -203,9 +202,11 @@ class ProjectController extends Controller
      */
     public function update($id)
     {
+
         if (!$this->request->isPost()) {
             return;
         }
+        $data = $this->request->getBody();
 
         $project = $this->modelProject->find($id);
         if (!$project) {
@@ -213,12 +214,12 @@ class ProjectController extends Controller
         }
 
         // Thu thập và kiểm tra dữ liệu
-        $data = $this->getFormData();
+        $data = $this->getFormData($data);
         $this->validateProjectData($data);
 
         // Xử lý khi validation thất bại
         if (!$this->validator->passes()) {
-            return View::render('projects/create', $this->getProjectFormViewData([
+            return View::render('projects/edit', $this->getProjectFormViewData([
                 'project' => $project,
                 'errors' => $this->validator->getErrors(),
                 'old' => $this->request->getBody(),
@@ -425,15 +426,10 @@ class ProjectController extends Controller
         }
 
         $body = $this->request->getBody();
-        var_dump($body);
         // chuẩn hóa dữ liệu form
         $data = $this->getFormData($body);
-        var_dump($data);
         $taskRows = $this->decodeJsonArrayField((string) ($body['wizard_task_statuses'] ?? ''), 'wizard_task_statuses');
-        var_dump($taskRows);
         $memberRows = $this->decodeJsonArrayField((string) ($body['wizard_members'] ?? ''), 'wizard_members');
-        var_dump($memberRows);
-        // die();
         if ($taskRows === null || $memberRows === null) {
             return View::render('projects/createWizard', $this->wizardCreateViewData([
                 'errors' => $this->validator->getErrors(),
@@ -454,7 +450,7 @@ class ProjectController extends Controller
 
         try {
             $projectId = $this->modelProject->createWithProjectCode($data);
-            
+
             // Nếu trạng thái rỗng sẽ thêm trạng thái mặc đinh (của project_id is null); 
             if ($taskRows === []) {
                 $this->modelTaskStatus->cloneGlobalStatusesToProject($projectId);

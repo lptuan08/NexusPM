@@ -185,25 +185,97 @@ $serverOldBasicJson = json_encode(
         margin-right: 0.5rem; /* Khoảng cách với text */
     }
 
-    .task-status-row .form-control,
-    .task-status-row .form-select {
-        font-size: 0.875rem;
+    /* —— Bước 2: thẻ trạng thái (card + kéo thả) —— */
+    .task-status-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
     }
 
-    .wizard-task-status-table {
+    .task-status-card {
         border: 1px solid var(--slate-200);
-        border-radius: var(--radius-md);
-        overflow: hidden;
+        border-radius: var(--radius-md, 0.5rem);
+        background: #fff;
+        padding: 0.625rem 1rem;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+        transition:
+            box-shadow 0.22s ease,
+            border-color 0.2s ease,
+            opacity 0.2s ease;
     }
 
-    .wizard-task-status-table thead th {
+    .task-status-card:hover {
+        border-color: var(--slate-300);
+    }
+
+    .task-status-card .form-label {
         font-size: 0.8125rem;
-        font-weight: 600;
+        font-weight: 500;
         color: var(--slate-700);
+        margin-bottom: 0.35rem;
     }
 
-    .wizard-task-status-table.table-custom tbody tr {
-        cursor: default;
+    .task-status-card__index {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        height: 1.75rem;
+        padding: 0 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        color: var(--slate-600);
+        background: var(--slate-100);
+        border: 1px solid var(--slate-200);
+        border-radius: 999px;
+    }
+
+    .task-status-card .btn-remove-ts {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 0.375rem;
+        color: var(--slate-400) !important;
+        transition: color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .task-status-card .btn-remove-ts:hover {
+        color: #dc2626 !important;
+        background: rgba(220, 38, 38, 0.06);
+    }
+
+    .task-status-card .ts-color-trigger {
+        min-height: calc(1.5em + 0.75rem + 2px);
+        border-color: var(--slate-200) !important;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .task-status-card .ts-color-trigger:hover {
+        border-color: var(--primary-300) !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    }
+
+    .task-status-card .ts-color-trigger .color-box {
+        margin-right: 0;
+    }
+
+    .task-status-card.is-dragging {
+        opacity: 1;
+        transform: scale(1.02);
+        box-shadow:
+            0 16px 48px rgba(15, 23, 42, 0.12),
+            0 0 0 1px rgba(59, 130, 246, 0.15);
+        border-color: #93c5fd;
+        z-index: 6;
+    }
+
+    .task-status-card.is-drag-over {
+        border-color: var(--primary-500);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
+        transform: translateY(-3px);
     }
 
     .member-picker-row {
@@ -216,6 +288,40 @@ $serverOldBasicJson = json_encode(
         align-items: center;
         gap: 1rem;
         transition: all 0.2s ease;
+    }
+
+    .status-drag-handle {
+        cursor: grab;
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.375rem;
+        color: var(--slate-400);
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: none;
+        transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .status-drag-handle:active {
+        cursor: grabbing;
+    }
+
+    .status-drag-handle:hover {
+        background: var(--slate-200);
+        color: var(--slate-700);
+    }
+
+    .status-drag-handle:focus-visible {
+        outline: 2px solid var(--primary-500);
+        outline-offset: 2px;
+    }
+
+    .status-drag-handle:active {
+        cursor: grabbing;
     }
 
     .member-picker-row:hover {
@@ -252,7 +358,7 @@ $serverOldBasicJson = json_encode(
     <div class="page-actions">
         <a href="<?= URLROOT ?>/projects" class="btn btn-outline-secondary px-3">
             <i data-lucide="arrow-left"></i>
-            <span>Quay lại</span>
+            <span>Trở về</span>
         </a>
     </div>
 </div>
@@ -356,46 +462,51 @@ $serverOldBasicJson = json_encode(
                 <!-- Bước 2 -->
                 <div class="wizard-panel" data-step="2">
                     <div class="wizard-panel-content">
-                        <p class="text-slate-600 small mb-3">Thiết lập các cột trạng thái cho công việc trong dự án. Nếu bỏ trống khi gửi, hệ thống sẽ sao chép mẫu mặc định toàn hệ thống.</p>
-
-                        <div class="d-flex flex-wrap gap-2 mb-3">
-                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnLoadGlobalStatuses">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                            <p class="text-slate-600 small mb-0">Để trống khi lưu sẽ dùng mẫu hệ thống. Kéo thanh bên trái mỗi thẻ để sắp xếp thứ tự.</p>
+                            <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0" id="btnLoadGlobalStatuses">
                                 <i data-lucide="copy" size="16"></i>
                                 <span class="ms-1">Tải mẫu hệ thống</span>
                             </button>
                         </div>
 
-                        <div class="table-responsive mb-2 wizard-task-status-table">
-                            <table class="table table-sm table-custom align-middle mb-0">
-                                <thead class="bg-slate-50">
-                                    <tr>
-                                        <th>Tên</th>
-                                        <th style="min-width:120px">Slug</th>
-                                        <th style="width:140px">Mã màu</th>
-                                        <th class="text-center" style="width:90px">Hoàn tất</th>
-                                        <th class="text-center" style="width:90px">Mặc định</th>
-                                        <th style="width:48px"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="taskStatusTableBody"></tbody>
-                            </table>
+                        <!-- Header cho danh sách trạng thái -->
+                        <div class="d-none d-md-flex align-items-center gap-3 px-3 mb-2 text-slate-400 fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.05em;">
+                            <div style="width: 80px;" class="text-center">Thứ tự</div>
+                            <div class="flex-grow-1">Tên hiển thị</div>
+                            <div style="width: 160px;" class="d-none d-lg-block text-center">Mã định danh (Slug)</div>
+                            <div style="width: 100px;" class="text-center">Màu sắc</div>
+                            <div style="width: 180px;" class="d-flex text-center">
+                                <div class="flex-fill">Mặc định</div>
+                                <div class="flex-fill">Hoàn tất</div>
+                            </div>
+                            <div style="width: 32px;"></div>
                         </div>
 
-                        <button type="button" class="btn btn-white w-100 py-2 border-dashed mt-2 mb-4" id="btnAddTaskStatusRow" style="border-width: 2px; color: var(--primary-600);">
+                        <div id="taskStatusList" class="task-status-cards mb-3" role="list" aria-label="Trạng thái công việc">
+                        </div>
+
+                        <button type="button" class="btn btn-white w-100 py-2 border-dashed mb-4" id="btnAddTaskStatusRow" style="border-width: 2px; color: var(--primary-600); border-radius: 0.75rem;">
                             <i data-lucide="plus" size="18"></i>
-                            <span class="fw-bold">Thêm trạng thái mới</span>
+                            <span class="fw-bold">Thêm trạng thái</span>
                         </button>
                     </div>
 
-                    <div class="d-flex flex-wrap justify-content-between gap-2 wizard-panel-footer">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 wizard-panel-footer">
                         <button type="button" class="btn btn-outline-secondary px-4" data-wizard-prev>
                             <i data-lucide="chevron-left" class="me-1" size="18"></i>
                             Quay lại
                         </button>
-                        <button type="button" class="btn btn-primary px-4" data-wizard-next>
-                            Tiếp theo
-                            <i data-lucide="chevron-right" class="ms-1" size="18"></i>
-                        </button>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-link text-decoration-none text-slate-500 fw-semibold px-3" data-wizard-skip>
+                                <span>Sử dụng mẫu hệ thống</span>
+                                <i data-lucide="skip-forward" class="ms-1" size="16"></i>
+                            </button>
+                            <button type="button" class="btn btn-primary px-4" data-wizard-next>
+                                Tiếp theo
+                                <i data-lucide="chevron-right" class="ms-1" size="18"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -405,15 +516,21 @@ $serverOldBasicJson = json_encode(
                         <div id="memberPicker" class="mb-4"></div>
                     </div>
 
-                    <div class="d-flex flex-wrap justify-content-between gap-2 wizard-panel-footer">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 wizard-panel-footer">
                         <button type="button" class="btn btn-outline-secondary px-4" data-wizard-prev>
                             <i data-lucide="chevron-left" class="me-1" size="18"></i>
                             Quay lại
                         </button>
-                        <button type="submit" class="btn btn-primary px-4" id="wizardSubmitBtn">
-                            <i data-lucide="save"></i>
-                            Hoàn tất &amp; lưu dự án
-                        </button>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-link text-decoration-none text-slate-500 fw-semibold px-3" data-wizard-skip>
+                                <span>Bỏ qua & Hoàn tất</span>
+                                <i data-lucide="check" class="ms-1" size="16"></i>
+                            </button>
+                            <button type="submit" class="btn btn-primary px-4" id="wizardSubmitBtn">
+                                <i data-lucide="save"></i>
+                                Hoàn tất &amp; lưu dự án
+                            </button>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -446,11 +563,6 @@ $serverOldBasicJson = json_encode(
         s = s.replace(/[\u0300-\u036f]/g, '');
         s = s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
         return s || 'status';
-    }
-
-    /** Lucide: render lại icon sau khi chèn HTML động (nút xóa, chevron, v.v.). */
-    function refreshIcons() {
-        if (window.lucide) lucide.createIcons();
     }
 
     /** Đọc object trạng thái wizard đã lưu; lỗi parse → null. */
@@ -502,57 +614,85 @@ $serverOldBasicJson = json_encode(
     /** Mảng trạng thái công việc (bước 2) — nguồn sự thật trước khi sync vào hidden / localStorage. */
     var taskRows = [];
 
-    /** Vẽ lại toàn bộ tbody từ taskRows; gắn listener cập nhật row + persist (không re-render khi đổi radio để giữ focus). */
+    /** Di chuyển phần tử trong mảng (from / to là chỉ số trước khi kéo, theo thứ tự hiển thị). */
+    function moveTaskRowInArray(arr, from, to) {
+        if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return;
+        var item = arr.splice(from, 1)[0];
+        arr.splice(to, 0, item);
+    }
+
+    /** Vẽ lại danh sách thẻ trạng thái từ taskRows; gắn listener + persist (không re-render khi đổi radio để giữ focus). */
     function renderTaskRows() {
-        var tbody = document.getElementById('taskStatusTableBody');
-        tbody.innerHTML = '';
+        var container = document.getElementById('taskStatusList');
+        container.innerHTML = '';
         taskRows.forEach(function (row, idx) {
-            var tr = document.createElement('tr');
-            tr.className = 'task-status-row';
-            tr.innerHTML =
-                '<td><input type="text" class="form-control ts-name" placeholder="Ví dụ: Đang làm" value="' + escapeAttr(row.name) + '"></td>' +
-                '<td>' +
-                    '<input type="text" class="form-control ts-slug" placeholder="doing" value="' + escapeAttr(row.slug) + '">' +
-                '</td>' +
-                '<td>' +
-                    '<div class="ts-color-trigger d-flex align-items-center gap-2 px-2 border rounded-3 bg-white cursor-pointer" style="height: 38px;" title="Nhấp để đổi màu">' +
-                        '<span class="color-box ts-color-display mb-0" style="background-color: ' + escapeAttr(row.color) + '; margin-right: 0;"></span>' +
-                        '<code class="small text-slate-500 fw-mono ts-color-hex flex-grow-1">' + escapeAttr(row.color).toUpperCase() + '</code>' +
-                        /* Input ẩn đi, chỉ dùng để chứa giá trị và kích hoạt trình chọn màu của trình duyệt */
+            var rowDiv = document.createElement('div');
+            rowDiv.className = 'task-status-card status-picker-row';
+            rowDiv.setAttribute('role', 'listitem');
+            rowDiv.innerHTML =
+                '<div class="d-flex align-items-center gap-3">' +
+                    '<span class="status-drag-handle" role="button" tabindex="0">' +
+                        '<i data-lucide="more-vertical" size="18"></i>' +
+                    '</span>' +
+                    '<span class="task-status-card__index ts-position">#' + (idx + 1) + '</span>' +
+                    
+                    '<div class="flex-grow-1">' +
+                        '<input type="text" class="form-control form-control-sm ts-name' + (row.name === '' && taskRows.length > 0 ? '' : '') + '" placeholder="Tên trạng thái" value="' + escapeAttr(row.name) + '">' +
+                    '</div>' +
+                    
+                    '<div style="width: 160px;" class="d-none d-lg-block">' +
+                        '<input type="text" class="form-control form-control-sm ts-slug font-monospace" placeholder="slug" value="' + escapeAttr(row.slug) + '">' +
+                    '</div>' +
+                    
+                    '<div class="ts-color-trigger d-flex align-items-center gap-2 px-2 border rounded bg-white cursor-pointer" style="width: 100px; height: 33px;">' +
+                        '<span class="color-box ts-color-display mb-0 flex-shrink-0" style="background-color: ' + escapeAttr(row.color) + '; width: 14px; height: 14px; margin-right: 0;"></span>' +
+                        '<code class="small text-slate-500 fw-mono ts-color-hex flex-grow-1 text-truncate" style="font-size: 0.7rem;">' + escapeAttr(row.color).toUpperCase() + '</code>' +
                         '<input type="color" class="ts-color" style="visibility: hidden; width: 0; height: 0; position: absolute;" value="' + escapeAttr(row.color) + '">' +
                     '</div>' +
-                '</td>' +
-                '<td class="text-center"><input type="radio" name="ts_done" class="form-check-input ts-done" ' + (row.is_done ? 'checked' : '') + '></td>' +
-                '<td class="text-center"><input type="radio" name="ts_default" class="form-check-input ts-def" ' + (row.is_default ? 'checked' : '') + '></td>' +
-                '<td><button type="button" class="btn btn-link text-danger p-0 btn-remove-ts" title="Xóa"><i data-lucide="trash-2" size="18"></i></button></td>';
-            tbody.appendChild(tr);
+                    
+                    '<div class="d-flex flex-shrink-0 text-center" style="width: 180px;">' +
+                        '<div class="flex-fill d-flex justify-content-center">' +
+                            '<input type="radio" name="ts_default" class="form-check-input ts-def" id="ts_def_' + idx + '"' + (row.is_default ? ' checked' : '') + '>' +
+                        '</div>' +
+                        '<div class="flex-fill d-flex justify-content-center">' +
+                            '<input type="radio" name="ts_done" class="form-check-input ts-done" id="ts_done_' + idx + '"' + (row.is_done ? ' checked' : '') + '>' +
+                        '</div>' +
+                    '</div>' +
+                    
+                    '<button type="button" class="btn btn-link p-0 border-0 btn-remove-ts">' +
+                        '<i data-lucide="trash-2" size="18"></i>' +
+                    '</button>' +
+                '</div>';
+            container.appendChild(rowDiv);
 
-            var nameInp = tr.querySelector('.ts-name');
-            var slugInp = tr.querySelector('.ts-slug');
+            var nameInp = rowDiv.querySelector('.ts-name');
+            var slugInp = rowDiv.querySelector('.ts-slug');
             // Tên đổi → slug tự sinh nếu user chưa sửa tay (dataset.touched).
-            nameInp.addEventListener('input', function () {
+            nameInp.addEventListener('input', function (e) {
                 row.name = nameInp.value.trim();
-                if (!slugInp.dataset.touched) {
+                nameInp.classList.remove('is-invalid');
+                if (!row.isSlugTouched) {
                     slugInp.value = slugify(nameInp.value);
                     row.slug = slugInp.value;
                 }
                 persistWizard();
             });
             // User sửa slug trực tiếp → đánh dấu touched, không ghi đè từ tên nữa.
-            slugInp.addEventListener('input', function () {
-                slugInp.dataset.touched = '1';
+            slugInp.addEventListener('input', function (e) {
+                row.isSlugTouched = true;
+                slugInp.classList.remove('is-invalid');
                 row.slug = slugInp.value;
                 persistWizard();
             });
             
-            var colorInp = tr.querySelector('.ts-color');
-            var colorTrigger = tr.querySelector('.ts-color-trigger');
-            var hexText = tr.querySelector('.ts-color-hex');
-            var colorDisplay = tr.querySelector('.ts-color-display'); // Lấy thẻ span hiển thị màu
+            var colorInp = rowDiv.querySelector('.ts-color');
+            var colorTrigger = rowDiv.querySelector('.ts-color-trigger');
+            var hexText = rowDiv.querySelector('.ts-color-hex');
+            var colorDisplay = rowDiv.querySelector('.ts-color-display'); // Lấy thẻ span hiển thị màu
 
             // Khi nhấp vào vùng hiển thị, kích hoạt input color ẩn
-            colorTrigger.addEventListener('click', function() {
-                colorInp.click();
+            colorTrigger.addEventListener('click', function(e) {
+                if (e.target !== colorInp) colorInp.click();
             });
 
             colorInp.addEventListener('input', function (e) {
@@ -561,15 +701,15 @@ $serverOldBasicJson = json_encode(
                 colorDisplay.style.backgroundColor = e.target.value; // Cập nhật màu cho thẻ span
                 persistWizard();
             });
-            tr.querySelector('.ts-def').addEventListener('change', function () {
+            rowDiv.querySelector('.ts-def').addEventListener('change', function () {
                 taskRows.forEach(function (r, i) { r.is_default = i === idx; });
                 persistWizard();
             });
-            tr.querySelector('.ts-done').addEventListener('change', function () {
+            rowDiv.querySelector('.ts-done').addEventListener('change', function () {
                 taskRows.forEach(function (r, i) { r.is_done = i === idx; });
                 persistWizard();
             });
-            tr.querySelector('.btn-remove-ts').addEventListener('click', function () {
+            rowDiv.querySelector('.btn-remove-ts').addEventListener('click', function () {
                 taskRows.splice(idx, 1);
                 renderTaskRows();
                 persistWizard();
@@ -647,7 +787,7 @@ $serverOldBasicJson = json_encode(
     /** Đọc từng dòng bảng bước 2 → mảng object gửi server (hidden JSON). */
     function collectTaskStatusesFromTable() {
         var out = [];
-        document.querySelectorAll('#taskStatusTableBody tr').forEach(function (tr) {
+        document.querySelectorAll('#taskStatusList .status-picker-row').forEach(function (tr) {
             var name = tr.querySelector('.ts-name').value.trim();
             // Slug gửi server luôn chữ thường (đồng nhất với validate backend).
             var slug = tr.querySelector('.ts-slug').value.trim().toLowerCase();
@@ -656,6 +796,8 @@ $serverOldBasicJson = json_encode(
                 name: name,
                 slug: slug,
                 color: color,
+                isSlugTouched: tr.querySelector('.ts-slug').dataset.touched === '1',
+                position: out.length + 1,
                 is_default: tr.querySelector('.ts-def').checked,
                 is_done: tr.querySelector('.ts-done').checked
             });
@@ -670,6 +812,7 @@ $serverOldBasicJson = json_encode(
                 name: g.name || '',
                 slug: g.slug || slugify(g.name || ''),
                 color: (g.color && /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(g.color)) ? g.color : '#64748b',
+                isSlugTouched: false,
                 // API có thể trả 0/1 hoặc chuỗi — dùng == 1 để ép boolean.
                 is_default: g.is_default == 1,
                 is_done: g.is_done == 1
@@ -700,6 +843,7 @@ $serverOldBasicJson = json_encode(
             name: '',
             slug: '',
             color: '#64748b',
+            isSlugTouched: false,
             is_default: taskRows.length === 0,
             is_done: false
         });
@@ -786,12 +930,73 @@ $serverOldBasicJson = json_encode(
         });
     }
 
+    /** Validate dữ liệu từng bước */
+    function validateCurrentStep() {
+        var isValid = true;
+        if (currentStep === 1) {
+            var fields = [
+                { id: 'fld_name', label: 'Tên dự án' },
+                { id: 'fld_owner_id', label: 'Trưởng dự án' },
+                { id: 'fld_status_id', label: 'Trạng thái dự án' }
+            ];
+            fields.forEach(function(f) {
+                var el = document.getElementById(f.id);
+                if (!el.value || !el.value.trim() || el.value === '0') {
+                    el.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    el.classList.remove('is-invalid');
+                }
+            });
+        } else if (currentStep === 2) {
+            // Nếu có dòng nào thì các dòng đó phải đầy đủ tên và slug
+            var rows = document.querySelectorAll('#taskStatusList .status-picker-row');
+            rows.forEach(function(row) {
+                var nameInp = row.querySelector('.ts-name');
+                var slugInp = row.querySelector('.ts-slug');
+                if (!nameInp.value.trim()) {
+                    nameInp.classList.add('is-invalid');
+                    isValid = false;
+                }
+                if (!slugInp.value.trim()) {
+                    slugInp.classList.add('is-invalid');
+                    isValid = false;
+                }
+            });
+        }
+        return isValid;
+    }
+
     // --- Điều hướng bước wizard ---
     document.querySelectorAll('[data-wizard-next]').forEach(function (btn) {
         btn.addEventListener('click', function () {
-            setStep(currentStep + 1);
+            if (validateCurrentStep()) {
+                setStep(currentStep + 1);
+            }
         });
     });
+
+    document.querySelectorAll('[data-wizard-skip]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            if (currentStep === 2) {
+                // Bỏ qua bước 2: xóa sạch taskRows để backend dùng mẫu hệ thống
+                if (confirm('Bạn có chắc chắn muốn bỏ qua tùy chỉnh và sử dụng mẫu trạng thái mặc định của hệ thống?')) {
+                    taskRows = [];
+                    document.getElementById('taskStatusList').innerHTML = '';
+                    persistWizard();
+                    setStep(3);
+                }
+            } else if (currentStep === 3) {
+                // Bỏ qua bước 3: bỏ chọn toàn bộ thành viên và submit
+                document.querySelectorAll('.member-cb').forEach(function(cb) {
+                    cb.checked = false;
+                });
+                persistWizard();
+                document.getElementById('projectWizardForm').requestSubmit();
+            }
+        });
+    });
+
     document.querySelectorAll('[data-wizard-prev]').forEach(function (btn) {
         btn.addEventListener('click', function () {
             setStep(currentStep - 1);
@@ -874,11 +1079,16 @@ $serverOldBasicJson = json_encode(
             try {
                 var parsed = JSON.parse(srvStatuses);
                 if (Array.isArray(parsed) && parsed.length) {
-                    taskRows = parsed.map(function (r) {
+                    var rows = parsed.slice();
+                    if (rows.every(function (r) { return typeof r.position === 'number' && !isNaN(r.position); })) {
+                        rows.sort(function (a, b) { return a.position - b.position; });
+                    }
+                    taskRows = rows.map(function (r) {
                         return {
                             name: r.name || '',
                             slug: r.slug || slugify(r.name || ''),
                             color: r.color || '#64748b',
+                            isSlugTouched: !!r.isSlugTouched,
                             is_default: !!r.is_default,
                             is_done: !!r.is_done
                         };
@@ -896,7 +1106,20 @@ $serverOldBasicJson = json_encode(
 
         // Nếu chưa có từ hidden và bảng vẫn trống → thử draft localStorage.
         if (!taskRows.length && saved && saved.taskStatuses && saved.taskStatuses.length) {
-            taskRows = saved.taskStatuses;
+            var st = saved.taskStatuses.slice();
+            if (st.every(function (r) { return typeof r.position === 'number' && !isNaN(r.position); })) {
+                st.sort(function (a, b) { return a.position - b.position; });
+            }
+            taskRows = st.map(function (r) {
+                return {
+                    name: r.name || '',
+                    slug: r.slug || slugify(r.name || ''),
+                    color: r.color || '#64748b',
+                    isSlugTouched: !!r.isSlugTouched,
+                    is_default: !!r.is_default,
+                    is_done: !!r.is_done
+                };
+            });
         }
 
         if (!taskRows.length) {
@@ -941,6 +1164,24 @@ $serverOldBasicJson = json_encode(
         var initialStep = (saved && saved.step) ? saved.step : 1;
         setStep(initialStep);
         refreshIcons();
+
+        // Khởi tạo SortableJS cho danh sách trạng thái
+        var el = document.getElementById('taskStatusList');
+        if (el && window.Sortable) {
+            new Sortable(el, {
+                animation: 200,
+                handle: '.status-drag-handle',
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                dragClass: 'sortable-drag',
+                onEnd: function() {
+                    taskRows = collectTaskStatusesFromTable();
+                    renderTaskRows();
+                    persistWizard();
+                }
+            });
+        }
     }
 })();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>

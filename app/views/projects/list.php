@@ -74,7 +74,7 @@
             <i data-lucide="filter"></i>
             <span class="d-none d-md-inline">Bộ lọc</span>
         </button>
-        <a href="<?= URLROOT; ?>/projects/create" class="btn btn-primary">
+        <a href="<?= URLROOT; ?>/projects/createWizard" class="btn btn-primary">
             <i data-lucide="plus"></i>
             <span>Thêm mới</span>
         </a>
