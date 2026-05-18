@@ -83,10 +83,9 @@ $selectedStatusId = (string) ($old['status_id'] ?? '');
                 <i data-lucide="refresh-ccw" size="18"></i>
                 <span>Làm mới</span>
             </button>
-            <div class="vr mx-1 my-2 text-slate-300"></div>
             <button type="submit" form="taskForm" class="btn btn-primary shadow-sm">
                 <i data-lucide="check-circle" size="18"></i>
-                <span>Lưu lại công việc</span>
+                <span>Lưu lại</span>
             </button>
         </div>
     </div>
