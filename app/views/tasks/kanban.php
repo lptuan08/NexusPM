@@ -1,260 +1,382 @@
-<style>
-        /* Cài đặt màu nền chung của trang */
-        body {
-            background-color: #f4f6f8;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+<?php
+/**
+ * Giao diện bảng Kanban - NexusPM
+ *
+ * @var array $project Thông tin dự án
+ * @var array $statuses Danh sách trạng thái công việc của dự án
+ * @var array $groupedTasks Công việc đã được nhóm theo status_id
+ */
 
-        /* Tùy chỉnh thanh cuộn ngang nếu bảng quá rộng */
-        .kanban-board-container {
-            overflow-x: auto;
-            padding-bottom: 20px;
+$project = $project ?? [];
+$projects = $projects ?? [];
+$statuses = $statuses ?? [];
+$groupedTasks = $groupedTasks ?? [];
+$selectedProject = $project;
+
+if (empty($projects) && !empty($project)) {
+    $projects = [$project];
+}
+
+$totalTasks = 0;
+$today = strtotime(date('Y-m-d'));
+
+foreach ($statuses as $status) {
+    $totalTasks += count($groupedTasks[$status['id']] ?? []);
+}
+
+$buildAvatar = static function (array $task, int $size = 28): string {
+    $avatar = $task['assigned_avatar'] ?? null;
+    if (!empty($avatar) && file_exists(APPROOT . '/public/uploads/avatars/' . $avatar)) {
+        return URLROOT . '/uploads/avatars/' . rawurlencode($avatar);
+    }
+
+    $name = $task['assigned_name'] ?? 'Chưa giao';
+    return 'https://ui-avatars.com/api/?name=' . urlencode((string) $name) . '&background=E2E8F0&color=0F172A&rounded=true&size=' . $size;
+};
+
+$formatDate = static function (?string $date, string $format = 'd/m/Y'): string {
+    return !empty($date) ? date($format, strtotime($date)) : '-';
+};
+?>
+
+<style>
+    .kanban-shell {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .tasks-project-dropdown > .dropdown-menu {
+        min-width: min(100vw - 1.5rem, 20rem);
+        max-width: min(100vw - 1.5rem, 22rem);
+        padding: 0.375rem 0;
+        margin-top: 0.35rem !important;
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 40px -10px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(226, 232, 240, 0.8);
+        z-index: 1080;
+    }
+
+    .tasks-project-dropdown .project-dropdown-scroll {
+        max-height: min(52vh, 17.5rem);
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tasks-project-dropdown .project-dropdown-scroll .dropdown-item {
+        gap: 0.5rem;
+        padding: 0.55rem 1rem;
+        white-space: normal;
+    }
+
+    .tasks-project-dropdown .project-dropdown-scroll .dropdown-item span:first-child {
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+    }
+
+    .tasks-project-dropdown .dropdown-item.text-primary {
+        font-size: 0.9375rem;
+    }
+
+    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+
+    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    .kanban-board-wrap {
+        overflow-x: auto;
+        padding-bottom: 0.75rem;
+        scrollbar-color: var(--slate-300) transparent;
+        scrollbar-width: thin;
+    }
+
+    .kanban-board {
+        align-items: flex-start;
+        display: flex;
+        gap: 1rem;
+        min-height: calc(100vh - 275px);
+        min-width: max-content;
+        padding: 0.25rem 0.125rem 0.75rem;
+    }
+
+    .kanban-column {
+        background: #ffffff;
+        border: 1px solid rgba(218, 220, 224, 0.9);
+        border-top: 4px solid var(--status-color, var(--slate-300));
+        border-radius: var(--radius-md);
+        box-shadow: var(--google-shadow-soft);
+        display: flex;
+        flex: 0 0 clamp(300px, 24vw, 360px);
+        flex-direction: column;
+        max-height: calc(100vh - 285px);
+        min-height: 18rem;
+        min-width: 300px;
+        overflow: hidden;
+    }
+
+    .kanban-column-header {
+        background: linear-gradient(180deg, rgba(248, 249, 250, 0.95), #ffffff);
+        border-bottom: 1px solid var(--slate-100);
+        padding: 0.9rem 1rem;
+    }
+
+    .kanban-status-row {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+    }
+
+    .kanban-status-name {
+        align-items: center;
+        color: var(--slate-900);
+        display: flex;
+        font-size: 0.925rem;
+        font-weight: 700;
+        gap: 0.5rem;
+        min-width: 0;
+    }
+
+    .kanban-status-dot {
+        background: var(--status-color, var(--slate-400));
+        border-radius: 999px;
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-color, var(--slate-400)) 14%, transparent);
+        flex: 0 0 0.55rem;
+        height: 0.55rem;
+        width: 0.55rem;
+    }
+
+    .kanban-status-name span:last-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .kanban-count {
+        background: var(--slate-100);
+        border: 1px solid var(--slate-200);
+        border-radius: 999px;
+        color: var(--slate-600);
+        flex-shrink: 0;
+        font-size: 0.75rem;
+        font-weight: 700;
+        line-height: 1;
+        min-width: 1.7rem;
+        padding: 0.35rem 0.55rem;
+        text-align: center;
+    }
+
+    .kanban-column-progress {
+        background: var(--slate-100);
+        border-radius: 999px;
+        height: 5px;
+        margin-top: 0.75rem;
+        overflow: hidden;
+    }
+
+    .kanban-column-progress span {
+        background: var(--status-color, var(--primary-600));
+        border-radius: inherit;
+        display: block;
+        height: 100%;
+        opacity: 0.85;
+    }
+
+    .kanban-tasks {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        gap: 0.75rem;
+        min-height: 11rem;
+        overflow-y: auto;
+        padding: 0.85rem;
+    }
+
+    .kanban-empty {
+        align-items: center;
+        border: 1px dashed var(--slate-200);
+        border-radius: var(--radius-sm);
+        color: var(--slate-400);
+        display: flex;
+        font-size: 0.8125rem;
+        justify-content: center;
+        min-height: 5.5rem;
+        padding: 1rem;
+        text-align: center;
+    }
+
+    .kanban-tasks.has-task .kanban-empty {
+        display: none;
+    }
+
+    .task-card {
+        background: #ffffff;
+        border: 1px solid var(--slate-200);
+        border-radius: var(--radius-sm);
+        box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08);
+        color: inherit;
+        cursor: grab;
+        display: block;
+        padding: 0.9rem;
+        text-decoration: none;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    .task-card:hover {
+        border-color: var(--primary-200);
+        box-shadow: var(--google-shadow-soft);
+        color: inherit;
+        transform: translateY(-1px);
+    }
+
+    .task-card:active {
+        cursor: grabbing;
+    }
+
+    .task-card-title {
+        color: var(--slate-900);
+        display: -webkit-box;
+        font-size: 0.925rem;
+        font-weight: 700;
+        line-height: 1.4;
+        margin-top: 0.65rem;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }
+
+    .task-description-preview {
+        color: var(--slate-500);
+        display: -webkit-box;
+        font-size: 0.8125rem;
+        line-height: 1.45;
+        margin-top: 0.4rem;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }
+
+    .task-card-footer {
+        align-items: center;
+        border-top: 1px solid var(--slate-100);
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-top: 0.8rem;
+        padding-top: 0.75rem;
+    }
+
+    .task-meta {
+        align-items: center;
+        color: var(--slate-500);
+        display: inline-flex;
+        font-size: 0.75rem;
+        font-weight: 500;
+        gap: 0.3rem;
+        min-width: 0;
+    }
+
+    .task-meta.is-overdue {
+        color: var(--red-600);
+        font-weight: 700;
+    }
+
+    .task-assignee {
+        align-items: center;
+        display: inline-flex;
+        gap: 0.4rem;
+        min-width: 0;
+    }
+
+    .task-assignee img {
+        border: 1px solid var(--slate-200);
+        border-radius: 50%;
+        flex-shrink: 0;
+        height: 28px;
+        object-fit: cover;
+        width: 28px;
+    }
+
+    .task-assignee span {
+        color: var(--slate-600);
+        font-size: 0.75rem;
+        font-weight: 600;
+        max-width: 7.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .kanban-state {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid rgba(218, 220, 224, 0.7);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--google-shadow-soft);
+        color: var(--slate-500);
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        justify-content: center;
+        min-height: 18rem;
+        padding: 2rem;
+        text-align: center;
+    }
+
+    .kanban-save-state {
+        align-items: center;
+        color: var(--slate-500);
+        display: inline-flex;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        gap: 0.4rem;
+        min-height: 1.5rem;
+    }
+
+    .kanban-save-state.text-danger {
+        color: var(--red-600) !important;
+    }
+
+    .sortable-ghost {
+        background: var(--primary-50) !important;
+        border: 1px dashed var(--primary-600) !important;
+        opacity: 0.75;
+    }
+
+    .sortable-chosen {
+        box-shadow: var(--google-shadow) !important;
+    }
+
+    .sortable-drag {
+        opacity: 0.95 !important;
+        transform: rotate(1deg);
+    }
+
+    @media (max-width: 767.98px) {
+        .kanban-column {
+            flex-basis: min(86vw, 320px);
+            max-height: none;
         }
 
         .kanban-board {
-            display: flex;
-            gap: 1.5rem;
-            padding: 1.5rem;
-            min-width: 1100px;
-            /* Đảm bảo giao diện không bị nát khi thu nhỏ */
-            align-items: flex-start;
+            min-height: 28rem;
         }
-
-        /* Định dạng các cột Kanban */
-        .kanban-col {
-            flex: 1;
-            min-width: 320px;
-            max-width: 380px;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        /* Định dạng Header của mỗi cột (Viên thuốc) */
-        .kanban-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.75rem 1.25rem;
-            border-radius: 50px;
-            color: #fff;
-            font-weight: 600;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
-
-        /* Màu sắc Header theo trạng thái */
-        .header-progress {
-            background-color: #5d48db;
-        }
-
-        .header-reviewed {
-            background-color: #f5a623;
-        }
-
-        .header-completed {
-            background-color: #2ed573;
-        }
-
-        /* Vòng tròn đếm số lượng trên header */
-        .header-count {
-            background-color: #fff;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-            margin-right: 10px;
-        }
-
-        .header-progress .header-count {
-            color: #5d48db;
-        }
-
-        .header-reviewed .header-count {
-            color: #f5a623;
-        }
-
-        .header-completed .header-count {
-            color: #2ed573;
-        }
-
-        /* Nút thêm (+) trên header */
-        .header-add-btn {
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 1.2rem;
-            cursor: pointer;
-            padding: 0;
-            opacity: 0.8;
-            transition: opacity 0.2s;
-        }
-
-        .header-add-btn:hover {
-            opacity: 1;
-        }
-
-        /* Vùng chứa các thẻ để có thể thả vào (Dropzone) */
-        .kanban-cards {
-            min-height: 200px;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        /* Thẻ Task (Card) */
-        .task-card {
-            background: #fff;
-            border-radius: 16px;
-            padding: 1.25rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-            cursor: grab;
-            transition: transform 0.2s, box-shadow 0.2s;
-            border: 1px solid rgba(0, 0, 0, 0.03);
-        }
-
-        .task-card:hover {
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-            transform: translateY(-2px);
-        }
-
-        .task-card:active {
-            cursor: grabbing;
-        }
-
-        /* Khi thẻ đang được kéo */
-        .sortable-ghost {
-            opacity: 0.4;
-            background-color: #f8f9fa;
-        }
-
-        .sortable-drag {
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
-            cursor: grabbing !important;
-        }
-
-        /* Định dạng Tag/Nhãn */
-        .task-tag {
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 0.35rem 0.75rem;
-            border-radius: 20px;
-            display: inline-block;
-            margin-bottom: 0.75rem;
-        }
-
-        .tag-important {
-            color: #6a5acd;
-            background-color: rgba(106, 90, 205, 0.1);
-        }
-
-        .tag-meh {
-            color: #9b59b6;
-            background-color: rgba(155, 89, 182, 0.1);
-        }
-
-        .tag-ok {
-            color: #f39c12;
-            background-color: rgba(243, 156, 18, 0.1);
-        }
-
-        .tag-high {
-            color: #e74c3c;
-            background-color: rgba(231, 76, 60, 0.1);
-        }
-
-        .tag-low {
-            color: #2ecc71;
-            background-color: rgba(46, 204, 113, 0.1);
-        }
-
-        .tag-unknown {
-            color: #f1c40f;
-            background-color: rgba(241, 196, 15, 0.1);
-        }
-
-        .tag-maybe {
-            color: #7f8c8d;
-            background-color: rgba(127, 140, 141, 0.1);
-            border: 1px solid rgba(127, 140, 141, 0.2);
-        }
-
-        /* Tiêu đề & Nội dung Card */
-        .task-title {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #2c3e50;
-            margin-bottom: 0.5rem;
-            line-height: 1.4;
-        }
-
-        .task-desc {
-            font-size: 0.85rem;
-            color: #7f8c8d;
-            margin-bottom: 1.2rem;
-            line-height: 1.5;
-        }
-
-        /* Chân thẻ (Avatar & Thống kê) */
-        .task-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        /* Nhóm Avatar xếp chồng lên nhau */
-        .avatar-group {
-            display: flex;
-            align-items: center;
-        }
-
-        .avatar-group img {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: 2px solid #fff;
-            object-fit: cover;
-            position: relative;
-        }
-
-        .avatar-group img:not(:first-child) {
-            margin-left: -10px;
-        }
-
-        .avatar-group .more-avatars {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: 2px solid #fff;
-            background-color: #f1f2f6;
-            color: #5d48db;
-            font-size: 0.7rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: -10px;
-            position: relative;
-            z-index: 10;
-        }
-
-        /* Thống kê (Bình luận & Hoàn thành) */
-        .task-stats {
-            display: flex;
-            gap: 0.75rem;
-            color: #95a5a6;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-
-        .task-stats span {
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-    </style>
+    }
+</style>
 
 <div class="page-toolbar">
     <div class="d-flex align-items-center text-slate-600 fs-6">
@@ -264,223 +386,269 @@
     </div>
 </div>
 
-<div class="container-fluid p-0 kanban-board-container">
-        <div class="kanban-board">
-
-            <!-- Cột 1: Đang thực hiện -->
-            <div class="kanban-col">
-                <div class="kanban-header header-progress">
-                    <div class="d-flex align-items-center">
-                        <span class="header-count">25</span>
-                        <span>Đang thực hiện</span>
-                    </div>
-                    <a href="<?= URLROOT ?>/tasks/create" class="header-add-btn"><i data-lucide="plus"></i></a>
-                </div>
-
-                <div class="kanban-cards" id="col-progress">
-                    <!-- Thẻ Task 1 -->
-                    <div class="task-card">
-                        <span class="task-tag tag-important">Quan trọng</span>
-                        <h5 class="task-title">Thiết kế UI/UX trong thời đại AI</h5>
-                        <p class="task-desc">Lorem ipsum dolor sit amet, libre unst consectetur adipiscing elit.</p>
-                        <div class="task-footer">
-                            <div class="avatar-group">
-                                <img src="https://i.pravatar.cc/150?img=11" alt="User 1" style="z-index: 3;">
-                                <img src="https://i.pravatar.cc/150?img=12" alt="User 2" style="z-index: 2;">
-                            </div>
-                            <div class="task-stats">
-                                <span><i data-lucide="message-square" size="16"></i> 11</span>
-                                <span><i data-lucide="check-circle" size="16"></i> 187</span>
-                            </div>
+<div class="kanban-shell">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-3 px-1">
+        <div class="d-flex align-items-center gap-3 min-vw-0">
+            <div class="dropdown tasks-project-dropdown">
+                <button class="btn btn-link p-0 text-decoration-none d-flex align-items-center gap-2 shadow-none border-0" type="button" data-bs-toggle="dropdown" data-bs-offset="0,8" aria-expanded="false">
+                    <h4 class="mb-0 fw-bold text-slate-900 text-start text-truncate" style="max-width: min(70vw, 28rem);">
+                        <?= htmlspecialchars((string) ($selectedProject['name'] ?? 'Chọn dự án'), ENT_QUOTES, 'UTF-8') ?>
+                    </h4>
+                    <i data-lucide="chevron-down" class="text-slate-400 flex-shrink-0" size="20"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-start shadow-xl border-0">
+                    <li><a class="dropdown-item py-2 fw-medium text-primary" href="<?= URLROOT ?>/tasks">Tất cả dự án</a></li>
+                    <li><hr class="dropdown-divider opacity-50 my-1"></li>
+                    <li class="px-0 py-0">
+                        <div class="project-dropdown-scroll">
+                            <?php foreach ($projects as $p): ?>
+                                <?php $isCurrentProject = (string) ($selectedProject['id'] ?? '') === (string) ($p['id'] ?? ''); ?>
+                                <a class="dropdown-item d-flex align-items-center justify-content-between <?= $isCurrentProject ? 'active' : '' ?>" href="<?= URLROOT ?>/tasks/<?= (int) $p['id'] ?>/kanban">
+                                    <span class="text-truncate"><?= htmlspecialchars((string) ($p['name'] ?? 'Dự án'), ENT_QUOTES, 'UTF-8') ?></span>
+                                    <span class="text-xs flex-shrink-0 ms-2 <?= $isCurrentProject ? 'text-white' : 'text-slate-400' ?>"><?= htmlspecialchars((string) ($p['project_code'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
+                                </a>
+                            <?php endforeach; ?>
                         </div>
-                    </div>
-
-                    <!-- Thẻ Task 2 -->
-                    <div class="task-card">
-                        <span class="task-tag tag-meh">Bình thường</span>
-                        <h5 class="task-title">Thiết kế Website Responsive cho 23 khách hàng khác</h5>
-                        <p class="task-desc">Lorem ipsum dolor sit amet, libre unst consectetur adipiscing elit.</p>
-                        <div class="task-footer">
-                            <div class="avatar-group">
-                                <img src="https://i.pravatar.cc/150?img=33" alt="User" style="z-index: 4;">
-                                <img src="https://i.pravatar.cc/150?img=44" alt="User" style="z-index: 3;">
-                                <img src="https://i.pravatar.cc/150?img=5" alt="User" style="z-index: 2;">
-                                <div class="more-avatars">+3</div>
-                            </div>
-                            <div class="task-stats">
-                                <span><i data-lucide="message-square" size="16"></i> 32</span>
-                                <span><i data-lucide="check-circle" size="16"></i> 115</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Thẻ Task 3 -->
-                    <div class="task-card">
-                        <span class="task-tag tag-ok">Ổn</span>
-                        <h5 class="task-title">Viết bài Copywriting (Ưu tiên thấp 😅)</h5>
-                        <p class="task-desc">Lorem ipsum dolor sit amet, libre unst consectetur adipiscing elit.</p>
-                        <div class="task-footer">
-                            <div class="avatar-group">
-                                <img src="https://i.pravatar.cc/150?img=6" alt="User" style="z-index: 2;">
-                                <img src="https://i.pravatar.cc/150?img=7" alt="User" style="z-index: 1;">
-                            </div>
-                            <div class="task-stats">
-                                <span><i data-lucide="message-square" size="16"></i> 987</span>
-                                <span><i data-lucide="check-circle" size="16"></i> 21,8K</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                    </li>
+                </ul>
             </div>
 
-            <!-- Cột 2: Đã đánh giá -->
-            <div class="kanban-col">
-                <div class="kanban-header header-reviewed">
-                    <div class="d-flex align-items-center">
-                        <span class="header-count">8</span>
-                        <span>Đã đánh giá</span>
-                    </div>
-                    <a href="<?= URLROOT ?>/tasks/create" class="header-add-btn"><i data-lucide="plus"></i></a>
+            <?php if (!empty($selectedProject)): ?>
+                <?php $projectStatusColor = $selectedProject['status_color'] ?? '#64748b'; ?>
+                <div class="d-flex align-items-center gap-2 ms-2 ps-3 border-start border-slate-200 h-100">
+                    <span class="text-slate-500 small fw-medium"><?= htmlspecialchars((string) ($selectedProject['project_code'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
+                    <?php if (!empty($selectedProject['status_name'])): ?>
+                        <span class="status-pill py-0 px-2" style="font-size: 11px; background-color: <?= htmlspecialchars($projectStatusColor, ENT_QUOTES, 'UTF-8') ?>20; color: <?= htmlspecialchars($projectStatusColor, ENT_QUOTES, 'UTF-8') ?>;">
+                            <?= htmlspecialchars((string) $selectedProject['status_name'], ENT_QUOTES, 'UTF-8') ?>
+                        </span>
+                    <?php endif; ?>
                 </div>
+            <?php endif; ?>
+        </div>
 
-                <div class="kanban-cards" id="col-reviewed">
-                    <!-- Thẻ Task 4 -->
-                    <div class="task-card">
-                        <span class="task-tag tag-important">Quan trọng</span>
-                        <h5 class="task-title">Xác nhận luồng người dùng cho ứng dụng tài chính</h5>
-                        <p class="task-desc">Lorem ipsum dolor sit amet, libre unst consectetur adipiscing elit.</p>
-                        <div class="task-footer">
-                            <div class="avatar-group">
-                                <img src="https://i.pravatar.cc/150?img=8" alt="User">
-                            </div>
-                            <div class="task-stats">
-                                <span><i data-lucide="message-square" size="16"></i> 8</span>
-                                <span><i data-lucide="check-circle" size="16"></i> 112</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Thẻ Task 5 -->
-                    <div class="task-card">
-                        <span class="task-tag tag-important">Quan trọng</span>
-                        <h5 class="task-title">Luồng wireframe ứng dụng chăm sóc sức khỏe 🤯</h5>
-                        <p class="task-desc">Lorem ipsum dolor sit amet, libre unst consectetur adipiscing elit.</p>
-                        <div class="task-footer">
-                            <div class="avatar-group">
-                                <img src="https://i.pravatar.cc/150?img=9" alt="User" style="z-index: 4;">
-                                <img src="https://i.pravatar.cc/150?img=10" alt="User" style="z-index: 3;">
-                                <img src="https://i.pravatar.cc/150?img=11" alt="User" style="z-index: 2;">
-                                <div class="more-avatars">+3</div>
-                            </div>
-                            <div class="task-stats">
-                                <span><i data-lucide="message-square" size="16"></i> 221</span>
-                                <span><i data-lucide="check-circle" size="16"></i> 87,2k</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Cột 3: Đã hoàn thành -->
-            <div class="kanban-col">
-                <div class="kanban-header header-completed">
-                    <div class="d-flex align-items-center">
-                        <span class="header-count">2</span>
-                        <span>Hoàn thành</span>
-                    </div>
-                    <a href="<?= URLROOT ?>/tasks/create" class="header-add-btn"><i data-lucide="plus"></i></a>
-                </div>
-
-                <div class="kanban-cards" id="col-completed">
-                    <!-- Thẻ Task 6 -->
-                    <div class="task-card">
-                        <span class="task-tag tag-high">Ưu tiên cao</span>
-                        <h5 class="task-title">Thiết kế UI/UX trong thời đại AI</h5>
-                        <p class="task-desc">Lorem ipsum dolor sit amet, libre unst consectetur adipiscing elit.</p>
-                        <div class="task-footer">
-                            <div class="avatar-group">
-                                <img src="https://i.pravatar.cc/150?img=12" alt="User" style="z-index: 2;">
-                                <img src="https://i.pravatar.cc/150?img=13" alt="User" style="z-index: 1;">
-                            </div>
-                            <div class="task-stats">
-                                <span><i data-lucide="message-square" size="16"></i> 108k</span>
-                                <span><i data-lucide="check-circle" size="16"></i> <i data-lucide="check" size="16" class="text-success"></i></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Thẻ Task 7 -->
-                    <div class="task-card">
-                        <span class="task-tag tag-low">Ưu tiên thấp</span>
-                        <h5 class="task-title">Thiết kế UI/UX trong thời đại AI</h5>
-                        <p class="task-desc">Lorem ipsum dolor sit amet, libre unst consectetur adipiscing elit.</p>
-                        <div class="task-footer">
-                            <div class="avatar-group">
-                                <img src="https://i.pravatar.cc/150?img=14" alt="User" style="z-index: 3;">
-                                <img src="https://i.pravatar.cc/150?img=15" alt="User" style="z-index: 2;">
-                                <img src="https://i.pravatar.cc/150?img=16" alt="User" style="z-index: 1;">
-                            </div>
-                            <div class="task-stats">
-                                <span><i data-lucide="message-square" size="16"></i> 17</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Thẻ Task 8 -->
-                    <div class="task-card">
-                        <span class="task-tag tag-unknown">Không rõ</span>
-                        <h5 class="task-title">Thiết kế UI/UX trong thời đại AI</h5>
-                        <p class="task-desc">Lorem ipsum dolor sit amet, libre unst consectetur adipiscing elit.</p>
-                        <div class="task-footer">
-                            <div class="avatar-group">
-                                <img src="https://i.pravatar.cc/150?img=17" alt="User" style="z-index: 4;">
-                                <img src="https://i.pravatar.cc/150?img=18" alt="User" style="z-index: 3;">
-                                <img src="https://i.pravatar.cc/150?img=19" alt="User" style="z-index: 2;">
-                                <img src="https://i.pravatar.cc/150?img=20" alt="User" style="z-index: 1;">
-                            </div>
-                            <div class="task-stats">
-                                <span><i data-lucide="message-square" size="16"></i> 888</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Thẻ Task rỗng để demo -->
-                    <div class="task-card">
-                        <span class="task-tag tag-maybe">Có thể quan trọng</span>
-                        <h5 class="task-title">Nghiên cứu thị trường mới</h5>
-                        <p class="task-desc">Phân tích các đối thủ cạnh tranh.</p>
-                    </div>
-                </div>
-            </div>
-
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <a href="<?= URLROOT ?>/tasks/<?= (int) ($selectedProject['id'] ?? 0) ?>/list" class="btn btn-white border border-slate-200 px-3 shadow-none">
+                <i data-lucide="list" size="18"></i>
+                <span>Dạng list</span>
+            </a>
+            <a href="<?= URLROOT ?>/projects/<?= (int) ($selectedProject['id'] ?? 0) ?>" class="btn btn-white border border-slate-200 px-3 shadow-none">
+                <i data-lucide="folder-kanban" size="18"></i>
+                <span>Dự án</span>
+            </a>
+            <a href="<?= URLROOT ?>/tasks/create?project_id=<?= (int) ($selectedProject['id'] ?? 0) ?>" class="btn btn-primary px-3 shadow-sm">
+                <i data-lucide="plus" size="18"></i>
+                <span>Thêm công việc</span>
+            </a>
         </div>
     </div>
 
-    <!-- Thư viện SortableJS cho tính năng Kéo Thả (Drag & Drop) -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <!-- <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap px-1">
+        <div class="text-slate-500 small d-flex align-items-center gap-2">
+            <i data-lucide="grip" size="16"></i>
+            <span>Kéo thả thẻ công việc giữa các cột để cập nhật trạng thái.</span>
+        </div>
+        <div class="kanban-save-state" id="kanban-save-state" aria-live="polite"></div>
+    </div> -->
 
-    <script>
-        // Khởi tạo SortableJS cho các cột để có thể kéo thả qua lại
-        document.addEventListener("DOMContentLoaded", function() {
-            const columns = document.querySelectorAll('.kanban-cards');
+    <?php if (!empty($statuses)): ?>
+        <div class="kanban-board-wrap">
+            <div class="kanban-board" id="kanban-board">
+                <?php foreach ($statuses as $status): ?>
+                    <?php
+                    $statusId = (int) $status['id'];
+                    $statusColor = $status['color'] ?? '#9aa0a6';
+                    $statusTasks = $groupedTasks[$statusId] ?? [];
+                    $statusTaskCount = count($statusTasks);
+                    $columnPercent = $totalTasks > 0 ? round(($statusTaskCount / $totalTasks) * 100) : 0;
+                    ?>
+                    <section class="kanban-column" data-status-id="<?= $statusId ?>" style="--status-color: <?= htmlspecialchars($statusColor, ENT_QUOTES, 'UTF-8') ?>;">
+                        <header class="kanban-column-header">
+                            <div class="kanban-status-row">
+                                <div class="kanban-status-name" title="<?= htmlspecialchars((string) ($status['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                    <span class="kanban-status-dot"></span>
+                                    <span><?= htmlspecialchars((string) ($status['name'] ?? 'Chưa đặt tên'), ENT_QUOTES, 'UTF-8') ?></span>
+                                </div>
+                                <span class="kanban-count" data-kanban-count><?= $statusTaskCount ?></span>
+                            </div>
+                            <div class="kanban-column-progress" title="<?= $columnPercent ?>% công việc của dự án">
+                                <span style="width: <?= $columnPercent ?>%;"></span>
+                            </div>
+                        </header>
 
-            columns.forEach(col => {
-                new Sortable(col, {
-                    group: 'shared', // Cho phép kéo từ cột này sang cột khác cùng nhóm 'shared'
-                    animation: 150, // Thời gian hiệu ứng mượt mà (ms)
-                    ghostClass: 'sortable-ghost', // CSS class khi một thẻ đang được giữ và di chuyển
-                    dragClass: 'sortable-drag', // CSS class cho thẻ đang bám theo con trỏ chuột
-                    easing: "cubic-bezier(1, 0, 0, 1)",
+                        <div class="kanban-tasks <?= $statusTaskCount > 0 ? 'has-task' : '' ?>" id="tasks-status-<?= $statusId ?>">
+                            <div class="kanban-empty">Thả công việc vào đây</div>
 
-                    // Sự kiện khi thả thẻ thành công có thể xử lý logic lưu Database ở đây
-                    onEnd: function(evt) {
-                        console.log('Đã di chuyển một task sang vị trí mới!');
-                        // evt.to;    // Cột HTML đích
-                        // evt.from;  // Cột HTML nguồn
-                        // evt.oldIndex;  // Vị trí cũ
-                        // evt.newIndex;  // Vị trí mới
+                            <?php foreach ($statusTasks as $task): ?>
+                                <?php
+                                $priority = $task['priority'] ?? '';
+                                $priorityClass = match ($priority) {
+                                    'urgent', 'high' => 'priority-high',
+                                    'medium' => 'priority-medium',
+                                    'low' => 'priority-low',
+                                    default => 'status-muted'
+                                };
+                                $priorityText = match ($priority) {
+                                    'urgent' => 'Khẩn cấp',
+                                    'high' => 'Cao',
+                                    'medium' => 'Trung bình',
+                                    'low' => 'Thấp',
+                                    default => 'N/A'
+                                };
+                                $isDoneTask = !empty($task['status_is_done']) || ($task['status_slug'] ?? '') === 'done' || !empty($status['is_done']);
+                                $isOverdue = !empty($task['due_date']) && strtotime($task['due_date']) < $today && !$isDoneTask;
+                                ?>
+                                <a class="task-card" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>" data-task-id="<?= (int) $task['id'] ?>">
+                                    <div class="d-flex justify-content-between align-items-start gap-2">
+                                        <span class="ui-badge <?= $priorityClass ?>"><?= $priorityText ?></span>
+                                        <?php if ($isOverdue): ?>
+                                            <span class="ui-badge priority-high">
+                                                <i data-lucide="alert-circle" size="14"></i>
+                                                Quá hạn
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <div class="task-card-title"><?= htmlspecialchars((string) ($task['title'] ?? 'Không có tiêu đề'), ENT_QUOTES, 'UTF-8') ?></div>
+
+                                    <?php if (!empty($task['description'])): ?>
+                                        <div class="task-description-preview"><?= htmlspecialchars((string) $task['description'], ENT_QUOTES, 'UTF-8') ?></div>
+                                    <?php endif; ?>
+
+                                    <div class="task-card-footer">
+                                        <div class="task-meta <?= $isOverdue ? 'is-overdue' : '' ?>">
+                                            <i data-lucide="calendar" size="14"></i>
+                                            <span><?= $formatDate($task['due_date'] ?? null, 'd/m') ?></span>
+                                        </div>
+                                        <div class="task-assignee" title="<?= htmlspecialchars((string) ($task['assigned_name'] ?? 'Chưa giao'), ENT_QUOTES, 'UTF-8') ?>">
+                                            <img src="<?= $buildAvatar($task) ?>" alt="">
+                                            <span><?= htmlspecialchars((string) ($task['assigned_name'] ?? 'Chưa giao'), ENT_QUOTES, 'UTF-8') ?></span>
+                                        </div>
+                                    </div>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </section>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php else: ?>
+        <div class="kanban-state">
+            <i data-lucide="columns-3" size="40"></i>
+            <div>
+                <div class="fw-bold text-slate-800 mb-1">Dự án chưa có trạng thái công việc</div>
+                <div>Hãy cấu hình trạng thái cho dự án để bắt đầu dùng bảng Kanban.</div>
+            </div>
+        </div>
+    <?php endif; ?>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const columns = document.querySelectorAll('.kanban-tasks');
+    const saveState = document.getElementById('kanban-save-state');
+    const csrfToken = '<?= htmlspecialchars(\App\helpers\SecurityHelper::generateToken(), ENT_QUOTES, 'UTF-8') ?>';
+
+    function setSaveState(message, type = 'muted') {
+        if (!saveState) return;
+
+        const icon = type === 'danger' ? 'circle-alert' : (type === 'success' ? 'check-circle-2' : 'loader-circle');
+        saveState.className = 'kanban-save-state' + (type === 'danger' ? ' text-danger' : '');
+        saveState.innerHTML = message ? `<i data-lucide="${icon}" size="15"></i><span>${message}</span>` : '';
+
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+
+    function refreshColumn(column) {
+        const taskList = column.querySelector('.kanban-tasks');
+        const count = taskList ? taskList.querySelectorAll('.task-card').length : 0;
+        const countEl = column.querySelector('[data-kanban-count]');
+
+        if (countEl) {
+            countEl.textContent = count;
+        }
+
+        if (taskList) {
+            taskList.classList.toggle('has-task', count > 0);
+        }
+    }
+
+    function moveBack(item, sourceList, oldIndex) {
+        const taskCards = Array.from(sourceList.querySelectorAll('.task-card'));
+        const referenceNode = taskCards[oldIndex] || null;
+        sourceList.insertBefore(item, referenceNode);
+    }
+
+    columns.forEach(function (column) {
+        new Sortable(column, {
+            group: 'kanban',
+            animation: 160,
+            draggable: '.task-card',
+            emptyInsertThreshold: 24,
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            dragClass: 'sortable-drag',
+
+            onStart: function () {
+                setSaveState('');
+            },
+
+            onEnd: function (evt) {
+                const item = evt.item;
+                const taskId = item.getAttribute('data-task-id');
+                const newColumn = evt.to.closest('.kanban-column');
+                const oldColumn = evt.from.closest('.kanban-column');
+                const newStatusId = newColumn ? newColumn.getAttribute('data-status-id') : '';
+                const oldStatusId = oldColumn ? oldColumn.getAttribute('data-status-id') : '';
+
+                refreshColumn(newColumn);
+                if (oldColumn && oldColumn !== newColumn) {
+                    refreshColumn(oldColumn);
+                }
+
+                if (!taskId || !newStatusId || (newStatusId === oldStatusId && evt.oldIndex === evt.newIndex)) {
+                    return;
+                }
+
+                setSaveState('Đang lưu thay đổi...');
+
+                const formData = new URLSearchParams();
+                formData.append('task_id', taskId);
+                formData.append('status_id', newStatusId);
+                formData.append('csrf_token', csrfToken);
+
+                fetch('<?= URLROOT ?>/tasks/update-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
                     },
-                });
-            });
+                    body: formData.toString()
+                })
+                    .then(function (response) {
+                        return response.json().then(function (data) {
+                            if (!response.ok || !data.success) {
+                                throw new Error(data.message || 'Không thể cập nhật trạng thái.');
+                            }
+                            return data;
+                        });
+                    })
+                    .then(function () {
+                        setSaveState('Đã cập nhật trạng thái', 'success');
+                        window.setTimeout(function () {
+                            setSaveState('');
+                        }, 1800);
+                    })
+                    .catch(function (error) {
+                        moveBack(item, evt.from, evt.oldIndex);
+                        refreshColumn(oldColumn);
+                        refreshColumn(newColumn);
+                        setSaveState(error.message || 'Có lỗi khi lưu thay đổi.', 'danger');
+                    });
+            }
         });
-    </script>
+    });
+});
+</script>

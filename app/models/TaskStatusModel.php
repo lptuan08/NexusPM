@@ -225,10 +225,10 @@ class TaskStatusModel extends Model
     public function getList($id = null)
     {
         if ($id == null) {
-            $sql = "SELECT id, name FROM {$this->table} WHERE project_id IS NULL AND deleted_at IS NULL ORDER BY position DESC";
+            $sql = "SELECT id, name, slug, color, is_done FROM {$this->table} WHERE project_id IS NULL AND deleted_at IS NULL ORDER BY position DESC";
             return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         } else {
-            $sql = "SELECT id, name FROM {$this->table} WHERE project_id = :project_id AND deleted_at IS NULL ORDER BY position ASC";
+            $sql = "SELECT id, name, slug, color, is_done FROM {$this->table} WHERE project_id = :project_id AND deleted_at IS NULL ORDER BY position ASC";
             return $this->db->query($sql, ['project_id' => $id])->fetchAll(PDO::FETCH_ASSOC);
         }
     }

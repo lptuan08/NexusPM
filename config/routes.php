@@ -102,6 +102,16 @@ return [
             'action'     => 'create',
             'middleware' => ['AuthMiddleware']
         ],
+        '/tasks/{id}/edit' => [
+            'controller' => 'TaskController',
+            'action'     => 'edit',
+            'middleware' => ['AuthMiddleware']
+        ],
+        '/tasks/{id}' => [
+            'controller' => 'TaskController',
+            'action'     => 'show',
+            'middleware' => ['AuthMiddleware']
+        ],
         '/tasks/{id}/list' => [
             'controller' => 'TaskController',
             'action'     => 'listIdProject',
@@ -295,6 +305,16 @@ return [
         '/tasks/store' => [
             'controller' => 'TaskController',
             'action'     => 'store',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+        '/tasks/{id}/edit' => [
+            'controller' => 'TaskController',
+            'action'     => 'update',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+        '/tasks/update-status' => [
+            'controller' => 'TaskController',
+            'action'     => 'updateStatus',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
     ]

@@ -87,14 +87,43 @@ class ProjectController extends Controller
         $members = $this->modelProject->getProjectMembers($id);
         $tasks = $this->modelProject->getProjectTasks($id);
 
-
         // Lấy danh sách toàn bộ nhân viên để hiển thị trong Modal thêm thành viên
         $allUsers = $this->modelUser->getAllUsers();
+
+        // Business Logic: Calculate stats here instead of in the View
+        $stats = [
+            'total' => count($tasks),
+            'completed' => 0,
+            'overdue' => 0,
+            'percent' => 0
+        ];
+
+        $today = strtotime(date('Y-m-d'));
+        foreach ($tasks as $task) {
+            if (($task['status_slug'] ?? '') === 'done') {
+                $stats['completed']++;
+            }
+            if (!empty($task['due_date']) && strtotime($task['due_date']) < $today && ($task['status_slug'] ?? '') !== 'done') {
+                $stats['overdue']++;
+            }
+        }
+        if ($stats['total'] > 0) {
+            $stats['percent'] = (int) round(($stats['completed'] / $stats['total']) * 100);
+        }
+
+        // Sắp xếp thành viên ngay tại Controller
+        usort($members, function($a, $b) {
+            $roleOrder = ['manager' => 1, 'member' => 2, 'viewer' => 3];
+            $orderA = $roleOrder[$a['role'] ?? 'member'] ?? 99;
+            $orderB = $roleOrder[$b['role'] ?? 'member'] ?? 99;
+            return $orderA <=> $orderB;
+        });
 
         View::render('projects/detail', [
             'project' => $project,
             'members' => $members,
             'tasks' => $tasks,
+            'stats' => $stats,
             'allUsers' => $allUsers,
             'pageTitle' => 'Chi tiết dự án: ' . $project['name'],
         ]);
@@ -107,12 +136,10 @@ class ProjectController extends Controller
     {
         if ($this->request->isGet()) {
             return View::render('projects/create', $this->getProjectFormViewData([
-                'pageTitle' => 'Tạo dự án mới',
-                'action_url' => URLROOT . '/projects/create'
+                'pageTitle' => 'Tạo dự án mới'
             ]));
-        } else {
-            $data = $this->request->getBody();
         }
+        return $this->store();
     }
 
 
@@ -154,10 +181,11 @@ class ProjectController extends Controller
     /**
      * Xử lý lưu dự án mới vào cơ sở dữ liệu
      */
-    public function store()
+    private function store()
     {
         if (!$this->request->isPost()) {
-            return;
+            Response::redirect(URLROOT . '/projects/create');
+            return null;
         }
 
         // Lấy dữ liệu từ form và validate
@@ -167,10 +195,9 @@ class ProjectController extends Controller
         // Nếu có lỗi, render lại form kèm thông báo lỗi và dữ liệu cũ
         if (!$this->validator->passes()) {
             return View::render('projects/create', $this->getProjectFormViewData([
-                'errors' => $this->validator->getErrors(),
-                'old' => $this->request->getBody(),
-                'pageTitle' => 'Tạo dự án mới',
-                'action_url' => URLROOT . '/projects/create',
+                'errors'    => $this->validator->getErrors(),
+                'old'       => $this->request->getBody(),
+                'pageTitle' => 'Tạo dự án mới'
             ]));
         }
 
@@ -192,8 +219,7 @@ class ProjectController extends Controller
 
         View::render('projects/edit', $this->getProjectFormViewData([
             'project' => $project,
-            'pageTitle' => 'Chỉnh sửa dự án',
-            'action_url' => URLROOT . "/projects/{$id}/edit",
+            'pageTitle' => 'Chỉnh sửa dự án'
         ]));
     }
 
@@ -206,7 +232,6 @@ class ProjectController extends Controller
         if (!$this->request->isPost()) {
             return;
         }
-        $data = $this->request->getBody();
 
         $project = $this->modelProject->find($id);
         if (!$project) {
@@ -214,17 +239,16 @@ class ProjectController extends Controller
         }
 
         // Thu thập và kiểm tra dữ liệu
-        $data = $this->getFormData($data);
+        $data = $this->getFormData();
         $this->validateProjectData($data);
 
         // Xử lý khi validation thất bại
         if (!$this->validator->passes()) {
             return View::render('projects/edit', $this->getProjectFormViewData([
-                'project' => $project,
-                'errors' => $this->validator->getErrors(),
-                'old' => $this->request->getBody(),
-                'pageTitle' => 'Chỉnh sửa dự án',
-                'action_url' => URLROOT . "/projects/{$id}/edit",
+                'project'   => $project,
+                'errors'    => $this->validator->getErrors(),
+                'old'       => $this->request->getBody(),
+                'pageTitle' => 'Chỉnh sửa dự án'
             ]));
         }
 
@@ -248,9 +272,10 @@ class ProjectController extends Controller
      * Chuẩn hóa và lấy dữ liệu từ Request Body
      * @return array
      */
-    private function getFormData(array $body)
+    private function getFormData(?array $body = null): array
     {
-
+        $body = $body ?? $this->request->getBody();
+        
         return [
             'name' => $body['name'] ?? '',
             'description' => $body['description'] ?? '',
@@ -266,11 +291,14 @@ class ProjectController extends Controller
      * @param array $data Dữ liệu hiện có
      * @return array
      */
-    private function getProjectFormViewData(array $data = [])
+    private function getProjectFormViewData(array $extra = []): array
     {
-        $data['ownerOptions'] = $this->modelUser->getProjectOwnerOptions();
-        $data['statusOptions'] = $this->modelProjectStatus->getList();
-        return $data;
+        $base = [
+            'ownerOptions'  => $this->modelUser->getProjectOwnerOptions(),
+            'statusOptions' => $this->modelProjectStatus->getList(),
+            'action_url'    => isset($extra['project']) ? URLROOT . "/projects/{$extra['project']['id']}/edit" : URLROOT . '/projects/create'
+        ];
+        return array_merge($base, $extra);
     }
 
 
@@ -427,7 +455,7 @@ class ProjectController extends Controller
 
         $body = $this->request->getBody();
         // chuẩn hóa dữ liệu form
-        $data = $this->getFormData($body);
+        $data = $this->getFormData();
         $taskRows = $this->decodeJsonArrayField((string) ($body['wizard_task_statuses'] ?? ''), 'wizard_task_statuses');
         $memberRows = $this->decodeJsonArrayField((string) ($body['wizard_members'] ?? ''), 'wizard_members');
         if ($taskRows === null || $memberRows === null) {

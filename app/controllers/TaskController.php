@@ -5,6 +5,7 @@ namespace App\controllers;
 use App\core\Controller;
 use App\core\View;
 use App\core\Response;
+use App\core\Session;
 use App\helpers\Helper;
 use App\models\TaskModel;
 use App\models\ProjectModel;
@@ -65,6 +66,126 @@ class TaskController extends Controller
         ]);
     }
 
+    /**
+     * Hiển thị chi tiết công việc
+     */
+    public function show($id)
+    {
+        $task = $this->taskModel->find($id);
+        if (!$task) {
+            Helper::setFlash('danger', 'Công việc không tồn tại.');
+            Response::redirect(URLROOT . '/tasks');
+        }
+
+        View::render('tasks/detail', [
+            'task' => $task,
+            'pageTitle' => 'Chi tiết công việc'
+        ]);
+    }
+
+    /**
+     * Hiển thị form chỉnh sửa công việc
+     */
+    public function edit($id)
+    {
+        $task = $this->taskModel->find($id);
+        if (!$task) {
+            Helper::setFlash('danger', 'Công việc không tồn tại.');
+            Response::redirect(URLROOT . '/tasks');
+        }
+
+        View::render('tasks/create', [
+            'task' => $task,
+            'projects' => $this->projectModel->getAllProjects(),
+            'users' => $this->userModel->getAllUsers(),
+            'statuses' => $this->statusModel->getList($task['project_id']),
+            'statusesByProject' => $this->getStatusesByProject(),
+            'pageTitle' => 'Chỉnh sửa công việc',
+            'action_url' => URLROOT . '/tasks/' . $id . '/edit',
+            'old' => $task,
+        ]);
+    }
+
+    /**
+     * Xử lý cập nhật công việc
+     */
+    public function update($id)
+    {
+        $task = $this->taskModel->find($id);
+        if (!$task) {
+            Helper::setFlash('danger', 'Công việc không tồn tại.');
+            Response::redirect(URLROOT . '/tasks');
+        }
+
+        if (!$this->request->isPost()) {
+            Response::redirect(URLROOT . "/tasks/{$id}/edit");
+            return;
+        }
+
+        $body = $this->request->getBody();
+        $data = $this->getFormData();
+        $this->ensureStatusForSelectedProject($data);
+        
+        // Không cập nhật ngày tạo khi chỉnh sửa
+        unset($data['created_at']);
+        unset($data['created_by']);
+
+        $this->validator->required('title', $data['title'], 'Tiêu đề');
+        $this->validator->required('project_id', $data['project_id'], 'Dự án');
+        $this->validator->required('status_id', $data['status_id'], 'Trạng thái');
+
+        if ($this->validator->passes()) {
+            $projectId = (int) $data['project_id'];
+            $statusId = (int) $data['status_id'];
+
+            if (!$this->projectModel->find($projectId)) {
+                $this->validator->addError('project_id', 'Dự án không tồn tại hoặc đã bị xóa.');
+            } elseif (!$this->statusModel->belongsToProject($statusId, $projectId)) {
+                $this->validator->addError('status_id', 'Trạng thái không thuộc dự án đã chọn.');
+            }
+        }
+
+        if (!$this->validator->passes()) {
+            return View::render('tasks/create', [
+                'task' => $task,
+                'projects' => $this->projectModel->getAllProjects(),
+                'users' => $this->userModel->getAllUsers(),
+                'statuses' => $this->statusModel->getList((int)$body['project_id']),
+                'statusesByProject' => $this->getStatusesByProject(),
+                'errors' => $this->validator->getErrors(),
+                'old' => $body,
+                'pageTitle' => 'Chỉnh sửa công việc',
+                'action_url' => URLROOT . '/tasks/' . $id . '/edit',
+            ]);
+        }
+
+        $assigneeId = !empty($data['assigned_to']) ? (int) $data['assigned_to'] : null;
+        unset($data['assigned_to']);
+
+        try {
+            $this->taskModel->beginTransaction();
+            
+            // Cập nhật thông tin cơ bản của task
+            $this->taskModel->update($id, $data);
+
+            // Cập nhật người phụ trách (Xóa cũ, thêm mới nếu có)
+            // Giả định Model có phương thức removeAssignments hoặc xử lý trực tiếp
+            $this->taskModel->query("DELETE FROM task_assignments WHERE task_id = :tid", ['tid' => $id]);
+            
+            if ($assigneeId) {
+                $this->taskModel->assignUserToTask($id, $assigneeId, $this->currentUserId());
+            }
+
+            $this->taskModel->commit();
+            Helper::setFlash('success', 'Cập nhật công việc thành công!');
+            Response::redirect(URLROOT . '/tasks/' . $id);
+        } catch (\Throwable $e) {
+            $this->taskModel->rollBack();
+            Helper::setFlash('danger', 'Lỗi: ' . $e->getMessage());
+            Response::redirect(URLROOT . "/tasks/{$id}/edit");
+        }
+    }
+
     //VALIDATE project_id
     public function validateProjectId($id): bool
     {
@@ -105,6 +226,55 @@ class TaskController extends Controller
         ]);
     }
 
+    /**
+     * Hiển thị bảng Kanban cho một dự án cụ thể
+     */
+    public function kanban($id)
+    {
+        $project = $this->projectModel->find($id);
+        if (!$project) {
+            Helper::setFlash('danger', 'Dự án không tồn tại.');
+            Response::redirect(URLROOT . '/tasks');
+        }
+
+        $statuses = $this->statusModel->getList($id);
+        $tasks = $this->taskModel->getTaskByIdProject($id);
+
+        // Nhóm các task theo status_id
+        $groupedTasks = [];
+        foreach ($statuses as $status) {
+            $groupedTasks[$status['id']] = [];
+        }
+        foreach ($tasks as $task) {
+            $groupedTasks[$task['status_id']][] = $task;
+        }
+
+        View::render('tasks/kanban', [
+            'project'      => $project,
+            'projects'     => $this->projectModel->getAllProjects(),
+            'statuses'     => $statuses,
+            'groupedTasks' => $groupedTasks,
+            'pageTitle'    => 'Bảng Kanban: ' . $project['name']
+        ]);
+    }
+
+    /**
+     * API xử lý cập nhật trạng thái qua AJAX (Kanban Drag & Drop)
+     */
+    public function updateStatus()
+    {
+        $body = $this->request->getBody();
+        $taskId = $body['task_id'] ?? null;
+        $statusId = $body['status_id'] ?? null;
+
+        if ($taskId && $statusId) {
+            $this->taskModel->update($taskId, ['status_id' => $statusId]);
+            return Response::json(['success' => true, 'message' => 'Cập nhật trạng thái thành công']);
+        }
+
+        return Response::json(['success' => false, 'message' => 'Dữ liệu không hợp lệ'], 400);
+    }
+
     public function create()
     {
         $query = $this->request->getQuery();
@@ -116,6 +286,7 @@ class TaskController extends Controller
             'projects' => $this->projectModel->getAllProjects(),
             'users' => $this->userModel->getAllUsers(),
             'statuses' => $this->statusModel->getList($prefillProjectId),
+            'statusesByProject' => $this->getStatusesByProject(),
             'pageTitle' => 'Tạo công việc mới',
             'action_url' => URLROOT . '/tasks/store',
             'old' => $this->request->getBody(),
@@ -134,6 +305,7 @@ class TaskController extends Controller
 
         $body = $this->request->getBody();
         $data = $this->getFormData();
+        $this->ensureStatusForSelectedProject($data);
 
         $this->validator->required('title', $data['title'], 'Tiêu đề');
         $this->validator->required('project_id', $data['project_id'], 'Dự án');
@@ -156,6 +328,7 @@ class TaskController extends Controller
                 'projects' => $this->projectModel->getAllProjects(),
                 'users' => $this->userModel->getAllUsers(),
                 'statuses' => $this->statusModel->getList($statusProjectId),
+                'statusesByProject' => $this->getStatusesByProject(),
                 'errors' => $this->validator->getErrors(),
                 'old' => $body,
                 'pageTitle' => 'Tạo công việc mới',
@@ -174,7 +347,7 @@ class TaskController extends Controller
                 throw new \RuntimeException('Không lấy được ID công việc sau khi lưu.');
             }
             if ($assigneeId) {
-                $this->taskModel->assignUserToTask($taskId, $assigneeId);
+                $this->taskModel->assignUserToTask($taskId, $assigneeId, $this->currentUserId());
             }
             $this->taskModel->commit();
             Helper::setFlash('success', 'Thêm công việc mới thành công!');
@@ -207,7 +380,38 @@ class TaskController extends Controller
             'estimated_hours' => isset($body['estimated_hours']) && $body['estimated_hours'] !== ''
                 ? (float) $body['estimated_hours']
                 : 0.0,
+            'created_by' => $this->currentUserId(),
             'created_at' => $now,
         ];
+    }
+
+    private function currentUserId(): int
+    {
+        return (int) (Session::get('user')['id'] ?? 0);
+    }
+
+    private function getStatusesByProject(): array
+    {
+        $statusesByProject = [];
+        foreach ($this->projectModel->getAllProjects() as $project) {
+            $projectId = (int) ($project['id'] ?? 0);
+            if ($projectId > 0) {
+                $statusesByProject[$projectId] = $this->statusModel->getList($projectId);
+            }
+        }
+
+        return $statusesByProject;
+    }
+
+    private function ensureStatusForSelectedProject(array &$data): void
+    {
+        if (!empty($data['status_id']) || empty($data['project_id'])) {
+            return;
+        }
+
+        $statuses = $this->statusModel->getList((int) $data['project_id']);
+        if (!empty($statuses[0]['id'])) {
+            $data['status_id'] = (int) $statuses[0]['id'];
+        }
     }
 }

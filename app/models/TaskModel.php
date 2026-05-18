@@ -44,21 +44,42 @@ class TaskModel extends Model
     /**
      * Gán người thực hiện (bảng task_assignments).
      */
-    public function assignUserToTask(int $taskId, int $userId): bool
+    public function assignUserToTask(int $taskId, int $userId, int $assignedBy): bool
     {
-        $sql = "INSERT INTO task_assignments (task_id, user_id, assigned_at)
-                VALUES (:task_id, :user_id, NOW())";
+        $sql = "INSERT INTO task_assignments (task_id, user_id, assigned_at, assigned_by)
+                VALUES (:task_id, :user_id, NOW(), :assigned_by)";
         return (bool) $this->db->query($sql, [
             'task_id' => $taskId,
             'user_id' => $userId,
+            'assigned_by' => $assignedBy,
         ]);
     }
 
-    public function getAllTask()
+    /**
+     * Helper chung để xây dựng WHERE clauses cho các phương thức lấy danh sách
+     */
+    private function buildFilterWhere(array $filters): array
     {
-        $sql = "SELECT * FROM {$this->table} WHERE deleted_at IS NULL ORDER BY id DESC";
-        $data = $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-        return $data;
+        $where = ["t.deleted_at IS NULL"];
+        $params = [];
+
+        if (!empty($filters['search'])) {
+            $where[] = "(t.title LIKE :search OR t.description LIKE :search)";
+            $params[':search'] = '%' . $filters['search'] . '%';
+        }
+        if (!empty($filters['project_id'])) {
+            $where[] = "t.project_id = :project_id";
+            $params[':project_id'] = (int)$filters['project_id'];
+        }
+        if (!empty($filters['assigned_to'])) {
+            $where[] = "EXISTS (SELECT 1 FROM task_assignments ta_f WHERE ta_f.task_id = t.id AND ta_f.user_id = :assigned_to)";
+            $params[':assigned_to'] = (int)$filters['assigned_to'];
+        }
+        if (!empty($filters['status_id'])) {
+            $where[] = "t.status_id = :status_id";
+            $params[':status_id'] = (int)$filters['status_id'];
+        }
+        return [$where, $params];
     }
 
     /**
@@ -66,30 +87,8 @@ class TaskModel extends Model
      */
     public function getAllTasks($filters = [])
     {
-        $whereClauses = ["t.deleted_at IS NULL"];
-        $params = [];
-
-        if (!empty($filters['search'])) {
-            $whereClauses[] = "(t.title LIKE :search OR t.description LIKE :search)";
-            $params[':search'] = '%' . $filters['search'] . '%';
-        }
-        if (!empty($filters['project_id'])) {
-            $whereClauses[] = "t.project_id = :project_id";
-            $params[':project_id'] = (int)$filters['project_id'];
-        }
-        if (!empty($filters['assigned_to'])) {
-            $whereClauses[] = "EXISTS (
-                SELECT 1 FROM task_assignments ta_f
-                WHERE ta_f.task_id = t.id AND ta_f.user_id = :assigned_to
-            )";
-            $params[':assigned_to'] = (int)$filters['assigned_to'];
-        }
-        if (!empty($filters['status_id'])) {
-            $whereClauses[] = "t.status_id = :status_id";
-            $params[':status_id'] = (int)$filters['status_id'];
-        }
-
-        $whereSql = implode(' AND ', $whereClauses);
+        [$where, $params] = $this->buildFilterWhere($filters);
+        $whereSql = implode(' AND ', $where);
         $sql = 'SELECT ' . $this->selectListColumns() . '
                 ' . $this->fromListJoins() . "
                 WHERE $whereSql ORDER BY t.id DESC";

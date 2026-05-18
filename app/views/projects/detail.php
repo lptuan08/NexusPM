@@ -13,6 +13,7 @@ $project = $project ?? [];
 $members = $members ?? [];
 $tasks = $tasks ?? [];
 $allUsers = $allUsers ?? [];
+$stats = $stats ?? ['total' => 0, 'completed' => 0, 'overdue' => 0, 'percent' => 0];
 
 /**
  * Ánh xạ màu sắc và tên hiển thị cho vai trò thành viên
@@ -23,15 +24,6 @@ $roleMap = [
     'viewer'  => ['text' => 'Viewer',  'class' => 'role-pill-viewer'],
 ];
 
-/**
- * Ánh xạ trạng thái công việc
- */
-// Khởi tạo các biến thống kê công việc
-$todayTs = strtotime(date('Y-m-d'));
-$totalTasks = count($tasks);
-$completedTasks = 0;
-$inProgressTasks = 0;
-
 // Sắp xếp danh sách thành viên: Manager luôn ở trên đầu
 usort($members, function($a, $b) {
     $roleOrder = ['manager' => 1, 'member' => 2, 'viewer' => 3];
@@ -40,31 +32,9 @@ usort($members, function($a, $b) {
     return $orderA <=> $orderB;
 });
 
-$todoTasks = 0;
-$overdueTasks = 0;
-
-// Duyệt qua danh sách công việc để tính toán số liệu thống kê
-// Giả định 'status_slug' có sẵn từ database
-foreach ($tasks as $task) {
-    $taskStatusSlug = $task['status_slug'] ?? '';
-    if ($taskStatusSlug === 'done') {
-        $completedTasks++;
-    } elseif ($taskStatusSlug === 'in_progress') {
-        $inProgressTasks++;
-    } else {
-        $todoTasks++;
-    }
-
-    // Kiểm tra công việc trễ hạn (hạn chót < hôm nay và chưa hoàn thành)
-    if (!empty($task['due_date']) && strtotime($task['due_date']) < $todayTs && ($task['status'] ?? '') !== 'done') {
-        $overdueTasks++; // Giữ nguyên logic này, vì nó kiểm tra 'status' để xác định đã hoàn thành hay chưa
-    }
-}
-
-// Tính toán phần trăm tiến độ và thời gian còn lại của dự án
-$progressPercent = $totalTasks > 0 ? (int) round(($completedTasks / $totalTasks) * 100) : 0;
 $remainingDays = null;
 $isOverdueProject = false;
+$todayTs = strtotime(date('Y-m-d'));
 
 if (!empty($project['due_date'])) {
     $dueTs = strtotime($project['due_date']);
@@ -522,7 +492,7 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                             </div>
                             <div>
                                 <div class="project-meta-label">Tổng công việc</div>
-                                <div class="fs-4 fw-bold text-slate-900"><?= $totalTasks ?></div>
+                                <div class="fs-4 fw-bold text-slate-900"><?= $stats['total'] ?></div>
                             </div>
                         </div>
                     </div>
@@ -536,7 +506,7 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                             </div>
                             <div>
                                 <div class="project-meta-label">Tiến độ dự án</div>
-                                <div class="fs-4 fw-bold text-slate-900"><?= $progressPercent ?>%</div>
+                                <div class="fs-4 fw-bold text-slate-900"><?= $stats['percent'] ?>%</div>
                             </div>
                         </div>
                     </div>
