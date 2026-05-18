@@ -230,7 +230,9 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08);
         color: inherit;
         cursor: grab;
-        display: block;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
         padding: 0.9rem;
         text-decoration: none;
         transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
@@ -247,37 +249,72 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         cursor: grabbing;
     }
 
+    .task-card-top {
+        align-items: flex-start;
+        display: flex;
+        gap: 0.65rem;
+        justify-content: space-between;
+    }
+
     .task-card-title {
         color: var(--slate-900);
         display: -webkit-box;
         font-size: 0.925rem;
         font-weight: 700;
         line-height: 1.4;
-        margin-top: 0.65rem;
         overflow: hidden;
+        text-decoration: none;
+        transition: color 0.18s ease;
         -webkit-box-orient: vertical;
         -webkit-line-clamp: 2;
     }
 
-    .task-description-preview {
+    .task-card-title:hover,
+    .task-card:hover .task-card-title {
+        color: var(--primary-600);
+    }
+
+    .task-card-menu {
+        flex: 0 0 auto;
+        margin-right: -0.35rem;
+        margin-top: -0.35rem;
+    }
+
+    .task-card-menu .btn-action {
         color: var(--slate-500);
-        display: -webkit-box;
-        font-size: 0.8125rem;
-        line-height: 1.45;
-        margin-top: 0.4rem;
-        overflow: hidden;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
+        height: 32px;
+        width: 32px;
     }
 
+    .task-card-menu .btn-action:hover,
+    .task-card-menu .btn-action:focus {
+        background-color: var(--slate-100);
+        color: var(--slate-800);
+    }
+
+    .task-card-menu .dropdown-menu {
+        min-width: 10.5rem;
+    }
+
+    .task-card-menu .dropdown-item {
+        align-items: center;
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.55rem 0.85rem;
+    }
+
+    .task-card-menu .dropdown-item svg {
+        height: 16px;
+        width: 16px;
+    }
+
+    .task-date-range,
     .task-card-footer {
         align-items: center;
-        border-top: 1px solid var(--slate-100);
         display: flex;
+        gap: 0.55rem;
         justify-content: space-between;
-        gap: 0.75rem;
-        margin-top: 0.8rem;
-        padding-top: 0.75rem;
+        min-width: 0;
     }
 
     .task-meta {
@@ -290,6 +327,15 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         min-width: 0;
     }
 
+    .task-date-range .task-meta {
+        flex: 1 1 0;
+    }
+
+    .task-date-separator {
+        color: var(--slate-300);
+        flex: 0 0 auto;
+    }
+
     .task-meta.is-overdue {
         color: var(--red-600);
         font-weight: 700;
@@ -300,15 +346,16 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         display: inline-flex;
         gap: 0.4rem;
         min-width: 0;
+        justify-content: flex-end;
     }
 
     .task-assignee img {
         border: 1px solid var(--slate-200);
         border-radius: 50%;
         flex-shrink: 0;
-        height: 28px;
+        height: 24px;
         object-fit: cover;
-        width: 28px;
+        width: 24px;
     }
 
     .task-assignee span {
@@ -480,51 +527,65 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
 
                             <?php foreach ($statusTasks as $task): ?>
                                 <?php
-                                $priority = $task['priority'] ?? '';
-                                $priorityClass = match ($priority) {
-                                    'urgent', 'high' => 'priority-high',
-                                    'medium' => 'priority-medium',
-                                    'low' => 'priority-low',
-                                    default => 'status-muted'
-                                };
-                                $priorityText = match ($priority) {
-                                    'urgent' => 'Khẩn cấp',
-                                    'high' => 'Cao',
-                                    'medium' => 'Trung bình',
-                                    'low' => 'Thấp',
-                                    default => 'N/A'
-                                };
                                 $isDoneTask = !empty($task['status_is_done']) || ($task['status_slug'] ?? '') === 'done' || !empty($status['is_done']);
                                 $isOverdue = !empty($task['due_date']) && strtotime($task['due_date']) < $today && !$isDoneTask;
                                 ?>
-                                <a class="task-card" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>" data-task-id="<?= (int) $task['id'] ?>">
-                                    <div class="d-flex justify-content-between align-items-start gap-2">
-                                        <span class="ui-badge <?= $priorityClass ?>"><?= $priorityText ?></span>
-                                        <?php if ($isOverdue): ?>
-                                            <span class="ui-badge priority-high">
-                                                <i data-lucide="alert-circle" size="14"></i>
-                                                Quá hạn
-                                            </span>
-                                        <?php endif; ?>
+                                <div class="task-card" data-task-id="<?= (int) $task['id'] ?>">
+                                    <div class="task-card-top">
+                                        <a class="task-card-title" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>">
+                                            <?= htmlspecialchars((string) ($task['title'] ?? 'Không có tiêu đề'), ENT_QUOTES, 'UTF-8') ?>
+                                        </a>
+                                        <div class="dropdown task-card-menu">
+                                            <button class="btn btn-white btn-action border-0 shadow-none" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Mở hành động">
+                                                <i data-lucide="more-vertical" size="18"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                                                <li>
+                                                    <a class="dropdown-item" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>">
+                                                        <i data-lucide="eye" class="text-slate-600"></i>
+                                                        <span>Chi tiết</span>
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>/edit">
+                                                        <i data-lucide="edit-3" class="text-slate-600"></i>
+                                                        <span>Chỉnh sửa</span>
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider my-1"></li>
+                                                <li>
+                                                    <button type="button" class="dropdown-item text-danger" onclick="showDeleteModal('<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>/delete', <?= htmlspecialchars(json_encode('Xác nhận xóa công việc ' . ($task['title'] ?? '') . '?', JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
+                                                        <i data-lucide="trash-2"></i>
+                                                        <span>Xóa</span>
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </div>
 
-                                    <div class="task-card-title"><?= htmlspecialchars((string) ($task['title'] ?? 'Không có tiêu đề'), ENT_QUOTES, 'UTF-8') ?></div>
-
-                                    <?php if (!empty($task['description'])): ?>
-                                        <div class="task-description-preview"><?= htmlspecialchars((string) $task['description'], ENT_QUOTES, 'UTF-8') ?></div>
-                                    <?php endif; ?>
+                                    <div class="task-date-range">
+                                        <div class="task-meta">
+                                            <i data-lucide="calendar-days" size="14"></i>
+                                            <span><?= $formatDate($task['start_date'] ?? null, 'd/m/Y') ?></span>
+                                        </div>
+                                        <span class="task-date-separator">-</span>
+                                        <div class="task-meta <?= $isOverdue ? 'is-overdue' : '' ?>">
+                                            <i data-lucide="flag" size="14"></i>
+                                            <span><?= $formatDate($task['due_date'] ?? null, 'd/m/Y') ?></span>
+                                        </div>
+                                    </div>
 
                                     <div class="task-card-footer">
-                                        <div class="task-meta <?= $isOverdue ? 'is-overdue' : '' ?>">
-                                            <i data-lucide="calendar" size="14"></i>
-                                            <span><?= $formatDate($task['due_date'] ?? null, 'd/m') ?></span>
+                                        <div class="task-meta" title="Khối lượng công việc">
+                                            <i data-lucide="clock-3" size="14"></i>
+                                            <span><?= number_format((float) ($task['estimated_hours'] ?? 0), 1) ?> giờ</span>
                                         </div>
                                         <div class="task-assignee" title="<?= htmlspecialchars((string) ($task['assigned_name'] ?? 'Chưa giao'), ENT_QUOTES, 'UTF-8') ?>">
                                             <img src="<?= $buildAvatar($task) ?>" alt="">
                                             <span><?= htmlspecialchars((string) ($task['assigned_name'] ?? 'Chưa giao'), ENT_QUOTES, 'UTF-8') ?></span>
                                         </div>
                                     </div>
-                                </a>
+                                </div>
                             <?php endforeach; ?>
                         </div>
                     </section>
@@ -587,6 +648,8 @@ document.addEventListener('DOMContentLoaded', function () {
             group: 'kanban',
             animation: 160,
             draggable: '.task-card',
+            filter: '.task-card-menu, .task-card-menu *',
+            preventOnFilter: false,
             emptyInsertThreshold: 24,
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
