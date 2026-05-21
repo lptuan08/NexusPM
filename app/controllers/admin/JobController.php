@@ -11,15 +11,17 @@ use App\models\JobModel;
 
 class JobController extends Controller
 {
-    protected JobModel $jobModal;
+    protected JobModel $jobModel;
+
     public function __construct()
     {
         parent::__construct();
-        $this->jobModal = $this->model('JobModel');
+        $this->jobModel = $this->model('JobModel');
     }
+
     public function list()
     {
-        $data = $this->jobModal->getJobAll();
+        $data = $this->jobModel->getJobAll();
         View::render('admin/settings/job_titles', [
             'titles' => $data,
             'pageTitle' => 'Quản lý công việc'
@@ -28,7 +30,7 @@ class JobController extends Controller
     public function store()
     {
         $body = $this->request->getBody();
-        $data = $this->jobModal->getJobAll();
+        $data = $this->jobModel->getJobAll();
         if (!$this->validateForm($body)) {
             View::render('admin/settings/job_titles', [
                 'titles' => $data,
@@ -41,7 +43,7 @@ class JobController extends Controller
 
         if (empty($body['id'])) {
             // create
-            if ($this->jobModal->createJob($body)) {
+            if ($this->jobModel->createJob($body)) {
                 Helper::setFlash('success', "Thêm chức danh thành công");
                 Response::redirect(URLROOT . '/settings/job');
             } else {
@@ -50,7 +52,7 @@ class JobController extends Controller
             }
         } else {
             //update
-            if ($this->jobModal->updateJob($body['id'], $body)) {
+            if ($this->jobModel->updateJob($body['id'], $body)) {
                 Helper::setFlash('success', "Cập nhật chức danh thành công");
                 Response::redirect(URLROOT . '/settings/job');
             } else {
@@ -69,7 +71,7 @@ class JobController extends Controller
     }
     public function deleted(string $id)
     {
-        if ($this->jobModal->deleteJob($id)) {
+        if ($this->jobModel->deleteJob($id)) {
             Helper::setFlash('success', "Xóa chức danh thành công");
             Response::redirect(URLROOT . '/settings/job');
         }else{

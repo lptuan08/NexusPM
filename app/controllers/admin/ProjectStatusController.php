@@ -45,6 +45,9 @@ class ProjectStatusController extends Controller
         // 2. slug
         $this->validator->required('slug', $data['slug']);
         $this->validator->max('slug', $data['slug'], 45);
+        if (!empty($data['slug'])) {
+            $this->validator->slug('slug', $data['slug'], 'Slug');
+        }
         // 3. color
         $this->validator->color('color', $data['color']);
 
@@ -82,7 +85,12 @@ class ProjectStatusController extends Controller
 
         // Validate
         $this->validator->required('name', $data['name'], 'Tên trạng thái');
+        $this->validator->max('name', $data['name'], 45, 'Tên trạng thái');
         $this->validator->required('slug', $data['slug']);
+        $this->validator->max('slug', $data['slug'], 45);
+        if (!empty($data['slug'])) {
+            $this->validator->slug('slug', $data['slug'], 'Slug');
+        }
         $this->validator->color('color', $data['color']);
 
         // Kiểm tra slug (trừ chính ID hiện tại)

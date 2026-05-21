@@ -1,4 +1,5 @@
 <?php
+
 namespace App\core;
 
 use App\core\Request;
@@ -9,10 +10,9 @@ class Router
     private $routes;
     public function __construct($routes)
     {
-        if(!empty($routes)){
+        if (!empty($routes)) {
             $this->routes = $routes;
-        }
-        else{
+        } else {
             throw new Exception("Cấu hình routes không được để trống", 500);
         }
     }
@@ -36,7 +36,7 @@ class Router
             $pattern = "@^" . $pattern . "$@";
 
             if (preg_match($pattern, $url, $matches)) {
-                
+
                 // $matches = [1.giá trị khớp toàn bộ, 2.giá trị trong nhóm ([^/]+)=> tham số]
                 array_shift($matches);
                 //giải thích:
@@ -45,9 +45,16 @@ class Router
 
                 // 1. Chạy Middleware
                 if (!empty($config['middleware'])) {
-                    foreach ($config['middleware'] as $mwName) {
+                    foreach ($config['middleware'] as $mwConfig) {
+                        if (is_array($mwConfig)) {
+                            $mwName = $mwConfig[0];
+                            $params = $mwConfig[1] ?? [];
+                        } else {
+                            $mwName = $mwConfig;
+                            $params = [];
+                        }
                         $fullMwName = "App\\middleware\\" . $mwName;
-                        $mwInstance = new $fullMwName();
+                        $mwInstance = new $fullMwName(...$params);
                         $mwInstance->handle();
                     }
                 }
@@ -58,7 +65,7 @@ class Router
                 $GLOBALS['current_controller'] = $controllerName; // Gán tên controller hiện tại cho debug widget
                 $GLOBALS['current_action'] = $action;
                 $GLOBALS['current_params'] = $matches;
-                
+
                 $fullControllerName = "App\\controllers\\" . str_replace('/', '\\', $controllerName);
                 if (class_exists($fullControllerName)) {
                     $controllerInstance = new $fullControllerName();

@@ -158,7 +158,7 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
         <div class="dropdown tasks-project-dropdown">
             <button class="btn btn-link p-0 text-decoration-none d-flex align-items-center gap-2 shadow-none border-0" type="button" data-bs-toggle="dropdown" data-bs-offset="0,8" aria-expanded="false">
                 <h4 class="mb-0 fw-bold text-slate-900 text-start" style="max-width: min(70vw, 28rem);">
-                    <?= $selectedProject ? htmlspecialchars($selectedProject['name']) : 'Tất cả công việc' ?>
+                    <?= $selectedProject ? htmlspecialchars($selectedProject['name']) : 'Công việc của tất cả dự án' ?>
                 </h4>
                 <i data-lucide="chevron-down" class="text-slate-400 flex-shrink-0" size="20"></i>
             </button>

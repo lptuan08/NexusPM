@@ -20,7 +20,8 @@ class TaskStatusController extends Controller
     public function list()
     {
         // Lấy project_id từ query string (?project_id=...)
-        $projectId = $this->request->input('project_id');
+        $query = $this->request->getQuery();
+        $projectId = $query['project_id'] ?? null;
 
         // Chuyển sang kiểu int nếu có giá trị, nếu không để null để xử lý "Toàn hệ thống"
         $projectId = ($projectId !== null && $projectId !== '') ? (int)$projectId : null;
@@ -176,6 +177,11 @@ class TaskStatusController extends Controller
     {
         $this->validator->required('name', $data['name'], 'Tên trạng thái');
         $this->validator->required('slug', $data['slug'], "Slug");
+        $this->validator->max('name', $data['name'], 45, 'Tên trạng thái');
+        $this->validator->max('slug', $data['slug'], 45, 'Slug');
+        if (!empty($data['slug'])) {
+            $this->validator->slug('slug', $data['slug'], 'Slug');
+        }
         $this->validator->color('color', $data['color'] ?? '#3b82f6');
         // Kiểm tra tính duy nhất của slug trong phạm vi dự án
         if (!empty($data['slug'])) {

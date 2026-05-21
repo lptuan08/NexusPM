@@ -480,11 +480,11 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
             </a>
             <a href="<?= URLROOT ?>/projects/<?= (int) ($selectedProject['id'] ?? 0) ?>" class="btn btn-white border border-slate-200 px-3 shadow-none">
                 <i data-lucide="folder-kanban" size="18"></i>
-                <span>Dự án</span>
+                <span>Dự án chi tiết</span>
             </a>
             <a href="<?= URLROOT ?>/tasks/create?project_id=<?= (int) ($selectedProject['id'] ?? 0) ?>" class="btn btn-primary px-3 shadow-sm">
                 <i data-lucide="plus" size="18"></i>
-                <span>Thêm công việc</span>
+                <span>Thêm mới</span>
             </a>
         </div>
     </div>

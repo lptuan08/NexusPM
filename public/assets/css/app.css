@@ -189,6 +189,12 @@ body {
     }
 }
 
+@media (max-width: 767.98px) {
+    body > .flex-grow-1 > main.p-4 {
+        padding: 1rem !important;
+    }
+}
+
 /* =========================================
            THUẬT TOÁN SIDEBAR MƯỢT MÀ PIXEL-PERFECT
            ========================================= */
@@ -247,6 +253,22 @@ body {
     object-position: left;
     /* Giữ lại phần icon bên trái nếu logo là dạng ngang */
     object-fit: cover;
+}
+
+@media (max-width: 767.98px) {
+    .sidebar-wrapper {
+        width: 72px;
+    }
+
+    .sidebar-logo-container {
+        padding-left: 17px;
+    }
+
+    .sidebar-logo {
+        max-width: 32px;
+        object-position: left;
+        object-fit: cover;
+    }
 }
 
 .sidebar-title-text {
@@ -310,6 +332,13 @@ body {
     pointer-events: none;
 }
 
+@media (max-width: 767.98px) {
+    .nav-text {
+        opacity: 0;
+        pointer-events: none;
+    }
+}
+
 /* Phân mục "Hệ thống" */
 .sidebar-section-title {
     padding-left: 32px !important;
@@ -332,6 +361,25 @@ body {
     width: 18px;
     height: 1px;
     background-color: var(--slate-200);
+}
+
+@media (max-width: 767.98px) {
+    .sidebar-section-title {
+        padding-left: 0 !important;
+        font-size: 0 !important;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 12px 0 !important;
+        opacity: 1;
+    }
+
+    .sidebar-section-title::after {
+        content: "";
+        width: 18px;
+        height: 1px;
+        background-color: var(--slate-200);
+    }
 }
 
 /* --- KÍCH THƯỚC ICON CHUẨN --- */

@@ -123,7 +123,7 @@
 
 <!-- Modal Xác nhận xóa -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+    <div class="modal-dialog modal-dialog-centered modal-confirm-dialog">
         <div class="modal-content border-0 shadow-lg">
             <form id="deleteJobTitleForm" action="" method="POST">
                 <?php \App\helpers\SecurityHelper::csrfInput(); ?>

@@ -103,13 +103,16 @@ class AuthController extends Controller
         // 3. Lưu thông tin người dùng vào mảng
         // Mẹo nhỏ: Cậu có thể gom vào một mảng 'user' để $_SESSION trông gọn hơn
 
+        $permissions = $this->authModel->getPermissionSlugsByRoleId($user['role_id']);
+
         Session::set('user', [
             'id'     => $user['id'],
             'name'   => $user['name'],
             'email'  => $user['email'],
             'role_id' => $user['role_id'],
             'role'   => $user['role_slug'], // Sử dụng slug để kiểm tra quyền trong code
-            'avatar' => $user['avatar']
+            'avatar' => $user['avatar'],
+            'permissions' => $permissions
         ]);
         Session::set('is_logged_in', true);
 

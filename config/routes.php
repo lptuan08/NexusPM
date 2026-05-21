@@ -45,10 +45,17 @@ return [
         ],
 
         // --- Project Management ---
+
         '/projects' => [
             'controller' => 'ProjectController',
             'action'     => 'index',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'projects.view.member',
+                    'projects.view.all'
+                ]]
+            ]
         ],
         '/projects/create' => [
             'controller' => 'ProjectController',
@@ -155,7 +162,7 @@ return [
             'middleware' => ['AuthMiddleware']
         ],
 
-        
+
     ],
 
     // NHÓM CÁC HÀNH ĐỘNG XỬ LÝ (Gửi dữ liệu - POST)

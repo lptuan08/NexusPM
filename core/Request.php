@@ -4,98 +4,97 @@ namespace App\core;
 
 class Request
 {
-    // Biến lưu trữ dữ liệu đã lọc để tránh việc phải chạy lọc nhiều lần (caching)
     private array $bodyCache = [];
+    private array $queryCache = [];
 
     /**
-     * Lấy và làm sạch toàn bộ dữ liệu từ Request (GET hoặc POST)
-     * * @return array Trả về mảng dữ liệu đã được sanitize
+     * Returns sanitized request data for the current method.
+     *
+     * Kept for backward compatibility: GET reads query params, POST reads form body.
      */
     public function getBody(): array
     {
-        // Nếu đã có trong cache thì trả về luôn, không cần lọc lại
-        if (!empty($this->bodyCache)) {
+        if ($this->isGet()) {
+            return $this->getQuery();
+        }
+
+        return $this->post();
+    }
+
+    public function post(): array
+    {
+        if ($this->bodyCache !== []) {
             return $this->bodyCache;
         }
 
-        $data = [];
-        $method = $this->getMethod();
+        $this->bodyCache = $this->sanitizeInput($_POST);
 
-        if ($method === 'GET') {
-            foreach ($_GET as $key => $value) {
-                $data[$key] = $this->sanitize($value);
-            }
-        } elseif ($method === 'POST') {
-            foreach ($_POST as $key => $value) {
-                $data[$key] = $this->sanitize($value);
-            }
+        return $this->bodyCache;
+    }
+
+    public function getQuery(): array
+    {
+        if ($this->queryCache !== []) {
+            return $this->queryCache;
         }
 
-        $this->bodyCache = $data;
+        $this->queryCache = $this->sanitizeInput($_GET);
+
+        return $this->queryCache;
+    }
+
+    private function sanitizeInput(array $input): array
+    {
+        $data = [];
+        foreach ($input as $key => $value) {
+            $data[$key] = $this->sanitize($value);
+        }
+
         return $data;
     }
 
-
-    /**
-     * Hàm hỗ trợ làm sạch dữ liệu đệ quy (Xử lý được cả chuỗi đơn và mảng lồng nhau)
-     * * @param mixed $value Dữ liệu thô từ superglobals
-     * @return mixed Dữ liệu đã sạch
-     */
     private function sanitize($value)
     {
         if (is_array($value)) {
-            // Nếu là mảng (ví dụ checkbox hobbies[]), lặp tiếp để lọc từng phần tử bên trong
             foreach ($value as $key => $val) {
                 $value[$key] = $this->sanitize($val);
             }
-            return $value; //👈 tới đây là thoát hàm luôn
+
+            return $value;
         }
 
-        return $value = trim($value); // nhưng nếu $value không phải array thì trả về và thoát chổ này
+        return is_string($value) ? trim($value) : $value;
     }
 
-    // Hàm tĩnh để lấy URL hiện tại
-    public static function uri()
+    public static function uri(): string
     {
         $url = '/';
         if (!empty($_SERVER['PATH_INFO'])) {
-            $url = "/" . trim($_SERVER['PATH_INFO'], '/');
+            $url = '/' . trim($_SERVER['PATH_INFO'], '/');
         }
+
         return $url;
     }
 
-    /**
-     * Lấy giá trị của một input cụ thể
-     */
     public function input(string $key, $default = null)
     {
         $body = $this->getBody();
+
         return $body[$key] ?? $default;
     }
 
     public static function getMethod(): string
     {
-        return $_SERVER['REQUEST_METHOD'];
-    }
-    public function isPost()
-    {
-        return $this->getMethod() === 'POST';
+        return strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
     }
 
-    public function isGet()
+    public function isPost(): bool
     {
-        return $this->getMethod() === 'GET';
+        return self::getMethod() === 'POST';
     }
 
-    //getQuery
-    public function getQuery(){
-        $data = [];
-        foreach ($_GET as $key => $value) {
-            $data[$key] = $this->sanitize($value);
-        }
-        return $data;
-        
+    public function isGet(): bool
+    {
+        return self::getMethod() === 'GET';
     }
-    
-    
 }

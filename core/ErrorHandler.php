@@ -21,7 +21,7 @@ class ErrorHandler
         $code = $e->getCode();
 
         // Nếu không có code → mặc định 500
-        if (!$code) {
+        if (!$code || $code < 100 || $code > 599) {
             $code = 500;
         }
 
@@ -30,6 +30,10 @@ class ErrorHandler
 
         // Phân loại lỗi
         switch ($code) {
+            case 403:
+                require APP_PATH . '/views/errors/403.php';
+                break;
+
             case 404:
                 require APP_PATH . '/views/errors/404.php';
                 break;

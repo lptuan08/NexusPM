@@ -13,7 +13,7 @@ namespace App\core;
  */
 class Validator
 {
-    protected $errors = []; // Mảng lưu trữ các lỗi phát sinh trong quá trình validate
+    protected array $errors = [];
 
     /**
      * Kiểm tra trường bắt buộc không được để trống
@@ -27,7 +27,7 @@ class Validator
     {
         $isEmpty = is_array($value)
             ? empty($value)
-            : ($value === null || trim((string)$value) === '' || trim((string)$value) === '0');
+            : ($value === null || trim((string)$value) === '');
 
         if ($isEmpty) {
             $this->errors[$field] = ($label ?: $field) . " không được để trống";
@@ -53,9 +53,33 @@ class Validator
     public function max($field, $value, $max, $label = '')
     {
         if (strlen((string)$value) > $max) {
-            $this->errors[$field] = ($label ?: $field) . "Vượt quá {$max} ký tự cho phép";
+            $this->errors[$field] = ($label ?: $field) . " vượt quá {$max} ký tự cho phép";
             return false;
         }
+        return true;
+    }
+
+    public function selected($field, $value, $label = ''): bool
+    {
+        if (!$this->required($field, $value, $label)) {
+            return false;
+        }
+
+        if (filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
+            $this->errors[$field] = ($label ?: $field) . " không hợp lệ";
+            return false;
+        }
+
+        return true;
+    }
+
+    public function slug($field, $value, $label = ''): bool
+    {
+        if (!preg_match('/^[a-z0-9][a-z0-9_-]*$/', (string) $value)) {
+            $this->errors[$field] = ($label ?: $field) . " chỉ gồm chữ thường, số, gạch ngang hoặc gạch dưới";
+            return false;
+        }
+
         return true;
     }
 
@@ -87,7 +111,7 @@ class Validator
         // Cho phép số 0, 1 hoặc chuỗi "0", "1"
         $check = in_array($value, [0, 1, '0', '1'], true);
         if (!$check) {
-            $this->errors[$field] = ($label ?: $field) . "Dữ liệu checkbok không hợp lệ";
+            $this->errors[$field] = ($label ?: $field) . " dữ liệu checkbox không hợp lệ";
             return false;
         }
         return true;

@@ -3,6 +3,7 @@
 namespace App\controllers\api;
 
 use App\core\Controller;
+use App\core\Response;
 use App\models\UserModel;
 use App\models\ProjectStatusModel;
 use App\models\TaskStatusModel;
@@ -60,19 +61,12 @@ class ProjectApiController extends Controller
             ['slug' => 'viewer', 'name' => 'Chỉ xem'],
         ];
 
-        header('Content-Type: application/json; charset=utf-8');
-
-        echo json_encode([
-            'status' => 'success',
-            'data'   => [
-                'ownerOptions'        => $ownerOptions,
-                'statusOptions'       => $statusOptions,
-                'globalTaskStatuses'  => $globalTaskStatuses,
-                'memberUserOptions'   => $memberUserOptions,
-                'memberRoles'         => $memberRoles,
-            ],
-        ], JSON_UNESCAPED_UNICODE);
-
-        exit;
+        Response::success([
+            'ownerOptions'        => $ownerOptions,
+            'statusOptions'       => $statusOptions,
+            'globalTaskStatuses'  => $globalTaskStatuses,
+            'memberUserOptions'   => $memberUserOptions,
+            'memberRoles'         => $memberRoles,
+        ]);
     }
 }

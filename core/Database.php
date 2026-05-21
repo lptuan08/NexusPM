@@ -28,9 +28,6 @@ class Database
      */
     public function query($sql, $params = [])
     {
-        // $check = [$sql, $params];
-        // var_dump($check);
-        // die();
         try {
             $statement = $this->__conn->prepare($sql); // Kiểm tra câu lệnh SQL trước khi thực thi
 
@@ -47,28 +44,7 @@ class Database
 
             return $statement;
         } catch (PDOException $e) {
-
-            echo "<pre>";
-
-            echo "━━━━━━━━━━ SQL ERROR ━━━━━━━━━━\n\n";
-
-            echo "Message:\n";
-            echo $e->getMessage();
-
-            echo "\n\n━━━━━━━━━━ QUERY ━━━━━━━━━━\n\n";
-
-            echo $sql;
-
-            echo "\n\n━━━━━━━━━━ PARAMS ━━━━━━━━━━\n\n";
-
-            print_r($params);
-
-            echo "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-
-            echo "</pre>";
-
-            exit;
-            // throw new Exception("Lỗi truy vấn: " . $e->getMessage(), 500);
+            throw new Exception("Lỗi truy vấn dữ liệu: " . $e->getMessage(), 500, $e);
         }
     }
 

@@ -144,6 +144,7 @@ class RoleController extends Controller
         $this->validator->isValidStatus('is_active', $data['is_active'], "Kích hoạt vai trò");
 
         if (!empty($data['slug'])) {
+            $this->validator->slug('slug', $data['slug'], 'Slug');
             if ($this->modelRole->isSlugExists($data['slug'], $id)) {
                 $this->validator->addError('slug', "Mã định danh Slug đã tồn tại");
             }

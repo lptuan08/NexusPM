@@ -36,7 +36,7 @@ class ProjectController extends Controller
      */
     public function index()
     {
-        $query = $this->request->getBody();
+        $query = $this->request->getQuery();
         if (isset($query['page'])) {
             $page = (int) $query['page'];
         } else {
@@ -309,7 +309,7 @@ class ProjectController extends Controller
     private function validateProjectData(array $data)
     {
         $this->validator->required('name', $data['name'], 'Tên dự án');
-        $this->validator->required('status_id', $data['status_id'], 'Trạng thái');
+        $this->validator->selected('status_id', $data['status_id'], 'Trạng thái');
 
         // Kiểm tra tính hợp lệ của trạng thái từ Database
         if (!empty($data['status_id'])) {
@@ -320,9 +320,7 @@ class ProjectController extends Controller
         }
 
         // Kiểm tra chủ dự án
-        if (empty($data['owner_id'])) {
-            $this->validator->addError('owner_id', 'Chủ dự án không được để trống');
-        } else {
+        if ($this->validator->selected('owner_id', $data['owner_id'], 'Chủ dự án')) {
             $ownerIds = array_map('intval', array_column($this->modelUser->getProjectOwnerOptions(), 'id'));
             if (!in_array($data['owner_id'], $ownerIds, true)) {
                 $this->validator->addError('owner_id', 'Chủ dự án không hợp lệ');

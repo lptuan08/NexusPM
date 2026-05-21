@@ -2,6 +2,7 @@
 namespace App\middleware;
 
 use App\interfaces\MiddlewareInterface;
+use Exception;
 
 class VerifyCsrfToken implements MiddlewareInterface
 {
@@ -16,8 +17,7 @@ class VerifyCsrfToken implements MiddlewareInterface
             $sessionToken = $_SESSION['csrf_token'] ?? '';
 
             if ($requestToken === '' || $sessionToken === '' || !hash_equals($sessionToken, $requestToken)) {
-                http_response_code(419);
-                die("Lỗi bảo mật: Yêu cầu không hợp lệ (CSRF detected).");
+                throw new Exception('Yêu cầu không hợp lệ hoặc token bảo mật đã hết hạn.', 419);
             }
         }
     }

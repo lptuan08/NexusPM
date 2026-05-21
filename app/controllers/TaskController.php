@@ -32,7 +32,7 @@ class TaskController extends Controller
     }
     public function index()
     {
-        $query = $this->request->getBody();
+        $query = $this->request->getQuery();
 
         // Thu thập các tham số lọc từ Request
         $filters = [
@@ -131,8 +131,8 @@ class TaskController extends Controller
         unset($data['created_by']);
 
         $this->validator->required('title', $data['title'], 'Tiêu đề');
-        $this->validator->required('project_id', $data['project_id'], 'Dự án');
-        $this->validator->required('status_id', $data['status_id'], 'Trạng thái');
+        $this->validator->selected('project_id', $data['project_id'], 'Dự án');
+        $this->validator->selected('status_id', $data['status_id'], 'Trạng thái');
 
         if ($this->validator->passes()) {
             $projectId = (int) $data['project_id'];
@@ -269,10 +269,10 @@ class TaskController extends Controller
 
         if ($taskId && $statusId) {
             $this->taskModel->update($taskId, ['status_id' => $statusId]);
-            return Response::json(['success' => true, 'message' => 'Cập nhật trạng thái thành công']);
+            return Response::success([], 'Cập nhật trạng thái thành công');
         }
 
-        return Response::json(['success' => false, 'message' => 'Dữ liệu không hợp lệ'], 400);
+        return Response::error('Dữ liệu không hợp lệ');
     }
 
     public function create()
@@ -308,8 +308,8 @@ class TaskController extends Controller
         $this->ensureStatusForSelectedProject($data);
 
         $this->validator->required('title', $data['title'], 'Tiêu đề');
-        $this->validator->required('project_id', $data['project_id'], 'Dự án');
-        $this->validator->required('status_id', $data['status_id'], 'Trạng thái');
+        $this->validator->selected('project_id', $data['project_id'], 'Dự án');
+        $this->validator->selected('status_id', $data['status_id'], 'Trạng thái');
 
         if ($this->validator->passes()) {
             $projectId = (int) $data['project_id'];

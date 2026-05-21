@@ -33,7 +33,7 @@ class UserController extends Controller
     public function index()
     {
         $perPage = 7; 
-        $query = $this->request->getBody();
+        $query = $this->request->getQuery();
 
         $currentPage = (int)($query['page'] ?? 1);
         if ($currentPage < 1) $currentPage = 1;
@@ -386,8 +386,8 @@ class UserController extends Controller
         $this->validator->required('name', $data['name'], 'Họ tên');
         $this->validator->required('email', $data['email'], 'Email');
         $this->validator->email('email', $data['email'], 'Email');
-        $this->validator->required('role_id', $data['role_id'], 'Quyền hạn');
-        $this->validator->required('job_title_id', $data['job_title_id'], 'Chức danh');
+        $this->validator->selected('role_id', $data['role_id'], 'Quyền hạn');
+        $this->validator->selected('job_title_id', $data['job_title_id'], 'Chức danh');
         $this->validator->image('avatar', 'Ảnh đại diện');
     }
 }
