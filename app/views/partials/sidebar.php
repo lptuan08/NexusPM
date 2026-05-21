@@ -4,6 +4,10 @@
     // Kiểm tra quyền admin để hiển thị menu thiết lập
     $user = \App\core\Session::get('user', []);
     $isAdmin = ($user['role'] ?? '') === 'admin';
+    $canViewProjects = \App\helpers\AuthHelper::canAny([
+        'projects.view.all',
+        'projects.view.joined'
+    ]);
     ?>
     <!-- KÊNH SIDEBAR -->
     <aside id="sidebar-container" class="sidebar-wrapper">
@@ -25,10 +29,12 @@
                     <span class="nav-text">Tổng quan</span>
                 </a>
 
+                <?php if ($canViewProjects): ?>
                 <a href="<?= URLROOT ?>/projects" class="nav-link-custom <?= str_contains($currentUri, '/projects') ? 'active' : '' ?>" title="Dự án">
                     <i data-lucide="folder-kanban"></i>
                     <span class="nav-text">Dự án</span>
                 </a>
+                <?php endif; ?>
 
                 <a href="<?= URLROOT ?>/tasks" class="nav-link-custom <?= str_contains($currentUri, '/tasks') ? 'active' : '' ?>" title="Công việc">
                     <i data-lucide="check-square"></i>

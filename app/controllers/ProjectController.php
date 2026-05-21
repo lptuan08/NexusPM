@@ -10,6 +10,8 @@ use App\models\ProjectModel;
 use App\models\ProjectStatusModel;
 use App\models\TaskStatusModel;
 use App\models\UserModel;
+use App\core\Session;
+use App\helpers\AuthHelper;
 
 /**
  * @property \App\core\Request $request
@@ -17,6 +19,9 @@ use App\models\UserModel;
  */
 class ProjectController extends Controller
 {
+    private const PER_PAGE = 10;
+    private const MEMBER_ROLES = ['manager', 'member', 'viewer'];
+
     private ProjectModel $modelProject;
     private UserModel $modelUser;
     private ProjectStatusModel $modelProjectStatus;
@@ -36,30 +41,34 @@ class ProjectController extends Controller
      */
     public function index()
     {
+        // lấy page nếu page
         $query = $this->request->getQuery();
-        if (isset($query['page'])) {
-            $page = (int) $query['page'];
+        $page = $this->positiveInt($query['page'] ?? 1, 1);
+        $perPage = self::PER_PAGE;
+        // lấy danh sách trạng thái nạp cho bộ lọc
+        $statusOptions = $this->modelProjectStatus->getList();
+
+        // Normalize filter input once, then pass only safe values to the model.
+        $filters = $this->getProjectFilters($query, $statusOptions);
+
+        if (AuthHelper::can('projects.view.all')) {
+            $totalItem = $this->modelProject->countAll($filters);
+            $projects = $this->modelProject->getProjectsByPage($page, $perPage, $filters);
+        } elseif (AuthHelper::can('projects.view.joined')) {
+            $userId = $this->currentUserId();
+            $totalItem = $this->modelProject->countForJoinedUser($userId, $filters);
+            $projects = $this->modelProject->getProjectsByPageForJoinedUser($userId, $page, $perPage, $filters);
         } else {
-            $page = 1;
+            throw new \Exception('Bạn không có quyền xem danh sách dự án.', 403);
         }
-        $perPage = 5; // Số dự án trên mỗi trang (có thể cấu hình)
+        $totalPage = (int) ceil($totalItem / $perPage);
 
-        // Lấy các tham số lọc từ request
-        $filters = [
-            'status_id' => $query['status_id'] ?? [],
-            'start_date' => $query['start_date'] ?? null,
-            'end_date' => $query['end_date'] ?? null,
-        ];
-
-        // Đảm bảo status_id là một mảng nếu chỉ có một giá trị được chọn
-        if (!is_array($filters['status_id']) && !empty($filters['status_id'])) {
-            $filters['status_id'] = [$filters['status_id']];
+        foreach ($projects as &$project) {
+            $project['can_update'] = AuthHelper::can('projects.update.all')
+                || (AuthHelper::can('projects.update.joined') && $this->isJoinedProject($project));
+            $project['can_delete'] = AuthHelper::can('projects.delete.all');
         }
-
-        $totalItem = $this->modelProject->countAll($filters);
-        $projects = $this->modelProject->getProjectsByPage($page, $perPage, $filters);
-        $totalPage = ceil($totalItem / $perPage);
-        $statusOptions = $this->modelProjectStatus->getList(); // Lấy danh sách trạng thái để hiển thị trong bộ lọc
+        unset($project);
 
         View::render('projects/list', [
             'projects' => $projects,
@@ -78,14 +87,14 @@ class ProjectController extends Controller
      */
     public function show($id)
     {
-        $project = $this->modelProject->find($id);
-        if (!$project) {
-            Response::redirect(URLROOT . '/projects');
-        }
+        $project = $this->findProjectOrRedirect($id);
+        $projectId = (int) $project['id'];
 
         // Lấy thông tin thành viên và công việc thuộc dự án
-        $members = $this->modelProject->getProjectMembers($id);
-        $tasks = $this->modelProject->getProjectTasks($id);
+        $this->requireCanViewProject($project);
+
+        $members = $this->modelProject->getProjectMembers($projectId);
+        $tasks = $this->modelProject->getProjectTasks($projectId);
 
         // Lấy danh sách toàn bộ nhân viên để hiển thị trong Modal thêm thành viên
         $allUsers = $this->modelUser->getAllUsers();
@@ -100,10 +109,12 @@ class ProjectController extends Controller
 
         $today = strtotime(date('Y-m-d'));
         foreach ($tasks as $task) {
-            if (($task['status_slug'] ?? '') === 'done') {
+            $isDone = !empty($task['status_is_done']) || ($task['status_slug'] ?? '') === 'done';
+            if ($isDone) {
                 $stats['completed']++;
             }
-            if (!empty($task['due_date']) && strtotime($task['due_date']) < $today && ($task['status_slug'] ?? '') !== 'done') {
+            $dueDate = !empty($task['due_date']) ? strtotime((string) $task['due_date']) : false;
+            if ($dueDate !== false && $dueDate < $today && !$isDone) {
                 $stats['overdue']++;
             }
         }
@@ -112,12 +123,16 @@ class ProjectController extends Controller
         }
 
         // Sắp xếp thành viên ngay tại Controller
-        usort($members, function($a, $b) {
+        usort($members, function ($a, $b) {
             $roleOrder = ['manager' => 1, 'member' => 2, 'viewer' => 3];
             $orderA = $roleOrder[$a['role'] ?? 'member'] ?? 99;
             $orderB = $roleOrder[$b['role'] ?? 'member'] ?? 99;
             return $orderA <=> $orderB;
         });
+
+        $canUpdateProject = AuthHelper::can('projects.update.all')
+            || (AuthHelper::can('projects.update.joined') && $this->isJoinedProject($project));
+        $canDeleteProject = AuthHelper::can('projects.delete.all');
 
         View::render('projects/detail', [
             'project' => $project,
@@ -125,6 +140,8 @@ class ProjectController extends Controller
             'tasks' => $tasks,
             'stats' => $stats,
             'allUsers' => $allUsers,
+            'canUpdateProject' => $canUpdateProject,
+            'canDeleteProject' => $canDeleteProject,
             'pageTitle' => 'Chi tiết dự án: ' . $project['name'],
         ]);
     }
@@ -135,9 +152,8 @@ class ProjectController extends Controller
     public function create()
     {
         if ($this->request->isGet()) {
-            return View::render('projects/create', $this->getProjectFormViewData([
-                'pageTitle' => 'Tạo dự án mới'
-            ]));
+            // The old simple create view is not present; keep the route usable by showing the wizard form.
+            return View::render('projects/createWizard', $this->wizardCreateViewData());
         }
         return $this->store();
     }
@@ -148,21 +164,31 @@ class ProjectController extends Controller
      */
     public function addMembers($id)
     {
+        $project = $this->findProjectOrRedirect($id);
+        $projectId = (int) $project['id'];
+
         if (!$this->request->isPost()) {
-            Response::redirect(URLROOT . "/projects/$id");
+            Response::redirect(URLROOT . "/projects/$projectId");
         }
 
-        $body = $this->request->getBody();
-        $userIds = $body['user_ids'] ?? [];
-        $role = trim($body['role'] ?? 'member');
+        $this->requireCanUpdateProject($project);
+
+        $body = $this->request->post();
+        $userIds = $this->normalizeIdList($body['user_ids'] ?? []);
+        $role = $this->normalizeMemberRole($body['role'] ?? 'member');
 
         if (empty($userIds)) {
             Helper::setFlash('danger', 'Vui lòng chọn ít nhất một nhân viên');
         } else {
             $successCount = 0;
+            $validUserIds = $this->validUserIdMap();
             foreach ($userIds as $userId) {
-                if (!$this->modelProject->isMemberExists($id, $userId)) {
-                    if ($this->modelProject->addMember($id, (int)$userId, $role)) {
+                if (!isset($validUserIds[$userId])) {
+                    continue;
+                }
+
+                if (!$this->modelProject->isMemberExists($projectId, $userId)) {
+                    if ($this->modelProject->addMember($projectId, $userId, $role)) {
                         $successCount++;
                     }
                 }
@@ -175,13 +201,13 @@ class ProjectController extends Controller
             }
         }
 
-        Response::redirect(URLROOT . "/projects/$id");
+        Response::redirect(URLROOT . "/projects/$projectId");
     }
 
     /**
      * Xử lý lưu dự án mới vào cơ sở dữ liệu
      */
-    private function store()
+    public function store()
     {
         if (!$this->request->isPost()) {
             Response::redirect(URLROOT . '/projects/create');
@@ -189,14 +215,15 @@ class ProjectController extends Controller
         }
 
         // Lấy dữ liệu từ form và validate
-        $data = $this->getFormData();
+        $body = $this->request->post();
+        $data = $this->getFormData($body);
         $this->validateProjectData($data);
 
         // Nếu có lỗi, render lại form kèm thông báo lỗi và dữ liệu cũ
         if (!$this->validator->passes()) {
-            return View::render('projects/create', $this->getProjectFormViewData([
+            return View::render('projects/createWizard', $this->wizardCreateViewData([
                 'errors'    => $this->validator->getErrors(),
-                'old'       => $this->request->getBody(),
+                'old'       => $body,
                 'pageTitle' => 'Tạo dự án mới'
             ]));
         }
@@ -212,10 +239,9 @@ class ProjectController extends Controller
      */
     public function edit($id)
     {
-        $project = $this->modelProject->find($id);
-        if (!$project) {
-            Response::redirect(URLROOT . '/projects');
-        }
+        $project = $this->findProjectOrRedirect($id);
+
+        $this->requireCanUpdateProject($project);
 
         View::render('projects/edit', $this->getProjectFormViewData([
             'project' => $project,
@@ -230,16 +256,17 @@ class ProjectController extends Controller
     {
 
         if (!$this->request->isPost()) {
-            return;
-        }
-
-        $project = $this->modelProject->find($id);
-        if (!$project) {
             Response::redirect(URLROOT . '/projects');
         }
 
+        $project = $this->findProjectOrRedirect($id);
+        $projectId = (int) $project['id'];
+
         // Thu thập và kiểm tra dữ liệu
-        $data = $this->getFormData();
+        $this->requireCanUpdateProject($project);
+
+        $body = $this->request->post();
+        $data = $this->getFormData($body);
         $this->validateProjectData($data);
 
         // Xử lý khi validation thất bại
@@ -247,13 +274,13 @@ class ProjectController extends Controller
             return View::render('projects/edit', $this->getProjectFormViewData([
                 'project'   => $project,
                 'errors'    => $this->validator->getErrors(),
-                'old'       => $this->request->getBody(),
+                'old'       => $body,
                 'pageTitle' => 'Chỉnh sửa dự án'
             ]));
         }
 
         // Lưu thay đổi
-        $this->modelProject->update($id, $data);
+        $this->modelProject->update($projectId, $data);
         Helper::setFlash('success', 'Cập nhật dự án thành công');
         Response::redirect(URLROOT . '/projects');
     }
@@ -263,7 +290,12 @@ class ProjectController extends Controller
      */
     public function delete($id)
     {
-        $this->modelProject->delete($id);
+        $project = $this->findProjectOrRedirect($id);
+        $projectId = (int) $project['id'];
+
+        $this->requireCanDeleteProject($project);
+
+        $this->modelProject->delete($projectId);
         Helper::setFlash('success', 'Đã xóa dự án vào thùng rác');
         Response::redirect(URLROOT . '/projects');
     }
@@ -274,15 +306,15 @@ class ProjectController extends Controller
      */
     private function getFormData(?array $body = null): array
     {
-        $body = $body ?? $this->request->getBody();
-        
+        $body = $body ?? $this->request->post();
+
         return [
-            'name' => $body['name'] ?? '',
-            'description' => $body['description'] ?? '',
-            'status_id' => isset($body['status_id']) ? (int) $body['status_id'] : 0,
-            'owner_id' => isset($body['owner_id']) ? (int) $body['owner_id'] : 0,
-            'start_date' => !empty($body['start_date']) ? $body['start_date'] : null,
-            'due_date' => !empty($body['due_date']) ? $body['due_date'] : null,
+            'name' => trim((string) ($body['name'] ?? '')),
+            'description' => trim((string) ($body['description'] ?? '')),
+            'status_id' => $this->positiveInt($body['status_id'] ?? 0),
+            'owner_id' => $this->positiveInt($body['owner_id'] ?? 0),
+            'start_date' => $this->normalizeDate($body['start_date'] ?? null),
+            'due_date' => $this->normalizeDate($body['due_date'] ?? null),
         ];
     }
 
@@ -296,7 +328,7 @@ class ProjectController extends Controller
         $base = [
             'ownerOptions'  => $this->modelUser->getProjectOwnerOptions(),
             'statusOptions' => $this->modelProjectStatus->getList(),
-            'action_url'    => isset($extra['project']) ? URLROOT . "/projects/{$extra['project']['id']}/edit" : URLROOT . '/projects/create'
+            'action_url'    => isset($extra['project']) ? URLROOT . "/projects/" . (int) $extra['project']['id'] . "/edit" : URLROOT . '/projects/create'
         ];
         return array_merge($base, $extra);
     }
@@ -309,14 +341,24 @@ class ProjectController extends Controller
     private function validateProjectData(array $data)
     {
         $this->validator->required('name', $data['name'], 'Tên dự án');
+        $this->validator->max('name', $data['name'], 255, 'Tên dự án');
+        $this->validator->max('description', $data['description'], 5000, 'Mô tả dự án');
         $this->validator->selected('status_id', $data['status_id'], 'Trạng thái');
 
         // Kiểm tra tính hợp lệ của trạng thái từ Database
         if (!empty($data['status_id'])) {
-            $statusIds = array_column($this->modelProjectStatus->getList(), 'id');
-            if (!in_array($data['status_id'], $statusIds)) {
+            $statusIds = array_map('intval', array_column($this->modelProjectStatus->getList(), 'id'));
+            if (!in_array((int) $data['status_id'], $statusIds, true)) {
                 $this->validator->addError('status_id', 'Trạng thái dự án không hợp lệ');
             }
+        }
+
+        if (!$this->isValidDateOrNull($data['start_date'])) {
+            $this->validator->addError('start_date', 'Ngày bắt đầu không hợp lệ');
+        }
+
+        if (!$this->isValidDateOrNull($data['due_date'])) {
+            $this->validator->addError('due_date', 'Hạn xử lý không hợp lệ');
         }
 
         // Kiểm tra chủ dự án
@@ -328,7 +370,12 @@ class ProjectController extends Controller
         }
 
         // Kiểm tra logic thời gian: Ngày kết thúc không được trước ngày bắt đầu
-        if (!empty($data['start_date']) && !empty($data['due_date']) && strtotime($data['due_date']) < strtotime($data['start_date'])) {
+        if ($this->isValidDateOrNull($data['start_date'])
+            && $this->isValidDateOrNull($data['due_date'])
+            && !empty($data['start_date'])
+            && !empty($data['due_date'])
+            && strtotime($data['due_date']) < strtotime($data['start_date'])
+        ) {
             $this->validator->addError('due_date', 'Hạn xử lý phải lớn hơn hoặc bằng ngày bắt đầu');
         }
     }
@@ -403,8 +450,7 @@ class ProjectController extends Controller
      */
     private function validateWizardMembers(array $members, int $ownerId): void
     {
-        $allowedRoles = ['manager', 'member', 'viewer'];
-        $validUserIds = array_flip(array_map('intval', array_column($this->modelUser->getProjectOwnerOptions(), 'id')));
+        $validUserIds = $this->validUserIdMap();
         foreach ($members as $m) {
             $uid = (int) ($m['user_id'] ?? 0);
             $role = trim((string) ($m['role'] ?? 'member'));
@@ -419,7 +465,7 @@ class ProjectController extends Controller
                 $this->validator->addError('wizard_members', 'Có thành viên không tồn tại hoặc không hợp lệ.');
                 return;
             }
-            if (!in_array($role, $allowedRoles, true)) {
+            if (!in_array($role, self::MEMBER_ROLES, true)) {
                 $this->validator->addError('wizard_members', 'Vai trò thành viên không hợp lệ.');
                 return;
             }
@@ -451,9 +497,9 @@ class ProjectController extends Controller
             return;
         }
 
-        $body = $this->request->getBody();
+        $body = $this->request->post();
         // chuẩn hóa dữ liệu form
-        $data = $this->getFormData();
+        $data = $this->getFormData($body);
         $taskRows = $this->decodeJsonArrayField((string) ($body['wizard_task_statuses'] ?? ''), 'wizard_task_statuses');
         $memberRows = $this->decodeJsonArrayField((string) ($body['wizard_members'] ?? ''), 'wizard_members');
         if ($taskRows === null || $memberRows === null) {
@@ -501,7 +547,7 @@ class ProjectController extends Controller
             }
             foreach ($memberRows as $m) {
                 $uid = (int) ($m['user_id'] ?? 0);
-                $role = trim((string) ($m['role'] ?? 'member')) ?: 'member';
+                $role = $this->normalizeMemberRole($m['role'] ?? 'member');
                 if ($uid <= 0 || $uid === $ownerId) {
                     continue;
                 }
@@ -517,5 +563,179 @@ class ProjectController extends Controller
 
         Helper::setFlash('success', 'Tạo dự án thành công.');
         Response::redirect(URLROOT . '/projects/' . $projectId);
+    }
+
+    // permission
+    /**
+     * Lấy ID user đang đăng nhập.
+     * Dự án hiện đã lưu thông tin user trong Session ở AuthController::initSession().
+     */
+    private function currentUserId(): int
+    {
+        return (int) (Session::get('user')['id'] ?? 0);
+    }
+
+    private function isJoinedProject(array $project): bool
+    {
+        $userId = $this->currentUserId();
+        $projectId = (int) ($project['id'] ?? 0);
+        $ownerId = (int) ($project['owner_id'] ?? 0);
+
+        return $userId > 0
+            && ($ownerId === $userId || $this->modelProject->isActiveMember($projectId, $userId));
+    }
+
+    private function findProjectOrRedirect($id): array
+    {
+        $projectId = $this->positiveInt($id);
+        if ($projectId <= 0) {
+            Response::redirect(URLROOT . '/projects');
+        }
+
+        $project = $this->modelProject->find($projectId);
+        if (!$project) {
+            Response::redirect(URLROOT . '/projects');
+        }
+
+        return $project;
+    }
+
+    private function getProjectFilters(array $query, array $statusOptions): array
+    {
+        $validStatusIds = array_flip(array_map('intval', array_column($statusOptions, 'id')));
+        $requestedStatusIds = $this->normalizeIdList($query['status_id'] ?? []);
+        $statusIds = array_values(array_filter($requestedStatusIds, static function (int $id) use ($validStatusIds): bool {
+            return isset($validStatusIds[$id]);
+        }));
+
+        $startDate = $this->normalizeDate($query['start_date'] ?? null);
+        $endDate = $this->normalizeDate($query['end_date'] ?? null);
+
+        return [
+            'status_id' => $statusIds,
+            'start_date' => $this->isValidDateOrNull($startDate) ? $startDate : null,
+            'end_date' => $this->isValidDateOrNull($endDate) ? $endDate : null,
+        ];
+    }
+
+    private function normalizeIdList($value): array
+    {
+        $items = is_array($value) ? $value : [$value];
+        $ids = [];
+
+        foreach ($items as $item) {
+            $id = $this->positiveInt($item);
+            if ($id > 0) {
+                $ids[$id] = $id;
+            }
+        }
+
+        return array_values($ids);
+    }
+
+    // xử lý validate giá trị page, nhỏ nhất là 1, mặc định là 0
+    private function positiveInt($value, int $default = 0): int
+    {
+        $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+        return $id === false ? $default : (int) $id;
+    }
+
+    private function normalizeDate($value): ?string
+    {
+        $date = trim((string) ($value ?? ''));
+
+        return $date === '' ? null : $date;
+    }
+
+    private function isValidDateOrNull(?string $date): bool
+    {
+        if ($date === null || $date === '') {
+            return true;
+        }
+
+        $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+
+        return $parsed instanceof \DateTimeImmutable && $parsed->format('Y-m-d') === $date;
+    }
+
+    private function normalizeMemberRole($role): string
+    {
+        $role = trim((string) $role);
+
+        return in_array($role, self::MEMBER_ROLES, true) ? $role : 'member';
+    }
+
+    private function validUserIdMap(): array
+    {
+        return array_flip(array_map('intval', array_column($this->modelUser->getProjectOwnerOptions(), 'id')));
+    }
+
+    /**
+     * Kiểm tra user hiện tại có quyền xem một project cụ thể hay không.
+     *
+     * Logic:
+     * - Có projects.view.all: được xem mọi project.
+     * - Có projects.view.joined: chỉ xem được project mình sở hữu hoặc là thành viên active.
+     * - Không có quyền phù hợp: chặn 403.
+     */
+    private function requireCanViewProject(array $project): void
+    {
+        // Quyền cao nhất: xem tất cả dự án.
+        if (AuthHelper::can('projects.view.all')) {
+            return;
+        }
+
+        // Không có quyền xem theo member thì chặn ngay.
+        if (!AuthHelper::can('projects.view.joined')) {
+            throw new \Exception('Bạn không có quyền xem dự án này.', 403);
+        }
+
+        $userId = $this->currentUserId();
+        $projectId = (int) ($project['id'] ?? 0);
+        $ownerId = (int) ($project['owner_id'] ?? 0);
+
+        // Owner của dự án được xem dự án của mình.
+        if ($ownerId === $userId) {
+            return;
+        }
+
+        // Thành viên active của dự án được xem dự án.
+        if ($this->modelProject->isActiveMember($projectId, $userId)) {
+            return;
+        }
+
+        // Có quyền member nhưng không thuộc project này thì vẫn bị chặn.
+        throw new \Exception('Bạn không có quyền xem dự án này.', 403);
+    }
+
+    private function requireCanUpdateProject(array $project): void
+    {
+        if (AuthHelper::can('projects.update.all')) {
+            return;
+        }
+
+        if (!AuthHelper::can('projects.update.joined')) {
+            throw new \Exception('Bạn không có quyền cập nhật dự án này.', 403);
+        }
+
+        $userId = $this->currentUserId();
+        $projectId = (int) ($project['id'] ?? 0);
+        $ownerId = (int) ($project['owner_id'] ?? 0);
+
+        if ($ownerId === $userId || $this->modelProject->isActiveMember($projectId, $userId)) {
+            return;
+        }
+
+        throw new \Exception('Bạn không có quyền cập nhật dự án này.', 403);
+    }
+
+    private function requireCanDeleteProject(array $project): void
+    {
+        if (AuthHelper::can('projects.delete.all')) {
+            return;
+        }
+
+        throw new \Exception('Bạn không có quyền xóa dự án này.', 403);
     }
 }

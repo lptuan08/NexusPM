@@ -1,4 +1,6 @@
 <?php
+$canCreateProject = \App\helpers\AuthHelper::can('projects.create.all');
+
 $kpiCards = [
     [
         'label' => 'Nhân viên',
@@ -106,10 +108,12 @@ $openTaskCount = count(array_filter($myTasks, static fn ($task) => empty($task['
             <i data-lucide="plus"></i>
             <span>Thêm công việc</span>
         </a>
+        <?php if ($canCreateProject): ?>
         <a href="<?= URLROOT ?>/projects/createWizard" class="btn btn-primary">
             <i data-lucide="folder-plus"></i>
             <span>Tạo dự án</span>
         </a>
+        <?php endif; ?>
     </div>
 </div>
 

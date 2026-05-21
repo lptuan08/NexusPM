@@ -9,6 +9,24 @@
  * @var array $statusOptions
  * @var array $currentFilters
  */
+$canCreateProject = \App\helpers\AuthHelper::can('projects.create.all');
+$safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): string {
+    $color = trim((string) $color);
+    if (!preg_match('/^#(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/', $color)) {
+        return $fallback;
+    }
+
+    if (strlen($color) === 4) {
+        return '#' . $color[1] . $color[1] . $color[2] . $color[2] . $color[3] . $color[3];
+    }
+
+    return $color;
+};
+$formatDate = static function ($date, string $format = 'd/m/Y'): string {
+    $timestamp = !empty($date) ? strtotime((string) $date) : false;
+
+    return $timestamp !== false ? date($format, $timestamp) : '-';
+};
 ?>
 <style>
     .project-list-name {
@@ -74,10 +92,12 @@
             <i data-lucide="filter"></i>
             <span class="d-none d-md-inline">Bộ lọc</span>
         </button>
+        <?php if ($canCreateProject): ?>
         <a href="<?= URLROOT; ?>/projects/createWizard" class="btn btn-primary">
             <i data-lucide="plus"></i>
             <span>Thêm mới</span>
         </a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -100,8 +120,7 @@
                     <?php foreach ($projects as $index => $project): ?>
                         <?php
                         $statusName = $project['status_name'] ?? 'Không rõ';
-                        $statusSlug = $project['status_slug'] ?? '';
-                        $statusColor = $project['status_color'] ?? '#94a3b8';
+                        $statusColor = $safeHexColor($project['status_color'] ?? null);
 
                         $deleteMessage = 'Bạn có chắc chắn muốn xóa dự án ' . ($project['name'] ?? '') . '?';
                         ?>
@@ -109,30 +128,30 @@
                             <td class="text-center text-stt"><?= ($currentPage - 1) * $perPage + $index + 1 ?></td>
                             <td>
                                 <a href="<?= URLROOT ?>/projects/<?= (int) $project['id'] ?>" class="d-block text-decoration-none text-name">
-                                    <?= htmlspecialchars($project['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                                    <?= htmlspecialchars((string) ($project['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
                                 </a>
                             </td>
                             <td>
-                                <span class="ui-badge status-muted"><?= htmlspecialchars($project['project_code'] ?? '-', ENT_QUOTES, 'UTF-8') ?></span>
+                                <span class="ui-badge status-muted"><?= htmlspecialchars((string) ($project['project_code'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></span>
                             </td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="bg-slate-100 text-slate-500 rounded-circle d-flex align-items-center justify-content-center" style="width: 24px; height: 24px; font-size: 10px; border: 1px solid #e2e8f0;">
                                         <i data-lucide="user" style="width: 12px; height: 12px;"></i>
                                     </div>
-                                    <span class="small text-slate-600"><?= htmlspecialchars($project['manager_name'] ?? 'Chưa gán', ENT_QUOTES, 'UTF-8') ?></span>
+                                    <span class="small text-slate-600"><?= htmlspecialchars((string) ($project['manager_name'] ?? 'Chưa gán'), ENT_QUOTES, 'UTF-8') ?></span>
                                 </div>
                             </td>
                             <td>
-                                <span class="status-pill" style="border-left: 3px solid <?= $statusColor ?>;">
+                                <span class="status-pill" style="border-left: 3px solid <?= htmlspecialchars($statusColor, ENT_QUOTES, 'UTF-8') ?>;">
                                     <?= htmlspecialchars($statusName, ENT_QUOTES, 'UTF-8') ?>
                                 </span>
                             </td>
                             <td class="text-meta">
                                 <?php if (!empty($project['start_date']) || !empty($project['due_date'])): ?>
-                                    <?= !empty($project['start_date']) ? date('d/m/Y', strtotime($project['start_date'])) : '-' ?>
+                                    <?= $formatDate($project['start_date'] ?? null) ?>
                                     <span class="text-slate-400">→</span>
-                                    <?= !empty($project['due_date']) ? date('d/m/Y', strtotime($project['due_date'])) : '-' ?>
+                                    <?= $formatDate($project['due_date'] ?? null) ?>
                                 <?php else: ?>
                                     -
                                 <?php endif; ?>
@@ -148,21 +167,25 @@
                                                 <i data-lucide="eye"></i> Chi tiết
                                             </a>
                                         </li>
+                                        <?php if (!empty($project['can_update'])): ?>
                                         <li>
                                             <a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/projects/<?= (int) $project['id'] ?>/edit">
                                                 <i data-lucide="edit-3"></i> Chỉnh sửa
                                             </a>
                                         </li>
+                                        <?php endif; ?>
+                                        <?php if (!empty($project['can_delete'])): ?>
                                         <li>
                                             <hr class="dropdown-divider">
                                         </li>
                                         <li>
                                             <a class="dropdown-item d-flex align-items-center gap-2 text-danger"
                                                 href="javascript:void(0)"
-                                                onclick="showDeleteModal('<?= URLROOT ?>/projects/<?= (int) $project['id'] ?>/delete', <?= htmlspecialchars(json_encode($deleteMessage, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
+                                                onclick="showDeleteModal('<?= URLROOT ?>/projects/<?= (int) $project['id'] ?>/delete', <?= htmlspecialchars((string) json_encode($deleteMessage, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
                                                 <i data-lucide="trash-2"></i> Xóa
                                             </a>
                                         </li>
+                                        <?php endif; ?>
                                     </ul>
                                 </div>
                             </td>
@@ -170,7 +193,7 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="6" class="table-empty">Không có dự án nào được tìm thấy.</td>
+                        <td colspan="7" class="table-empty">Không có dự án nào được tìm thấy.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -181,8 +204,17 @@
 <div class="table-footer-outside d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
     <?php
     // Hàm hỗ trợ tạo URL phân trang giữ lại các tham số filter hiện tại (search, status, v.v.)
-    $buildPageUrl = function ($page) {
-        $queryParams = $_GET;
+    $buildPageUrl = function ($page) use ($currentFilters) {
+        $queryParams = [];
+        if (!empty($currentFilters['status_id'])) {
+            $queryParams['status_id'] = array_map('intval', $currentFilters['status_id']);
+        }
+        if (!empty($currentFilters['start_date'])) {
+            $queryParams['start_date'] = $currentFilters['start_date'];
+        }
+        if (!empty($currentFilters['end_date'])) {
+            $queryParams['end_date'] = $currentFilters['end_date'];
+        }
         $queryParams['page'] = $page;
         return '?' . http_build_query($queryParams);
     };
@@ -284,7 +316,7 @@
                                     <input class="form-check-input" type="checkbox" name="status_id[]"
                                         value="<?= htmlspecialchars($status['id'], ENT_QUOTES, 'UTF-8') ?>"
                                         id="statusCheck<?= htmlspecialchars($status['id'], ENT_QUOTES, 'UTF-8') ?>"
-                                        <?= in_array($status['id'], $currentFilters['status_id'] ?? []) ? 'checked' : '' ?>>
+                                        <?= in_array((int) $status['id'], array_map('intval', $currentFilters['status_id'] ?? []), true) ? 'checked' : '' ?>>
                                     <label class="form-check-label"
                                         for="statusCheck<?= htmlspecialchars($status['id'], ENT_QUOTES, 'UTF-8') ?>">
                                         <?= htmlspecialchars($status['name'], ENT_QUOTES, 'UTF-8') ?>

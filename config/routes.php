@@ -52,7 +52,7 @@ return [
             'middleware' => [
                 'AuthMiddleware',
                 ['PermissionMiddleware', [
-                    'projects.view.member',
+                    'projects.view.joined',
                     'projects.view.all'
                 ]]
             ]
@@ -60,24 +60,42 @@ return [
         '/projects/create' => [
             'controller' => 'ProjectController',
             'action'     => 'create',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', ['projects.create.all']]
+            ]
         ],
         '/projects/createWizard' => [
             'controller' => 'ProjectController',
             'action'     => 'showStep',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', ['projects.create.all']]
+            ]
         ],
 
 
         '/projects/{id}' => [
             'controller' => 'ProjectController',
             'action'     => 'show',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'projects.view.joined',
+                    'projects.view.all'
+                ]]
+            ]
         ],
         '/projects/{id}/edit' => [
             'controller' => 'ProjectController',
             'action'     => 'edit',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'projects.update.joined',
+                    'projects.update.all'
+                ]]
+            ]
         ],
 
         // --- API Routes ---
@@ -90,7 +108,10 @@ return [
         '/api/projects/wizard-data' => [
             'controller' => 'api/ProjectApiController',
             'action'     => 'getWizardData',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', ['projects.create.all']]
+            ]
         ],
 
         // --- Task Management ---
@@ -202,27 +223,53 @@ return [
         '/projects/create' => [
             'controller' => 'ProjectController',
             'action'     => 'store',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['projects.create.all']]
+            ]
         ],
         '/projects/createWizard' => [
             'controller' => 'ProjectController',
             'action'     => 'postStep',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['projects.create.all']]
+            ]
         ],
         '/projects/{id}/edit' => [
             'controller' => 'ProjectController',
             'action'     => 'update',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', [
+                    'projects.update.joined',
+                    'projects.update.all'
+                ]]
+            ]
         ],
         '/projects/{id}/delete' => [
             'controller' => 'ProjectController',
             'action'     => 'delete',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['projects.delete.all']]
+            ]
         ],
         '/projects/{id}/addMembers' => [
             'controller' => 'ProjectController',
             'action'     => 'addMembers',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', [
+                    'projects.update.joined',
+                    'projects.update.all'
+                ]]
+            ]
         ],
 
         // --- Admin Settings: Project Status ---

@@ -24,13 +24,13 @@ $getValue = function($field) use ($project, $old) {
     <div class="d-flex align-items-center text-slate-600 fs-6">
         <a href="<?= URLROOT; ?>/projects" class="text-decoration-none text-slate-500 hover-text-primary">Dự án</a>
         <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
-        <a href="<?= URLROOT; ?>/projects/<?= $project['id'] ?>" class="text-decoration-none text-slate-500 hover-text-primary"><?= htmlspecialchars($project['name'] ?? 'Chi tiết') ?></a>
+        <a href="<?= URLROOT; ?>/projects/<?= (int) ($project['id'] ?? 0) ?>" class="text-decoration-none text-slate-500 hover-text-primary"><?= htmlspecialchars((string) ($project['name'] ?? 'Chi tiết'), ENT_QUOTES, 'UTF-8') ?></a>
         <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
         <span class="page-title">Chỉnh sửa</span>
     </div>
 
     <div class="page-actions">
-        <a href="<?= URLROOT ?>/projects/<?= $project['id'] ?>" class="btn btn-outline-secondary px-3">
+        <a href="<?= URLROOT ?>/projects/<?= (int) ($project['id'] ?? 0) ?>" class="btn btn-outline-secondary px-3">
             <i data-lucide="x"></i>
             <span>Hủy bỏ</span>
         </a>
@@ -43,7 +43,7 @@ $getValue = function($field) use ($project, $old) {
             <h5 class="mb-0 fw-bold text-slate-800">Thông tin dự án</h5>
         </div>
         <div class="ui-card-body p-4">
-            <form action="<?= $action_url ?>" method="POST">
+            <form action="<?= htmlspecialchars((string) $action_url, ENT_QUOTES, 'UTF-8') ?>" method="POST">
                 <?php App\helpers\SecurityHelper::csrfInput(); ?>
                 
                 <div class="row g-4">
@@ -51,16 +51,16 @@ $getValue = function($field) use ($project, $old) {
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Tên dự án <span class="text-danger">*</span></label>
                             <input type="text" name="name" class="form-control <?= isset($errors['name']) ? 'is-invalid' : '' ?>" 
-                                   value="<?= htmlspecialchars($getValue('name')) ?>" placeholder="Nhập tên dự án">
+                                   value="<?= htmlspecialchars((string) $getValue('name'), ENT_QUOTES, 'UTF-8') ?>" placeholder="Nhập tên dự án">
                             <?php if (isset($errors['name'])): ?>
-                                <div class="invalid-feedback"><?= $errors['name'] ?></div>
+                                <div class="invalid-feedback"><?= htmlspecialchars((string) $errors['name'], ENT_QUOTES, 'UTF-8') ?></div>
                             <?php endif; ?>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Mô tả dự án</label>
                             <textarea name="description" class="form-control" rows="6" 
-                                      placeholder="Mô tả chi tiết mục tiêu dự án..."><?= htmlspecialchars($getValue('description')) ?></textarea>
+                                      placeholder="Mô tả chi tiết mục tiêu dự án..."><?= htmlspecialchars((string) $getValue('description'), ENT_QUOTES, 'UTF-8') ?></textarea>
                         </div>
                     </div>
 
@@ -70,13 +70,13 @@ $getValue = function($field) use ($project, $old) {
                             <select name="owner_id" class="form-select <?= isset($errors['owner_id']) ? 'is-invalid' : '' ?>">
                                 <option value="">-- Chọn người phụ trách --</option>
                                 <?php foreach ($ownerOptions as $opt): ?>
-                                    <option value="<?= $opt['id'] ?>" <?= $getValue('owner_id') == $opt['id'] ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($opt['name']) ?> (<?= htmlspecialchars($opt['email']) ?>)
+                                    <option value="<?= (int) ($opt['id'] ?? 0) ?>" <?= (int) $getValue('owner_id') === (int) ($opt['id'] ?? 0) ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars((string) ($opt['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?> (<?= htmlspecialchars((string) ($opt['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                             <?php if (isset($errors['owner_id'])): ?>
-                                <div class="invalid-feedback"><?= $errors['owner_id'] ?></div>
+                                <div class="invalid-feedback"><?= htmlspecialchars((string) $errors['owner_id'], ENT_QUOTES, 'UTF-8') ?></div>
                             <?php endif; ?>
                         </div>
 
@@ -84,23 +84,26 @@ $getValue = function($field) use ($project, $old) {
                             <label class="form-label fw-semibold">Trạng thái <span class="text-danger">*</span></label>
                             <select name="status_id" class="form-select <?= isset($errors['status_id']) ? 'is-invalid' : '' ?>">
                                 <?php foreach ($statusOptions as $status): ?>
-                                    <option value="<?= $status['id'] ?>" <?= $getValue('status_id') == $status['id'] ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($status['name']) ?>
+                                    <option value="<?= (int) ($status['id'] ?? 0) ?>" <?= (int) $getValue('status_id') === (int) ($status['id'] ?? 0) ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars((string) ($status['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
+                            <?php if (isset($errors['status_id'])): ?>
+                                <div class="invalid-feedback d-block"><?= htmlspecialchars((string) $errors['status_id'], ENT_QUOTES, 'UTF-8') ?></div>
+                            <?php endif; ?>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Ngày bắt đầu</label>
-                            <input type="date" name="start_date" class="form-control" value="<?= $getValue('start_date') ?>">
+                            <input type="date" name="start_date" class="form-control" value="<?= htmlspecialchars((string) $getValue('start_date'), ENT_QUOTES, 'UTF-8') ?>">
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Hạn xử lý (Due Date)</label>
-                            <input type="date" name="due_date" class="form-control <?= isset($errors['due_date']) ? 'is-invalid' : '' ?>" value="<?= $getValue('due_date') ?>">
+                            <input type="date" name="due_date" class="form-control <?= isset($errors['due_date']) ? 'is-invalid' : '' ?>" value="<?= htmlspecialchars((string) $getValue('due_date'), ENT_QUOTES, 'UTF-8') ?>">
                             <?php if (isset($errors['due_date'])): ?>
-                                <div class="invalid-feedback"><?= $errors['due_date'] ?></div>
+                                <div class="invalid-feedback"><?= htmlspecialchars((string) $errors['due_date'], ENT_QUOTES, 'UTF-8') ?></div>
                             <?php endif; ?>
                         </div>
                     </div>

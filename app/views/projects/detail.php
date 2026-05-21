@@ -9,11 +9,39 @@
  * @var string $pageTitle Tiêu đề trang
  */
 
-$project = $project ?? [];
+$project = (!empty($project) && is_array($project)) ? $project : [];
 $members = $members ?? [];
 $tasks = $tasks ?? [];
 $allUsers = $allUsers ?? [];
 $stats = $stats ?? ['total' => 0, 'completed' => 0, 'overdue' => 0, 'percent' => 0];
+$canUpdateProject = $canUpdateProject ?? false;
+$canDeleteProject = $canDeleteProject ?? false;
+
+$priorityMap = [
+    'urgent' => ['text' => 'Khẩn cấp', 'class' => 'priority-high'],
+    'high' => ['text' => 'Cao', 'class' => 'priority-high'],
+    'medium' => ['text' => 'Trung bình', 'class' => 'priority-medium'],
+    'low' => ['text' => 'Thấp', 'class' => 'priority-low'],
+];
+
+$safeHexColor = static function (?string $color, string $fallback = '#64748b'): string {
+    $color = trim((string) $color);
+    if (!preg_match('/^#(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/', $color)) {
+        return $fallback;
+    }
+
+    if (strlen($color) === 4) {
+        return '#' . $color[1] . $color[1] . $color[2] . $color[2] . $color[3] . $color[3];
+    }
+
+    return $color;
+};
+
+$formatDate = static function ($date, string $format = 'd/m/Y', string $fallback = '-'): string {
+    $timestamp = !empty($date) ? strtotime((string) $date) : false;
+
+    return $timestamp !== false ? date($format, $timestamp) : $fallback;
+};
 
 /**
  * Ánh xạ màu sắc và tên hiển thị cho vai trò thành viên
@@ -24,22 +52,16 @@ $roleMap = [
     'viewer'  => ['text' => 'Viewer',  'class' => 'role-pill-viewer'],
 ];
 
-// Sắp xếp danh sách thành viên: Manager luôn ở trên đầu
-usort($members, function($a, $b) {
-    $roleOrder = ['manager' => 1, 'member' => 2, 'viewer' => 3];
-    $orderA = $roleOrder[$a['role'] ?? 'member'] ?? 99;
-    $orderB = $roleOrder[$b['role'] ?? 'member'] ?? 99;
-    return $orderA <=> $orderB;
-});
-
 $remainingDays = null;
 $isOverdueProject = false;
 $todayTs = strtotime(date('Y-m-d'));
 
 if (!empty($project['due_date'])) {
     $dueTs = strtotime($project['due_date']);
-    $remainingDays = (int) floor(($dueTs - $todayTs) / 86400);
-    $isOverdueProject = $remainingDays < 0 && ($project['status_slug'] ?? '') !== 'completed';
+    if ($dueTs !== false) {
+        $remainingDays = (int) floor(($dueTs - $todayTs) / 86400);
+        $isOverdueProject = $remainingDays < 0 && ($project['status_slug'] ?? '') !== 'completed';
+    }
 }
 /**
  * Hàm closure để tạo URL ảnh đại diện.
@@ -64,8 +86,6 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
 <style>
     /* Container chính cho trang chi tiết dự án */
     .project-detail-shell {
-        margin: -1.5rem;
-        padding: 1.5rem;
         min-height: 100%;
     }
 
@@ -424,7 +444,7 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                         <span class="project-pill project-banner-pill-outline">
                             <?= htmlspecialchars((string)($project['project_code'] ?? '-'), ENT_QUOTES, 'UTF-8') ?>
                         </span>
-                        <span class="project-pill project-banner-pill-soft" style="border-left: 4px solid <?= $project['status_color'] ?? '#64748b' ?>; background: rgba(255,255,255,0.1);">
+                        <span class="project-pill project-banner-pill-soft" style="border-left: 4px solid <?= htmlspecialchars($safeHexColor($project['status_color'] ?? null), ENT_QUOTES, 'UTF-8') ?>; background: rgba(255,255,255,0.1);">
                             <?= htmlspecialchars((string)($project['status_name'] ?? 'Không rõ'), ENT_QUOTES, 'UTF-8') ?>
                         </span>
                     </div>
@@ -432,17 +452,21 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
 
                 <!-- Các nút hành động chính -->
                 <div class="d-flex flex-wrap align-items-start gap-2 flex-shrink-0">
-                    <a href="<?= URLROOT ?>/projects/<?= $project['id'] ?? '' ?>/edit" class="btn btn-light fw-semibold px-3 px-lg-4">
+                    <?php if ($canUpdateProject): ?>
+                    <a href="<?= URLROOT ?>/projects/<?= (int) ($project['id'] ?? 0) ?>/edit" class="btn btn-light fw-semibold px-3 px-lg-4">
                         <i data-lucide="pencil"></i>
                         <span>Chỉnh sửa</span>
                     </a>
+                    <?php endif; ?>
+                    <?php if ($canDeleteProject): ?>
                     <button
                         type="button"
                         class="btn btn-outline-delete fw-semibold px-3 px-lg-4"
-                        onclick="showDeleteModal('<?= URLROOT ?>/projects/<?= (int) ($project['id'] ?? 0) ?>/delete', 'Bạn có chắc chắn muốn xóa dự án <?= htmlspecialchars((string)($project['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>?')">
+                        onclick="showDeleteModal('<?= URLROOT ?>/projects/<?= (int) ($project['id'] ?? 0) ?>/delete', <?= htmlspecialchars((string) json_encode('Bạn có chắc chắn muốn xóa dự án ' . (string) ($project['name'] ?? '') . '?', JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
                         <i data-lucide="trash-2"></i>
                         <span>Xóa</span>
                     </button>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -460,7 +484,7 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                             <div class="overflow-hidden">
                                 <div class="project-meta-label">Thời hạn & Còn lại</div>
                                 <div class="fw-bold text-slate-900 project-date-compact">
-                                    <?= !empty($project['start_date']) ? date('d/m', strtotime($project['start_date'])) : '??' ?> - <?= !empty($project['due_date']) ? date('d/m/Y', strtotime($project['due_date'])) : '??' ?>
+                                    <?= $formatDate($project['start_date'] ?? null, 'd/m', '??') ?> - <?= $formatDate($project['due_date'] ?? null, 'd/m/Y', '??') ?>
                                 </div>
                                 <div class="small fw-semibold <?= $isOverdueProject ? 'text-danger' : 'text-primary' ?>">
                                     <?php if ($remainingDays === null): ?>Hạn chưa xác định<?php elseif ($remainingDays >= 0): ?>Còn <?= $remainingDays ?> ngày<?php else: ?>Trễ <?= abs($remainingDays) ?> ngày<?php endif; ?>
@@ -546,10 +570,12 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                             <div>
                                 <div class="project-mini-note">Danh sách nhân sự đang thực hiện dự án này.</div>
                             </div>
+                            <?php if ($canUpdateProject): ?>
                             <button type="button" class="btn btn-sm btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addMembersModal">
                                 <i data-lucide="user-plus"></i>
                                 <span>Thêm thành viên</span>
                             </button>
+                            <?php endif; ?>
                         </div>
 
                         <div class="project-table-card">
@@ -562,7 +588,7 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                                     return ($m['role'] ?? '') !== 'manager';
                                 }));
 
-                                $renderMemberCard = static function (array $member) use ($roleMap, $buildAvatar): void {
+                                $renderMemberCard = static function (array $member) use ($roleMap, $buildAvatar, $formatDate): void {
                                     $roleSlug = $member['role'] ?? 'member';
                                     $roleInfo = $roleMap[$roleSlug] ?? [
                                         'text' => is_string($roleSlug) ? ucfirst((string) $roleSlug) : 'Member',
@@ -572,7 +598,7 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                                     <div class="col-sm-6 col-xl-4">
                                         <div class="project-member-card p-3 h-100 d-flex flex-column">
                                             <div class="d-flex align-items-start gap-2 flex-grow-1 min-w-0">
-                                                <img src="<?= $buildAvatar($member, 'name', 'avatar', 80) ?>" alt="" class="project-member-card-avatar" width="40" height="40">
+                                                <img src="<?= htmlspecialchars($buildAvatar($member, 'name', 'avatar', 80), ENT_QUOTES, 'UTF-8') ?>" alt="" class="project-member-card-avatar" width="40" height="40">
                                                 <div class="flex-grow-1 min-w-0 d-flex flex-column gap-1">
                                                     <div class="d-flex align-items-start justify-content-between gap-2 min-w-0">
                                                         <div class="min-w-0 flex-grow-1">
@@ -595,7 +621,7 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                                             </div>
                                             <div class="project-member-card-meta mt-2 pt-2 border-top border-slate-200">
                                                 <i data-lucide="calendar" aria-hidden="true"></i>
-                                                <span><?= !empty($member['joined_at']) ? 'Tham gia ' . date('d/m/Y', strtotime((string) $member['joined_at'])) : 'Chưa có ngày tham gia' ?></span>
+                                                <span><?= !empty($member['joined_at']) ? 'Tham gia ' . $formatDate($member['joined_at']) : 'Chưa có ngày tham gia' ?></span>
                                             </div>
                                         </div>
                                     </div>
@@ -635,7 +661,7 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                                 <div class="project-section-title mb-1">Công việc dự án</div>
                                 <div class="project-mini-note">Quản lý và theo dõi các đầu việc chi tiết.</div>
                             </div>
-                            <a href="<?= URLROOT ?>/tasks/create?project_id=<?= $project['id'] ?? '' ?>" class="btn btn-sm btn-primary px-3 shadow-sm">
+                            <a href="<?= URLROOT ?>/tasks/create?project_id=<?= (int) ($project['id'] ?? 0) ?>" class="btn btn-sm btn-primary px-3 shadow-sm">
                                 <i data-lucide="plus"></i>
                                 <span>Thêm công việc</span>
                             </a>
@@ -657,8 +683,12 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                                         <?php if (!empty($tasks)): ?>
                                             <?php foreach ($tasks as $task): ?>
                                                 <?php
-                                                $taskState = $taskStatusMap[$task['status'] ?? 'todo'] ?? ['text' => $task['status'] ?? 'Không rõ', 'class' => 'status-muted'];
+                                                $taskStatusColor = $safeHexColor($task['status_color'] ?? null);
+                                                $taskStatusText = $task['status_name'] ?? $task['status_slug'] ?? 'Không rõ';
                                                 $taskPriority = $priorityMap[$task['priority'] ?? 'low'] ?? ['text' => $task['priority'] ?? 'Thấp', 'class' => 'status-muted'];
+                                                $taskDone = !empty($task['status_is_done']) || ($task['status_slug'] ?? '') === 'done';
+                                                $taskDueTs = !empty($task['due_date']) ? strtotime((string) $task['due_date']) : false;
+                                                $isTaskOverdue = $taskDueTs !== false && $taskDueTs < $todayTs && !$taskDone;
                                                 ?>
                                                 <tr>
                                                     <td class="px-4 py-3">
@@ -666,22 +696,22 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                                                     </td>
                                                     <td class="px-4 py-3">
                                                         <div class="d-flex align-items-center gap-2">
-                                                            <img src="<?= $buildAvatar(['name' => $task['assigned_name'] ?? 'Chưa giao', 'avatar' => $task['assigned_avatar'] ?? null], 'name', 'avatar', 36) ?>" alt="avatar" class="project-task-avatar">
+                                                            <img src="<?= htmlspecialchars($buildAvatar(['name' => $task['assigned_name'] ?? 'Chưa giao', 'avatar' => $task['assigned_avatar'] ?? null], 'name', 'avatar', 36), ENT_QUOTES, 'UTF-8') ?>" alt="avatar" class="project-task-avatar">
                                                             <span class="text-slate-700"><?= htmlspecialchars((string) ($task['assigned_name'] ?? 'Chưa giao'), ENT_QUOTES, 'UTF-8') ?></span>
                                                         </div>
                                                     </td>
                                                     <td class="px-4 py-3">
-                                                        <span class="project-pill <?= $taskState['class'] ?>">
-                                                            <?= htmlspecialchars($taskState['text'], ENT_QUOTES, 'UTF-8') ?>
+                                                        <span class="project-pill" style="border-left: 4px solid <?= htmlspecialchars($taskStatusColor, ENT_QUOTES, 'UTF-8') ?>; background-color: <?= htmlspecialchars($taskStatusColor, ENT_QUOTES, 'UTF-8') ?>15; color: <?= htmlspecialchars($taskStatusColor, ENT_QUOTES, 'UTF-8') ?>;">
+                                                            <?= htmlspecialchars((string) $taskStatusText, ENT_QUOTES, 'UTF-8') ?>
                                                         </span>
                                                     </td>
                                                     <td class="px-4 py-3">
-                                                        <span class="project-pill <?= $taskPriority['class'] ?>">
+                                                        <span class="project-pill <?= htmlspecialchars($taskPriority['class'], ENT_QUOTES, 'UTF-8') ?>">
                                                             <?= htmlspecialchars($taskPriority['text'], ENT_QUOTES, 'UTF-8') ?>
                                                         </span>
                                                     </td>
-                                                    <td class="px-4 py-3 <?= (!empty($task['due_date']) && strtotime($task['due_date']) < $todayTs && ($task['status'] ?? '') !== 'done') ? 'text-danger fw-semibold' : 'text-slate-700' ?>">
-                                                        <?= !empty($task['due_date']) ? date('d/m/Y', strtotime($task['due_date'])) : '-' ?>
+                                                    <td class="px-4 py-3 <?= $isTaskOverdue ? 'text-danger fw-semibold' : 'text-slate-700' ?>">
+                                                        <?= $taskDueTs !== false ? date('d/m/Y', $taskDueTs) : '-' ?>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -708,6 +738,7 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
     </div>
 
     <!-- Modal Thêm thành viên -->
+    <?php if ($canUpdateProject): ?>
     <div class="modal fade" id="addMembersModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content border-0 shadow-lg">
@@ -715,7 +746,7 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                     <h5 class="fw-bold text-slate-900 mb-0">Thêm thành viên mới</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="<?= URLROOT ?>/projects/<?= $project['id'] ?? '' ?>/addMembers" method="POST">
+                <form action="<?= URLROOT ?>/projects/<?= (int) ($project['id'] ?? 0) ?>/addMembers" method="POST">
                     <?php \App\helpers\SecurityHelper::csrfInput(); ?>
                     <div class="modal-body px-4 py-3">
                         <div class="mb-4">
@@ -746,14 +777,14 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                                         ?>
                                             <tr>
                                                 <td>
-                                                    <input type="checkbox" name="user_ids[]" value="<?= $u['id'] ?? '' ?>" class="form-check-input">
+                                                    <input type="checkbox" name="user_ids[]" value="<?= (int) ($u['id'] ?? 0) ?>" class="form-check-input">
                                                 </td>
                                                 <td>
-                                                    <div class="fw-semibold text-slate-900"><?= htmlspecialchars($u['name']) ?></div>
-                                                    <div class="project-mini-note"><?= htmlspecialchars($u['employee_code']) ?> • <?= htmlspecialchars($u['email']) ?></div>
+                                                    <div class="fw-semibold text-slate-900"><?= htmlspecialchars((string) ($u['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                                    <div class="project-mini-note"><?= htmlspecialchars((string) ($u['employee_code'] ?? ''), ENT_QUOTES, 'UTF-8') ?> • <?= htmlspecialchars((string) ($u['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
                                                 </td>
                                                 <td>
-                                                    <div class="small text-slate-600"><?= htmlspecialchars($u['job_title'] ?? 'N/A') ?></div>
+                                                    <div class="small text-slate-600"><?= htmlspecialchars((string) ($u['job_title'] ?? 'N/A'), ENT_QUOTES, 'UTF-8') ?></div>
                                                 </td>
                                             </tr>
                                         <?php endif; ?>
@@ -773,4 +804,5 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
             </div>
         </div>
     </div>
+    <?php endif; ?>
 </div>

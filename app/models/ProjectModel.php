@@ -19,6 +19,35 @@ class ProjectModel extends Model
     protected $tableProjectMember = 'project_members';
 
     /**
+     * Áp dụng bộ lọc danh sách project bằng tham số bind để tránh ghép SQL thủ công.
+     */
+    private function applyProjectFilters(string &$sql, array &$params, array $filters, string $alias = 'p'): void
+    {
+        if (!empty($filters['status_id']) && is_array($filters['status_id'])) {
+            $placeholders = [];
+            foreach (array_values($filters['status_id']) as $index => $statusId) {
+                $key = "status_id_{$index}";
+                $placeholders[] = ':' . $key;
+                $params[$key] = (int) $statusId;
+            }
+
+            if ($placeholders !== []) {
+                $sql .= " AND {$alias}.status_id IN (" . implode(',', $placeholders) . ")";
+            }
+        }
+
+        if (!empty($filters['start_date'])) {
+            $sql .= " AND {$alias}.start_date >= :start_date";
+            $params['start_date'] = $filters['start_date'];
+        }
+
+        if (!empty($filters['end_date'])) {
+            $sql .= " AND {$alias}.due_date <= :end_date";
+            $params['end_date'] = $filters['end_date'];
+        }
+    }
+
+    /**
      * Lấy danh sách dự án có phân trang
      * 
      * @param int $page Trang hiện tại
@@ -43,21 +72,7 @@ class ProjectModel extends Model
 
         $params = [];
 
-        // Lọc theo danh sách trạng thái (Checklist)
-        if (!empty($filters['status_id'])) {
-            $statusIds = array_map('intval', $filters['status_id']);
-            $sql .= " AND p.status_id IN (" . implode(',', $statusIds) . ")";
-        }
-
-        // Lọc theo khoảng thời gian
-        if (!empty($filters['start_date'])) {
-            $sql .= " AND p.start_date >= :start_date";
-            $params['start_date'] = $filters['start_date'];
-        }
-        if (!empty($filters['end_date'])) {
-            $sql .= " AND p.due_date <= :end_date";
-            $params['end_date'] = $filters['end_date'];
-        }
+        $this->applyProjectFilters($sql, $params, $filters);
 
         $sql .= " ORDER BY p.id DESC LIMIT :limit OFFSET :offset";
         $params['limit'] = (int)$perPage;
@@ -119,7 +134,7 @@ class ProjectModel extends Model
                 LEFT JOIN project_statuses ps ON p.status_id = ps.id
                 WHERE p.id = :id AND p.deleted_at IS NULL";
 
-        return $this->db->query($sql, ['id' => $id])->fetch(PDO::FETCH_ASSOC);
+        return $this->db->query($sql, ['id' => (int) $id])->fetch(PDO::FETCH_ASSOC);
     }
 
 
@@ -139,7 +154,7 @@ class ProjectModel extends Model
                 JOIN users u ON pm.user_id = u.id
                 WHERE pm.project_id = :project_id AND u.deleted_at IS NULL";
 
-        return $this->db->query($sql, ['project_id' => $projectId])->fetchAll(PDO::FETCH_ASSOC);
+        return $this->db->query($sql, ['project_id' => (int) $projectId])->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
@@ -151,7 +166,7 @@ class ProjectModel extends Model
     public function getProjectTasks($projectId)
     {
         $sql = "SELECT 
-                        ta.task_id,
+                        t.id AS task_id,
                         ta.user_id,
                         ta.assigned_at,
                         ta.assigned_by,
@@ -160,16 +175,27 @@ class ProjectModel extends Model
                         t.title,
                         t.project_id,
                         t.status_id,
-                        t.priority
-                    FROM task_assignments ta
-                    INNER JOIN tasks t 
+                        t.priority,
+                        t.due_date,
+                        ts.name AS status_name,
+                        ts.slug AS status_slug,
+                        ts.color AS status_color,
+                        ts.is_done AS status_is_done
+                    FROM tasks t
+                    LEFT JOIN task_assignments ta
                         ON ta.task_id = t.id
-                    LEFT JOIN users u 
-                        ON ta.user_id = u.id
+                        AND ta.assigned_at = (
+                            SELECT MAX(ta_latest.assigned_at)
+                            FROM task_assignments ta_latest
+                            WHERE ta_latest.task_id = t.id
+                        )
+                    LEFT JOIN users u ON ta.user_id = u.id
+                    LEFT JOIN task_statuses ts ON t.status_id = ts.id
                     WHERE t.project_id = :project_id
-                    ORDER BY ta.assigned_at DESC";
+                      AND t.deleted_at IS NULL
+                    ORDER BY t.id DESC";
 
-        return $this->db->query($sql, ['project_id' => $projectId])->fetchAll(PDO::FETCH_ASSOC);
+        return $this->db->query($sql, ['project_id' => (int) $projectId])->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
@@ -210,7 +236,7 @@ class ProjectModel extends Model
             );
 
             $this->db->commit();
-            return $projectId;
+            return (int) $projectId;
         } catch (Exception $e) {
             $this->db->rollBack();
             throw new Exception("Lỗi khi tạo dự án: " . $e->getMessage(), 500);
@@ -243,7 +269,7 @@ class ProjectModel extends Model
             'owner_id'    => $data['owner_id'],
             'start_date'  => $data['start_date'],
             'due_date'    => $data['due_date'],
-            'id'          => $id
+            'id'          => (int) $id
         ];
         return $this->db->query($sql, $params);
     }
@@ -253,13 +279,14 @@ class ProjectModel extends Model
      */
     public function addMember($projectId, $userId, $role)
     {
+        $role = in_array((string) $role, ['manager', 'member', 'viewer'], true) ? (string) $role : 'member';
 
         $sql = "INSERT INTO project_members (project_id, user_id, role, joined_at) 
                 VALUES (:project_id, :user_id, :role, CURRENT_TIMESTAMP)";
 
         return $this->db->query($sql, [
-            'project_id' => $projectId,
-            'user_id'    => $userId,
+            'project_id' => (int) $projectId,
+            'user_id'    => (int) $userId,
             'role'       => $role
         ]);
     }
@@ -272,7 +299,20 @@ class ProjectModel extends Model
         $sql = "SELECT COUNT(*) FROM project_members 
                 WHERE project_id = :project_id AND user_id = :user_id";
 
-        return (int)$this->db->query($sql, ['project_id' => $projectId, 'user_id' => $userId])->fetchColumn() > 0;
+        return (int)$this->db->query($sql, ['project_id' => (int) $projectId, 'user_id' => (int) $userId])->fetchColumn() > 0;
+    }
+
+    public function isActiveMember($projectId, $userId)
+    {
+        $sql = "SELECT COUNT(*) FROM {$this->tableProjectMember}
+                WHERE project_id = :project_id
+                AND user_id = :user_id
+                AND left_at IS NULL";
+
+        return (int)$this->db->query($sql, [
+            'project_id' => (int)$projectId,
+            'user_id' => (int)$userId
+        ])->fetchColumn() > 0;
     }
 
     /**
@@ -284,7 +324,7 @@ class ProjectModel extends Model
     public function delete($id)
     {
         $sql = "UPDATE {$this->table} SET deleted_at = CURRENT_TIMESTAMP WHERE id = :id";
-        return (bool)$this->db->query($sql, ['id' => $id]);
+        return (bool)$this->db->query($sql, ['id' => (int) $id]);
     }
 
     public function countAll($filters = [])
@@ -292,20 +332,71 @@ class ProjectModel extends Model
         $sql = "SELECT COUNT(*) FROM {$this->table} p WHERE p.deleted_at IS NULL";
         $params = [];
 
-        if (!empty($filters['status_id'])) {
-            $statusIds = array_map('intval', $filters['status_id']);
-            $sql .= " AND p.status_id IN (" . implode(',', $statusIds) . ")";
-        }
+        $this->applyProjectFilters($sql, $params, $filters);
 
-        if (!empty($filters['start_date'])) {
-            $sql .= " AND p.start_date >= :start_date";
-            $params['start_date'] = $filters['start_date'];
-        }
+        return (int)$this->db->query($sql, $params)->fetchColumn();
+    }
 
-        if (!empty($filters['end_date'])) {
-            $sql .= " AND p.due_date <= :end_date";
-            $params['end_date'] = $filters['end_date'];
-        }
+    public function getProjectsByPageForJoinedUser($userId, $page, $perPage, $filters = [])
+    {
+        $offset = ($page - 1) * $perPage;
+
+        $sql = "SELECT p.*, 
+                       u.name AS manager_name, 
+                       u.email AS owner_email, 
+                       ps.name as status_name, 
+                       ps.color as status_color, 
+                       ps.slug as status_slug
+                FROM {$this->table} p
+                LEFT JOIN users u ON p.owner_id = u.id
+                LEFT JOIN project_statuses ps ON p.status_id = ps.id
+                WHERE p.deleted_at IS NULL
+                AND (
+                    p.owner_id = :owner_user_id
+                    OR EXISTS (
+                        SELECT 1
+                        FROM {$this->tableProjectMember} pm
+                        WHERE pm.project_id = p.id
+                        AND pm.user_id = :member_user_id
+                        AND pm.left_at IS NULL
+                    )
+                )";
+
+        $params = [
+            'owner_user_id' => (int)$userId,
+            'member_user_id' => (int)$userId,
+        ];
+
+        $this->applyProjectFilters($sql, $params, $filters);
+
+        $sql .= " ORDER BY p.id DESC LIMIT :limit OFFSET :offset";
+        $params['limit'] = (int)$perPage;
+        $params['offset'] = (int)$offset;
+
+        return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function countForJoinedUser($userId, $filters = [])
+    {
+        $sql = "SELECT COUNT(*) FROM {$this->table} p
+                WHERE p.deleted_at IS NULL
+                AND (
+                    p.owner_id = :owner_user_id
+                    OR EXISTS (
+                        SELECT 1
+                        FROM {$this->tableProjectMember} pm
+                        WHERE pm.project_id = p.id
+                        AND pm.user_id = :member_user_id
+                        AND pm.left_at IS NULL
+                    )
+                )";
+
+        $params = [
+            'owner_user_id' => (int)$userId,
+            'member_user_id' => (int)$userId,
+        ];
+
+        $this->applyProjectFilters($sql, $params, $filters);
 
         return (int)$this->db->query($sql, $params)->fetchColumn();
     }
