@@ -7,6 +7,7 @@ use App\core\View;
 use App\core\Response;
 use App\core\Session;
 use App\helpers\Helper;
+use App\helpers\ListTableHelper;
 use App\models\TaskModel;
 use App\models\ProjectModel;
 use App\models\UserModel;
@@ -22,6 +23,11 @@ class TaskController extends Controller
     private UserModel $userModel;
     private TaskStatusModel $statusModel;
 
+    /**
+     * =============================================================
+     * NHOM KHOI TAO
+     * =============================================================
+     */
     public function __construct()
     {
         parent::__construct();
@@ -30,9 +36,17 @@ class TaskController extends Controller
         $this->userModel = $this->model('UserModel');
         $this->statusModel = $this->model('TaskStatusModel');
     }
+
+    /**
+     * =============================================================
+     * NHOM HIEN THI VA TRA CUU CONG VIEC
+     * =============================================================
+     */
     public function index()
     {
         $query = $this->request->getQuery();
+        $page = $this->positiveInt($query['page'] ?? 1, 1);
+        $perPage = ListTableHelper::perPage();
 
         // Thu thập các tham số lọc từ Request
         $filters = [
@@ -47,8 +61,11 @@ class TaskController extends Controller
             throw new \Exception("ID dự án không hợp lệ.", 400);
         }
 
-        // Lấy dữ liệu từ Model dựa trên bộ lọc (không giới hạn phân trang)
-        $tasks = $this->taskModel->getAllTasks($filters);
+        // Lấy dữ liệu từ Model dựa trên bộ lọc và phân trang
+        $totalItem = $this->taskModel->countAll($filters);
+        $totalPage = max((int) ceil($totalItem / $perPage), 1);
+        $page = min($page, $totalPage);
+        $tasks = $this->taskModel->getTasksByPage($page, $perPage, $filters);
 
         // Lấy thông tin bổ trợ để hiển thị trên giao diện (dropdown lọc, breadcrumb)
         $selectedProject = !empty($filters['project_id']) ? $this->projectModel->find($filters['project_id']) : null;
@@ -60,7 +77,12 @@ class TaskController extends Controller
             'users'           => $this->userModel->getAllUsers(),
             'statuses'        => $statuses,
             'filters'         => $filters,
-            'pagination'      => [],
+            'pagination'      => [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total_items' => $totalItem,
+                'total_pages' => $totalPage,
+            ],
             'selectedProject' => $selectedProject,
             'pageTitle'       => 'Danh sách công việc'
         ]);
@@ -85,10 +107,16 @@ class TaskController extends Controller
 
     /**
      * Hiển thị form chỉnh sửa công việc
+     *
+     * =============================================================
+     * NHOM CAP NHAT CONG VIEC
+     * =============================================================
      */
-    public function edit($id)
+    public function edit(int $id)
     {
         $task = $this->taskModel->find($id);
+        // $project = $this->projectModel->find($task['project_id']);
+
         if (!$task) {
             Helper::setFlash('danger', 'Công việc không tồn tại.');
             Response::redirect(URLROOT . '/tasks');
@@ -109,12 +137,13 @@ class TaskController extends Controller
     /**
      * Xử lý cập nhật công việc
      */
-    public function update($id)
+    public function update(int $id)
     {
         $task = $this->taskModel->find($id);
         if (!$task) {
             Helper::setFlash('danger', 'Công việc không tồn tại.');
             Response::redirect(URLROOT . '/tasks');
+            return;
         }
 
         if (!$this->request->isPost()) {
@@ -124,15 +153,24 @@ class TaskController extends Controller
 
         $body = $this->request->getBody();
         $data = $this->getFormData();
+
+        // Khi chỉnh sửa, không cho đổi dự án của công việc.
+        // Dự án thật luôn lấy từ dữ liệu hiện tại trong database.
+        $originalProjectId = (int) $task['project_id'];
+        $data['project_id'] = $originalProjectId;
+
         $this->ensureStatusForSelectedProject($data);
-        
+
         // Không cập nhật ngày tạo khi chỉnh sửa
-        unset($data['created_at']);
-        unset($data['created_by']);
+        unset($data['created_at'], $data['created_by']);
 
         $this->validator->required('title', $data['title'], 'Tiêu đề');
         $this->validator->selected('project_id', $data['project_id'], 'Dự án');
         $this->validator->selected('status_id', $data['status_id'], 'Trạng thái');
+
+        if (!empty($body['project_id']) && (int) $body['project_id'] !== $originalProjectId) {
+            $this->validator->addError('project_id', 'Không được thay đổi dự án khi chỉnh sửa công việc.');
+        }
 
         if ($this->validator->passes()) {
             $projectId = (int) $data['project_id'];
@@ -150,10 +188,10 @@ class TaskController extends Controller
                 'task' => $task,
                 'projects' => $this->projectModel->getAllProjects(),
                 'users' => $this->userModel->getAllUsers(),
-                'statuses' => $this->statusModel->getList((int)$body['project_id']),
+                'statuses' => $this->statusModel->getList($originalProjectId),
                 'statusesByProject' => $this->getStatusesByProject(),
                 'errors' => $this->validator->getErrors(),
-                'old' => $body,
+                'old' => array_merge($body, ['project_id' => $originalProjectId]),
                 'pageTitle' => 'Chỉnh sửa công việc',
                 'action_url' => URLROOT . '/tasks/' . $id . '/edit',
             ]);
@@ -164,14 +202,13 @@ class TaskController extends Controller
 
         try {
             $this->taskModel->beginTransaction();
-            
+
             // Cập nhật thông tin cơ bản của task
             $this->taskModel->update($id, $data);
 
             // Cập nhật người phụ trách (Xóa cũ, thêm mới nếu có)
-            // Giả định Model có phương thức removeAssignments hoặc xử lý trực tiếp
-            $this->taskModel->query("DELETE FROM task_assignments WHERE task_id = :tid", ['tid' => $id]);
-            
+            $this->taskModel->removeAssignments($id);
+
             if ($assigneeId) {
                 $this->taskModel->assignUserToTask($id, $assigneeId, $this->currentUserId());
             }
@@ -187,6 +224,11 @@ class TaskController extends Controller
     }
 
     //VALIDATE project_id
+    /**
+     * =============================================================
+     * NHOM KIEM TRA DU LIEU DU AN
+     * =============================================================
+     */
     public function validateProjectId($id): bool
     {
         // Tầng 1: Kiểm tra định dạng
@@ -202,16 +244,36 @@ class TaskController extends Controller
 
     /**
      * Hiển thị danh sách công việc với bộ lọc và phân trang
+     *
+     * =============================================================
+     * NHOM HIEN THI CONG VIEC THEO DU AN
+     * =============================================================
      */
-
     public function listIdProject($id)
     {
+        if (!$this->validateProjectId($id)) {
+            throw new \Exception("ID dự án không hợp lệ.", 400);
+        }
+
+        $query = $this->request->getQuery();
+        $page = $this->positiveInt($query['page'] ?? 1, 1);
+        $perPage = ListTableHelper::perPage();
+        $filters = [
+            'search'      => $query['search'] ?? null,
+            'project_id'  => (int) $id,
+            'assigned_to' => $query['assigned_to'] ?? null,
+            'status_id'   => $query['status_id'] ?? null,
+        ];
+
         $allProject = $this->projectModel->getAllProjects();
         $selectedProject = $this->projectModel->find($id);
         $statusTask = $this->statusModel->getList($id);
 
-        // Lấy dữ liệu từ Model (Yêu cầu TaskModel phải có các phương thức này)
-        $tasks = $this->taskModel->getTaskByIdProject($id);
+        // Lấy dữ liệu từ Model dựa trên bộ lọc và phân trang
+        $totalItem = $this->taskModel->countAll($filters);
+        $totalPage = max((int) ceil($totalItem / $perPage), 1);
+        $page = min($page, $totalPage);
+        $tasks = $this->taskModel->getTasksByPage($page, $perPage, $filters);
 
         // Thu thập các tham số lọc từ URL
         View::render('tasks/list', [
@@ -219,8 +281,13 @@ class TaskController extends Controller
             'projects'          => $allProject,
             'users'             => $this->userModel->getAllUsers(),
             'statuses'          => $statusTask,
-            'filters'           => ['project_id' => $id],
-            'pagination'        => [],
+            'filters'           => $filters,
+            'pagination'        => [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total_items' => $totalItem,
+                'total_pages' => $totalPage,
+            ],
             'selectedProject'   => $selectedProject,
             'pageTitle'         => 'Danh sách công việc'
         ]);
@@ -260,6 +327,10 @@ class TaskController extends Controller
 
     /**
      * API xử lý cập nhật trạng thái qua AJAX (Kanban Drag & Drop)
+     *
+     * =============================================================
+     * NHOM API CAP NHAT TRANG THAI
+     * =============================================================
      */
     public function updateStatus()
     {
@@ -275,6 +346,35 @@ class TaskController extends Controller
         return Response::error('Dữ liệu không hợp lệ');
     }
 
+    /**
+     * =============================================================
+     * NHOM XOA CONG VIEC
+     * =============================================================
+     */
+    public function delete($id)
+    {
+        if (!$this->request->isPost()) {
+            Response::redirect(URLROOT . '/tasks');
+            return;
+        }
+
+        $taskId = $this->positiveInt($id);
+        if ($taskId <= 0 || !$this->taskModel->find($taskId)) {
+            Helper::setFlash('danger', 'Công việc không tồn tại.');
+            Response::redirect(URLROOT . '/tasks');
+            return;
+        }
+
+        $this->taskModel->delete($taskId);
+        Helper::setFlash('success', 'Xóa công việc thành công.');
+        Response::redirect($this->taskListRedirectUrl());
+    }
+
+    /**
+     * =============================================================
+     * NHOM TAO MOI CONG VIEC
+     * =============================================================
+     */
     public function create()
     {
         $query = $this->request->getQuery();
@@ -359,6 +459,11 @@ class TaskController extends Controller
         }
     }
 
+    /**
+     * =============================================================
+     * NHOM CHUAN HOA DU LIEU FORM
+     * =============================================================
+     */
     private function getFormData(): array
     {
         $body = $this->request->getBody();
@@ -385,11 +490,21 @@ class TaskController extends Controller
         ];
     }
 
+    /**
+     * =============================================================
+     * NHOM TIEN ICH PHIEN LAM VIEC
+     * =============================================================
+     */
     private function currentUserId(): int
     {
         return (int) (Session::get('user')['id'] ?? 0);
     }
 
+    /**
+     * =============================================================
+     * NHOM TIEN ICH TRANG THAI CONG VIEC
+     * =============================================================
+     */
     private function getStatusesByProject(): array
     {
         $statusesByProject = [];
@@ -413,5 +528,29 @@ class TaskController extends Controller
         if (!empty($statuses[0]['id'])) {
             $data['status_id'] = (int) $statuses[0]['id'];
         }
+    }
+
+    /**
+     * =============================================================
+     * NHOM TIEN ICH DIEU HUONG VA DINH DANG
+     * =============================================================
+     */
+    private function positiveInt($value, int $default = 0): int
+    {
+        $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+        return $id === false ? $default : (int) $id;
+    }
+
+    private function taskListRedirectUrl(): string
+    {
+        $body = $this->request->getBody();
+        $redirectTo = trim((string) ($body['redirect_to'] ?? ''));
+
+        if ($redirectTo !== '' && str_starts_with($redirectTo, URLROOT . '/tasks')) {
+            return $redirectTo;
+        }
+
+        return URLROOT . '/tasks';
     }
 }

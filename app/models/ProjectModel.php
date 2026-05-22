@@ -20,6 +20,16 @@ class ProjectModel extends Model
 
     /**
      * Áp dụng bộ lọc danh sách project bằng tham số bind để tránh ghép SQL thủ công.
+     *
+     * =============================================================
+     * NHOM BO LOC DU AN
+     * =============================================================
+     *
+     * @param string $sql Cau SQL duoc noi them dieu kien loc.
+     * @param array<string, mixed> $params Danh sach tham so bind.
+     * @param array<string, mixed> $filters Bo loc du an.
+     * @param string $alias Alias bang projects trong cau SQL.
+     * @return void
      */
     private function applyProjectFilters(string &$sql, array &$params, array $filters, string $alias = 'p'): void
     {
@@ -53,6 +63,15 @@ class ProjectModel extends Model
      * @param int $page Trang hiện tại
      * @param int $perPage Số bản ghi trên mỗi trang
      * @return array Danh sách dự án kèm thông tin người sở hữu
+     *
+     * =============================================================
+     * NHOM TRUY VAN DANH SACH DU AN
+     * =============================================================
+     *
+     * @param int $page Trang hien tai.
+     * @param int $perPage So ban ghi tren moi trang.
+     * @param array<string, mixed> $filters Bo loc du an.
+     * @return array<int, array<string, mixed>> Danh sach du an theo trang.
      */
     public function getProjectsByPage($page, $perPage, $filters = [])
     {
@@ -85,6 +104,8 @@ class ProjectModel extends Model
      * 
      * @param array $filters Mảng chứa 'search' và 'status'
      * @return array
+     *
+     * @return array<int, array<string, mixed>> Danh sach du an rut gon cho select/filter.
      */
     public function getAllProjects()
     {
@@ -92,6 +113,10 @@ class ProjectModel extends Model
         return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * @param array<string, mixed> $filters Bo loc tim kiem va trang thai.
+     * @return array<int, array<string, mixed>> Danh sach du an kem thong tin tong hop.
+     */
     public function getAllProjectsWithFilters($filters = [])
     {
         $sql = "SELECT p.*, u.name AS owner_name, u.email AS owner_email, ps.name as status_name, ps.color as status_color, ps.slug as status_slug,
@@ -125,6 +150,13 @@ class ProjectModel extends Model
      * 
      * @param int $id ID của dự án
      * @return array|bool Thông tin dự án hoặc false nếu không tìm thấy
+     *
+     * =============================================================
+     * NHOM TRUY VAN CHI TIET DU AN
+     * =============================================================
+     *
+     * @param int|string $id ID du an can tim.
+     * @return array<string, mixed>|false Thong tin du an, hoac false neu khong tim thay.
      */
     public function find($id)
     {
@@ -146,6 +178,13 @@ class ProjectModel extends Model
      * 
      * @param int $projectId ID dự án
      * @return array Danh sách thành viên và vai trò của họ
+     *
+     * =============================================================
+     * NHOM THANH VIEN DU AN
+     * =============================================================
+     *
+     * @param int|string $projectId ID du an can lay thanh vien.
+     * @return array<int, array<string, mixed>> Danh sach thanh vien du an.
      */
     public function getProjectMembers($projectId)
     {
@@ -162,6 +201,13 @@ class ProjectModel extends Model
      * 
      * @param int $projectId ID dự án
      * @return array Danh sách các công việc được sắp xếp theo thời gian tạo mới nhất
+     *
+     * =============================================================
+     * NHOM CONG VIEC THUOC DU AN
+     * =============================================================
+     *
+     * @param int|string $projectId ID du an can lay cong viec.
+     * @return array<int, array<string, mixed>> Danh sach cong viec cua du an.
      */
     public function getProjectTasks($projectId)
     {
@@ -184,10 +230,12 @@ class ProjectModel extends Model
                     FROM tasks t
                     LEFT JOIN task_assignments ta
                         ON ta.task_id = t.id
+                        AND ta.deleted_at IS NULL
                         AND ta.assigned_at = (
                             SELECT MAX(ta_latest.assigned_at)
                             FROM task_assignments ta_latest
                             WHERE ta_latest.task_id = t.id
+                              AND ta_latest.deleted_at IS NULL
                         )
                     LEFT JOIN users u ON ta.user_id = u.id
                     LEFT JOIN task_statuses ts ON t.status_id = ts.id
@@ -204,6 +252,13 @@ class ProjectModel extends Model
      * 
      * @param array $data Dữ liệu dự án
      * @return int ID của dự án vừa tạo
+     *
+     * =============================================================
+     * NHOM GHI DU LIEU DU AN
+     * =============================================================
+     *
+     * @param array<string, mixed> $data Du lieu du an can tao.
+     * @return int ID du an vua tao.
      */
     public function createWithProjectCode($data)
     {
@@ -249,6 +304,10 @@ class ProjectModel extends Model
      * @param int $id ID dự án cần cập nhật
      * @param array $data Dữ liệu mới
      * @return PDOStatement
+     *
+     * @param int|string $id ID du an can cap nhat.
+     * @param array<string, mixed> $data Du lieu moi cua du an.
+     * @return mixed Ket qua truy van update tu database layer.
      */
     public function update($id, $data)
     {
@@ -276,6 +335,11 @@ class ProjectModel extends Model
 
     /**
      * Thêm thành viên vào dự án
+     *
+     * @param int|string $projectId ID du an can them thanh vien.
+     * @param int|string $userId ID nguoi dung duoc them.
+     * @param string $role Vai tro thanh vien trong du an.
+     * @return mixed Ket qua truy van insert tu database layer.
      */
     public function addMember($projectId, $userId, $role)
     {
@@ -293,6 +357,10 @@ class ProjectModel extends Model
 
     /**
      * Kiểm tra xem người dùng đã là thành viên dự án chưa
+     *
+     * @param int|string $projectId ID du an can kiem tra.
+     * @param int|string $userId ID nguoi dung can kiem tra.
+     * @return bool True neu nguoi dung da la thanh vien du an.
      */
     public function isMemberExists($projectId, $userId)
     {
@@ -302,6 +370,11 @@ class ProjectModel extends Model
         return (int)$this->db->query($sql, ['project_id' => (int) $projectId, 'user_id' => (int) $userId])->fetchColumn() > 0;
     }
 
+    /**
+     * @param int|string $projectId ID du an can kiem tra.
+     * @param int|string $userId ID nguoi dung can kiem tra.
+     * @return bool True neu nguoi dung dang la thanh vien active.
+     */
     public function isActiveMember($projectId, $userId)
     {
         $sql = "SELECT COUNT(*) FROM {$this->tableProjectMember}
@@ -320,6 +393,9 @@ class ProjectModel extends Model
      * 
      * @param int $id ID dự án
      * @return bool
+     *
+     * @param int|string $id ID du an can xoa mem.
+     * @return bool True neu xoa mem thanh cong.
      */
     public function delete($id)
     {
@@ -327,6 +403,14 @@ class ProjectModel extends Model
         return (bool)$this->db->query($sql, ['id' => (int) $id]);
     }
 
+    /**
+     * =============================================================
+     * NHOM DEM VA PHAN TRANG DU AN
+     * =============================================================
+     *
+     * @param array<string, mixed> $filters Bo loc du an.
+     * @return int Tong so du an thoa bo loc.
+     */
     public function countAll($filters = [])
     {
         $sql = "SELECT COUNT(*) FROM {$this->table} p WHERE p.deleted_at IS NULL";
@@ -337,6 +421,13 @@ class ProjectModel extends Model
         return (int)$this->db->query($sql, $params)->fetchColumn();
     }
 
+    /**
+     * @param int|string $userId ID user dang xem danh sach du an tham gia.
+     * @param int $page Trang hien tai.
+     * @param int $perPage So ban ghi tren moi trang.
+     * @param array<string, mixed> $filters Bo loc du an.
+     * @return array<int, array<string, mixed>> Danh sach du an user duoc tham gia.
+     */
     public function getProjectsByPageForJoinedUser($userId, $page, $perPage, $filters = [])
     {
         $offset = ($page - 1) * $perPage;
@@ -376,6 +467,11 @@ class ProjectModel extends Model
         return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * @param int|string $userId ID user can dem du an tham gia.
+     * @param array<string, mixed> $filters Bo loc du an.
+     * @return int Tong so du an user duoc tham gia.
+     */
     public function countForJoinedUser($userId, $filters = [])
     {
         $sql = "SELECT COUNT(*) FROM {$this->table} p

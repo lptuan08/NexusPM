@@ -17,6 +17,11 @@ class ProjectApiController extends Controller
     protected ProjectStatusModel $projectStatus;
     protected TaskStatusModel $taskStatus;
 
+    /**
+     * =============================================================
+     * NHOM KHOI TAO
+     * =============================================================
+     */
     public function __construct()
     {
         parent::__construct();
@@ -28,6 +33,10 @@ class ProjectApiController extends Controller
 
     /**
      * Trả về owner/status/mẫu task status/danh sách user/vai trò thành viên dự án (đúng key với createWizard.js).
+     *
+     * =============================================================
+     * NHOM API WIZARD DU AN
+     * =============================================================
      */
     public function getWizardData(): void
     {

@@ -7,6 +7,14 @@ class AuthModel extends Model
 {
     protected $table = 'users';
 
+    /**
+     * =============================================================
+     * NHOM TRUY VAN TAI KHOAN DANG NHAP
+     * =============================================================
+     *
+     * @param string $email Email dang nhap can tim.
+     * @return array|false Thong tin user kem vai tro, hoac false neu khong tim thay.
+     */
     public function findEmailUser($email)
     {
         $sql = "SELECT u.*, r.slug as role_slug, r.name as role_name 
@@ -17,6 +25,14 @@ class AuthModel extends Model
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * =============================================================
+     * NHOM TRUY VAN QUYEN HAN
+     * =============================================================
+     *
+     * @param int|string $roleId ID vai tro can lay danh sach quyen.
+     * @return array<int, string> Danh sach slug quyen cua vai tro.
+     */
     public function getPermissionSlugsByRoleId($roleId)
     {
         $sql = "SELECT p.slug

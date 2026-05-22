@@ -10,6 +10,11 @@ use App\core\View;
 
 class SettingsController extends Controller
 {
+    /**
+     * =============================================================
+     * NHOM HIEN THI CAI DAT HE THONG
+     * =============================================================
+     */
     public function index()
     {
 

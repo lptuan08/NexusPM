@@ -11,9 +11,23 @@ $old = $old ?? [];
 $errors = $errors ?? [];
 $statuses = $statuses ?? [];
 $statusesByProject = $statusesByProject ?? [];
+$task = $task ?? null;
+$isEditingTask = is_array($task) && !empty($task['id']);
 
-$selectedProjectId = (string) ($old['project_id'] ?? '');
+$selectedProjectId = (string) ($old['project_id'] ?? ($_GET['project_id'] ?? ''));
 $selectedStatusId = (string) ($old['status_id'] ?? '');
+$selectedProject = null;
+foreach ($projects as $projectOption) {
+    if ($selectedProjectId !== '' && (string) ($projectOption['id'] ?? '') === $selectedProjectId) {
+        $selectedProject = $projectOption;
+        break;
+    }
+}
+
+$projectSwitcherTitle = !empty($selectedProject['name']) ? (string) $selectedProject['name'] : 'Chọn dự án';
+$normalizeSearchText = static function (string $text): string {
+    return function_exists('mb_strtolower') ? mb_strtolower($text, 'UTF-8') : strtolower($text);
+};
 ?>
 
 <!-- Thêm CSS của Quill Editor -->
@@ -39,6 +53,29 @@ $selectedStatusId = (string) ($old['status_id'] ?? '');
         display: flex;
         flex-direction: column;
         min-height: 400px; /* Chiều cao tối thiểu đảm bảo giao diện đẹp */
+    }
+
+    .task-create-context-row {
+        min-height: 52px;
+    }
+
+    .task-create-context-row .project-switcher-item {
+        border: 0;
+        background: transparent;
+        text-align: left;
+    }
+
+    .task-create-context-error {
+        padding-left: 0.5rem;
+    }
+
+    .task-create-context-row .project-switcher-trigger:disabled {
+        cursor: not-allowed;
+        opacity: 1;
+    }
+
+    .task-create-context-row .project-switcher-trigger:disabled .project-switcher-chevron {
+        color: var(--slate-300);
     }
 
     .ql-toolbar.ql-snow {
@@ -72,28 +109,113 @@ $selectedStatusId = (string) ($old['status_id'] ?? '');
         <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
         <span class="page-title"><?= htmlspecialchars($pageTitle) ?></span>
     </div>
-
-    <div class="page-actions">
-        <div class="d-flex gap-2">
-            <a href="<?= URLROOT ?>/tasks" class="btn btn-outline-secondary">
-                <i data-lucide="arrow-left" size="18"></i>
-                <span>Trở về</span>
-            </a>
-            <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('taskForm').reset();">
-                <i data-lucide="refresh-ccw" size="18"></i>
-                <span>Làm mới</span>
-            </button>
-            <button type="submit" form="taskForm" class="btn btn-primary shadow-sm">
-                <i data-lucide="check-circle" size="18"></i>
-                <span>Lưu lại</span>
-            </button>
-        </div>
-    </div>
 </div>
 
 <div class="container-fluid p-0">
     <form action="<?= $action_url ?>" method="POST" id="taskForm" class="form-main-container m-0 pb-5">
         <?php \App\helpers\SecurityHelper::csrfInput(); ?>
+        <input type="hidden" name="project_id" id="task_project_id" value="<?= htmlspecialchars($selectedProjectId, ENT_QUOTES, 'UTF-8') ?>">
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 px-1 task-create-context-row">
+            <div>
+                <div class="project-context d-flex align-items-center gap-3 min-vw-0" id="taskProjectContext">
+                    <div class="dropdown tasks-project-dropdown project-switcher" data-project-switcher>
+                        <button class="btn btn-link project-switcher-trigger text-decoration-none shadow-none border-0" type="button" <?= $isEditingTask ? 'disabled aria-disabled="true" title="Không thể đổi dự án khi chỉnh sửa công việc"' : 'data-bs-toggle="dropdown" data-bs-offset="0,8" aria-expanded="false"' ?>>
+                            <span class="project-switcher-icon">
+                                <i data-lucide="folder-kanban"></i>
+                            </span>
+                            <span class="project-switcher-text">
+                                <span class="project-switcher-eyebrow">Dự án</span>
+                                <span class="project-switcher-title" data-task-project-title><?= htmlspecialchars($projectSwitcherTitle, ENT_QUOTES, 'UTF-8') ?></span>
+                            </span>
+                            <i data-lucide="<?= $isEditingTask ? 'lock' : 'chevron-down' ?>" class="project-switcher-chevron"></i>
+                        </button>
+
+                        <ul class="dropdown-menu dropdown-menu-start shadow-xl border-0">
+                            <li class="project-switcher-search px-3 py-2">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-white text-slate-400">
+                                        <i data-lucide="search" size="16"></i>
+                                    </span>
+                                    <input type="search" class="form-control border-start-0" placeholder="Tìm dự án..." data-project-switcher-search>
+                                </div>
+                            </li>
+
+                            <li class="px-0 py-0">
+                                <div class="project-dropdown-scroll">
+                                    <?php foreach ($projects as $project): ?>
+                                        <?php
+                                        $projectId = (string) ($project['id'] ?? '');
+                                        $isCurrentProject = $selectedProjectId !== '' && $selectedProjectId === $projectId;
+                                        $projectName = (string) ($project['name'] ?? 'Dự án');
+                                        $projectCode = (string) ($project['project_code'] ?? '');
+                                        $statusName = (string) ($project['status_name'] ?? '');
+                                        $statusColor = (string) ($project['status_color'] ?? '#64748b');
+                                        $searchText = $normalizeSearchText(trim($projectName . ' ' . $projectCode . ' ' . $statusName));
+                                        ?>
+                                        <button type="button"
+                                            class="dropdown-item project-switcher-item <?= $isCurrentProject ? 'active' : '' ?>"
+                                            data-project-switcher-item
+                                            data-task-project-option
+                                            data-project-id="<?= htmlspecialchars($projectId, ENT_QUOTES, 'UTF-8') ?>"
+                                            data-project-name="<?= htmlspecialchars($projectName, ENT_QUOTES, 'UTF-8') ?>"
+                                            data-project-code="<?= htmlspecialchars($projectCode, ENT_QUOTES, 'UTF-8') ?>"
+                                            data-project-status-name="<?= htmlspecialchars($statusName, ENT_QUOTES, 'UTF-8') ?>"
+                                            data-project-status-color="<?= htmlspecialchars($statusColor, ENT_QUOTES, 'UTF-8') ?>"
+                                            data-project-search="<?= htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8') ?>">
+                                            <span class="project-switcher-item-icon">
+                                                <i data-lucide="folder"></i>
+                                            </span>
+                                            <span class="project-switcher-item-main">
+                                                <span class="project-switcher-item-title"><?= htmlspecialchars($projectName, ENT_QUOTES, 'UTF-8') ?></span>
+                                                <span class="project-switcher-item-meta">
+                                                    <?= htmlspecialchars($projectCode !== '' ? $projectCode : 'Chưa có mã', ENT_QUOTES, 'UTF-8') ?>
+                                                    <?php if ($statusName !== ''): ?>
+                                                        <span class="project-switcher-dot">&middot;</span>
+                                                        <?= htmlspecialchars($statusName, ENT_QUOTES, 'UTF-8') ?>
+                                                    <?php endif; ?>
+                                                </span>
+                                            </span>
+                                            <i data-lucide="check" class="project-switcher-check <?= $isCurrentProject ? '' : 'd-none' ?>"></i>
+                                        </button>
+                                    <?php endforeach; ?>
+
+                                    <div class="project-switcher-empty d-none" data-project-switcher-empty>
+                                        Không tìm thấy dự án phù hợp.
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="project-context-meta d-flex align-items-center gap-2 border-start border-slate-200 <?= $selectedProject ? '' : 'd-none' ?>" data-task-project-meta>
+                        <span class="text-slate-500 small fw-medium <?= !empty($selectedProject['project_code']) ? '' : 'd-none' ?>" data-task-project-code><?= htmlspecialchars((string) ($selectedProject['project_code'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
+                        <span class="status-pill py-0 px-2 <?= !empty($selectedProject['status_name']) ? '' : 'd-none' ?>" style="font-size: 11px; background-color: <?= htmlspecialchars((string) ($selectedProject['status_color'] ?? '#64748b'), ENT_QUOTES, 'UTF-8') ?>20; color: <?= htmlspecialchars((string) ($selectedProject['status_color'] ?? '#64748b'), ENT_QUOTES, 'UTF-8') ?>;" data-task-project-status>
+                            <?= htmlspecialchars((string) ($selectedProject['status_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="text-danger small mt-1 task-create-context-error <?= isset($errors['project_id']) ? '' : 'd-none' ?>" data-task-project-error>
+                    <?= htmlspecialchars((string) ($errors['project_id'] ?? 'Vui lòng chọn dự án.'), ENT_QUOTES, 'UTF-8') ?>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <a href="<?= URLROOT ?>/tasks" class="btn btn-outline-secondary">
+                    <i data-lucide="arrow-left" size="18"></i>
+                    <span>Trở về</span>
+                </a>
+                <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('taskForm').reset();">
+                    <i data-lucide="refresh-ccw" size="18"></i>
+                    <span>Làm mới</span>
+                </button>
+                <button type="submit" form="taskForm" class="btn btn-primary shadow-sm">
+                    <i data-lucide="check-circle" size="18"></i>
+                    <span>Lưu lại</span>
+                </button>
+            </div>
+        </div>
 
         <div class="row g-4">
             <!-- Cột trái: Nội dung chính -->
@@ -123,17 +245,9 @@ $selectedStatusId = (string) ($old['status_id'] ?? '');
             <div class="col-lg-4">
                 <!-- Bỏ h-100 để sticky-sidebar-card hoạt động chính xác -->
                 <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 sticky-sidebar-card">
-                        <div class="form-group-stack mb-4">
-                            <label class="form-label">Dự án <span class="text-danger">*</span></label>
-                            <select name="project_id" id="task_project_id" class="form-select select2" required>
-                                <option value="">-- Chọn dự án --</option>
-                                <?php foreach ($projects as $project): ?>
-                                    <option value="<?= $project['id'] ?>" <?= (isset($old['project_id']) && (string) $old['project_id'] === (string) $project['id']) ? 'selected' : '' ?>><?= htmlspecialchars($project['name']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                            <?php if (isset($errors['project_id'])): ?>
-                                <div class="text-danger small mt-1"><?= $errors['project_id'] ?></div>
-                            <?php endif; ?>
+                        <div class="d-flex align-items-center gap-2 mb-4">
+                            <i data-lucide="sliders-horizontal" size="18" class="text-slate-500"></i>
+                            <h6 class="fw-bold text-slate-800 mb-0">Thuộc tính công việc</h6>
                         </div>
 
                         <div class="form-group-stack mb-4">
@@ -214,8 +328,15 @@ $selectedStatusId = (string) ($old['status_id'] ?? '');
         const statusesByProject = <?= json_encode($statusesByProject, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
         const initialProjectId = <?= json_encode($selectedProjectId) ?>;
         const initialStatusId = <?= json_encode($selectedStatusId) ?>;
+        const isEditingTask = <?= json_encode($isEditingTask) ?>;
         const projectSelect = document.getElementById('task_project_id');
         const statusSelect = document.getElementById('task_status_id');
+        const projectTitle = document.querySelector('[data-task-project-title]');
+        const projectMeta = document.querySelector('[data-task-project-meta]');
+        const projectCode = document.querySelector('[data-task-project-code]');
+        const projectStatus = document.querySelector('[data-task-project-status]');
+        const projectError = document.querySelector('[data-task-project-error]');
+        const projectOptions = Array.from(document.querySelectorAll('[data-task-project-option]'));
 
         function renderStatuses(projectId, preferredStatusId = '') {
             if (!statusSelect) return;
@@ -245,10 +366,77 @@ $selectedStatusId = (string) ($old['status_id'] ?? '');
             statusSelect.disabled = false;
         }
 
+        function updateProjectSwitcher(option) {
+            projectOptions.forEach(function(item) {
+                const isActive = option && item === option;
+                item.classList.toggle('active', isActive);
+
+                const checkIcon = item.querySelector('.project-switcher-check');
+                if (checkIcon) {
+                    checkIcon.classList.toggle('d-none', !isActive);
+                }
+            });
+
+            if (!projectTitle || !projectMeta) return;
+
+            if (!option) {
+                projectTitle.textContent = 'Chọn dự án';
+                projectMeta.classList.add('d-none');
+
+                if (projectCode) {
+                    projectCode.textContent = '';
+                    projectCode.classList.add('d-none');
+                }
+
+                if (projectStatus) {
+                    projectStatus.textContent = '';
+                    projectStatus.classList.add('d-none');
+                }
+                return;
+            }
+
+            projectTitle.textContent = option.dataset.projectName || 'Dự án';
+            projectMeta.classList.remove('d-none');
+
+            if (projectCode) {
+                projectCode.textContent = option.dataset.projectCode || '';
+                projectCode.classList.toggle('d-none', !option.dataset.projectCode);
+            }
+
+            if (projectStatus) {
+                projectStatus.textContent = option.dataset.projectStatusName || '';
+                projectStatus.classList.toggle('d-none', !option.dataset.projectStatusName);
+                const statusColor = option.dataset.projectStatusColor || '#64748b';
+                projectStatus.style.backgroundColor = statusColor + '20';
+                projectStatus.style.color = statusColor;
+            }
+        }
+
         if (projectSelect && statusSelect) {
             renderStatuses(projectSelect.value || initialProjectId, initialStatusId);
-            projectSelect.addEventListener('change', function() {
-                renderStatuses(this.value);
+        }
+
+        if (!isEditingTask) {
+            projectOptions.forEach(function(option) {
+                option.addEventListener('click', function() {
+                    const projectId = this.dataset.projectId || '';
+                    if (projectSelect) {
+                        projectSelect.value = projectId;
+                    }
+
+                    if (projectError) {
+                        projectError.classList.add('d-none');
+                    }
+
+                    updateProjectSwitcher(this);
+                    renderStatuses(projectId);
+
+                    const dropdown = this.closest('.dropdown');
+                    if (dropdown && window.bootstrap && window.bootstrap.Dropdown) {
+                        const trigger = dropdown.querySelector('[data-bs-toggle="dropdown"]');
+                        window.bootstrap.Dropdown.getOrCreateInstance(trigger).hide();
+                    }
+                });
             });
         }
 
@@ -286,7 +474,37 @@ $selectedStatusId = (string) ($old['status_id'] ?? '');
         // Xử lý đồng bộ dữ liệu Quill trước khi submit form
         const form = document.getElementById('taskForm');
         if (form) {
+            form.addEventListener('reset', function() {
+                window.setTimeout(function() {
+                    const initialOption = projectOptions.find(function(option) {
+                        return String(option.dataset.projectId || '') === String(initialProjectId || '');
+                    });
+
+                    if (projectSelect) {
+                        projectSelect.value = initialProjectId || '';
+                    }
+
+                    updateProjectSwitcher(initialOption || null);
+                    renderStatuses(initialProjectId || '', initialStatusId);
+                }, 0);
+            });
+
             form.addEventListener('submit', function(e) {
+                if (projectSelect && !projectSelect.value) {
+                    e.preventDefault();
+
+                    if (projectError) {
+                        projectError.textContent = 'Vui lòng chọn dự án.';
+                        projectError.classList.remove('d-none');
+                    }
+
+                    const projectTrigger = document.querySelector('#taskProjectContext [data-bs-toggle="dropdown"]');
+                    if (projectTrigger) {
+                        projectTrigger.focus();
+                    }
+                    return;
+                }
+
                 // Lấy nội dung HTML từ Quill và gán vào hidden input
                 const descriptionInput = document.getElementById('description-input');
                 

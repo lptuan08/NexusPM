@@ -14,6 +14,11 @@ class RoleController extends Controller
     protected RoleModel $modelRole;
     protected PermissionModel $modelPermission;
 
+    /**
+     * =============================================================
+     * NHOM KHOI TAO
+     * =============================================================
+     */
     public function __construct()
     {
         parent::__construct();
@@ -21,6 +26,11 @@ class RoleController extends Controller
         $this->modelPermission = $this->model('PermissionModel');
     }
 
+    /**
+     * =============================================================
+     * NHOM HIEN THI VAI TRO
+     * =============================================================
+     */
     public function index()
     {
         $roles = $this->getRolesWithCount();
@@ -32,6 +42,10 @@ class RoleController extends Controller
 
     /**
      * Hỗ trợ lấy danh sách vai trò kèm số lượng quyền tương ứng
+     *
+     * =============================================================
+     * NHOM HO TRO HIEN THI
+     * =============================================================
      */
     private function getRolesWithCount()
     {
@@ -42,6 +56,11 @@ class RoleController extends Controller
         return $roles;
     }
 
+    /**
+     * =============================================================
+     * NHOM TAO MOI VAI TRO
+     * =============================================================
+     */
     public function store()
     {
         if ($this->request->isPost()) {
@@ -70,6 +89,11 @@ class RoleController extends Controller
         }
     }
 
+    /**
+     * =============================================================
+     * NHOM CAP NHAT VAI TRO
+     * =============================================================
+     */
     public function update(string $id)
     {
         if ($this->request->isPost()) {
@@ -110,6 +134,11 @@ class RoleController extends Controller
         }
     }
 
+    /**
+     * =============================================================
+     * NHOM XOA VAI TRO
+     * =============================================================
+     */
     public function delete(string $id)
     {
         if (!$this->request->isPost()) {
@@ -134,6 +163,11 @@ class RoleController extends Controller
 
 
 
+    /**
+     * =============================================================
+     * NHOM KIEM TRA DU LIEU VAI TRO
+     * =============================================================
+     */
     public function validateForm(array $data, $id = null)
     {
         $this->validator->required('name', $data['name'], "Tên vai trò");

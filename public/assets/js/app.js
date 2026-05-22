@@ -46,6 +46,41 @@ window.NexusPM = Object.assign(window.NexusPM || {}, {
 });
 
 // Xử lý chọn tất cả checkbox trong bảng
+function initProjectSwitchers() {
+    document.querySelectorAll('[data-project-switcher]').forEach(switcher => {
+        const searchInput = switcher.querySelector('[data-project-switcher-search]');
+        const items = Array.from(switcher.querySelectorAll('[data-project-switcher-item]'));
+        const emptyState = switcher.querySelector('[data-project-switcher-empty]');
+
+        if (!searchInput || searchInput.dataset.bound === 'true') return;
+        searchInput.dataset.bound = 'true';
+
+        searchInput.addEventListener('click', event => {
+            event.stopPropagation();
+        });
+
+        searchInput.addEventListener('keydown', event => {
+            event.stopPropagation();
+        });
+
+        searchInput.addEventListener('input', () => {
+            const keyword = searchInput.value.trim().toLocaleLowerCase('vi-VN');
+            let visibleCount = 0;
+
+            items.forEach(item => {
+                const haystack = item.dataset.projectSearch || '';
+                const isVisible = keyword === '' || haystack.includes(keyword);
+                item.classList.toggle('d-none', !isVisible);
+                if (isVisible) visibleCount++;
+            });
+
+            if (emptyState) {
+                emptyState.classList.toggle('d-none', visibleCount > 0);
+            }
+        });
+    });
+}
+
 const selectAll = document.getElementById('selectAll');
 if (selectAll) {
     selectAll.addEventListener('change', function () {
@@ -78,5 +113,6 @@ function showDeleteModal(url, message) {
 
 document.addEventListener('DOMContentLoaded', function () {
     setActiveSidebarLink();
+    initProjectSwitchers();
     refreshIcons();
 });

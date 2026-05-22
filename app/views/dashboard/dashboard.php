@@ -1,106 +1,173 @@
 <?php
 $canCreateProject = \App\helpers\AuthHelper::can('projects.create.all');
 
+$scopeTabs = [
+    ['label' => 'Của tôi', 'active' => true],
+    ['label' => 'Team', 'active' => false],
+    ['label' => 'Tất cả', 'active' => false],
+];
+
 $kpiCards = [
-    [
-        'label' => 'Nhân viên',
-        'value' => '120',
-        'meta' => '+8 trong tháng',
-        'icon' => 'users',
-        'tone' => 'primary',
-        'href' => URLROOT . '/users',
-    ],
-    [
-        'label' => 'Tổng dự án',
-        'value' => '45',
-        'meta' => '12 dự án mới',
-        'icon' => 'folder-open',
-        'tone' => 'violet',
-        'href' => URLROOT . '/projects',
-    ],
-    [
-        'label' => 'Đang thực hiện',
-        'value' => '28',
-        'meta' => '62% danh mục',
-        'icon' => 'activity',
-        'tone' => 'warning',
-        'href' => URLROOT . '/projects',
-    ],
     [
         'label' => 'Quá hạn',
         'value' => '07',
-        'meta' => 'Cần xử lý',
+        'meta' => '3 việc ưu tiên cao',
         'icon' => 'alert-triangle',
         'tone' => 'danger',
         'href' => URLROOT . '/tasks',
     ],
-];
-
-$featuredProjects = [
     [
-        'name' => 'Phát triển ứng dụng Nexus',
-        'code' => 'NX-APP',
-        'desc' => 'Xây dựng hệ thống quản lý dự án nội bộ cho doanh nghiệp.',
-        'progress' => 75,
-        'daysLeft' => 2,
-        'owner' => 'Nguyễn An',
-        'icon' => 'smartphone',
+        'label' => 'Đến hạn hôm nay',
+        'value' => '12',
+        'meta' => '5 việc của tôi',
+        'icon' => 'calendar-clock',
+        'tone' => 'amber',
+        'href' => URLROOT . '/tasks',
+    ],
+    [
+        'label' => 'Đang mở',
+        'value' => '38',
+        'meta' => '9 việc chưa phân công',
+        'icon' => 'list-todo',
         'tone' => 'primary',
-        'stage' => 'Sprint 05',
+        'href' => URLROOT . '/tasks',
     ],
     [
-        'name' => 'Nâng cấp API Backend',
-        'code' => 'NX-API',
-        'desc' => 'Tối ưu hóa tốc độ xử lý dữ liệu và bảo mật hệ thống.',
-        'progress' => 40,
-        'daysLeft' => 10,
-        'owner' => 'Trần Bình',
-        'icon' => 'server',
+        'label' => 'Dự án rủi ro',
+        'value' => '04',
+        'meta' => 'Cần PM rà soát',
+        'icon' => 'radar',
         'tone' => 'rose',
-        'stage' => 'Hardening',
-    ],
-    [
-        'name' => 'Module Báo cáo vận hành',
-        'code' => 'NX-RPT',
-        'desc' => 'Chuẩn hóa số liệu tiến độ, chi phí và năng lực đội nhóm.',
-        'progress' => 58,
-        'daysLeft' => 6,
-        'owner' => 'Lê Chi',
-        'icon' => 'bar-chart-3',
-        'tone' => 'cyan',
-        'stage' => 'Discovery',
+        'href' => URLROOT . '/projects',
     ],
 ];
 
 $priorityMap = [
+    'urgent' => ['label' => 'Khẩn cấp', 'class' => 'priority-urgent'],
     'high' => ['label' => 'Cao', 'class' => 'priority-high'],
     'medium' => ['label' => 'Trung bình', 'class' => 'priority-medium'],
     'low' => ['label' => 'Thấp', 'class' => 'priority-low'],
 ];
 
-$myTasks = [
-    ['title' => 'Thiết kế UI Dashboard', 'project' => 'NexusPM', 'prio' => 'high', 'due' => 'Hôm nay', 'done' => false, 'tone' => 'primary'],
-    ['title' => 'Fix lỗi CSS trên Mobile', 'project' => 'Website Công ty', 'prio' => 'medium', 'due' => 'Ngày mai', 'done' => false, 'tone' => 'amber'],
-    ['title' => 'Viết tài liệu hướng dẫn', 'project' => 'Đào tạo', 'prio' => 'low', 'due' => '15/10', 'done' => true, 'tone' => 'emerald'],
-    ['title' => 'Kiểm tra bảo mật API', 'project' => 'NexusPM', 'prio' => 'high', 'due' => 'Hôm nay', 'done' => false, 'tone' => 'rose'],
+$actionTasks = [
+    [
+        'title' => 'Chốt luồng tạo dự án wizard',
+        'project' => 'NexusPM',
+        'assignee' => 'Bạn',
+        'prio' => 'urgent',
+        'due' => 'Quá hạn 1 ngày',
+        'reason' => 'Đang chặn QA kiểm thử luồng onboarding',
+        'status' => 'In Review',
+        'tone' => 'danger',
+        'href' => URLROOT . '/tasks',
+    ],
+    [
+        'title' => 'Rà soát quyền xem dự án theo thành viên',
+        'project' => 'NexusPM',
+        'assignee' => 'Nguyễn An',
+        'prio' => 'high',
+        'due' => 'Hôm nay',
+        'reason' => 'Có nguy cơ lộ dữ liệu dự án ngoài phạm vi',
+        'status' => 'Đang xử lý',
+        'tone' => 'rose',
+        'href' => URLROOT . '/tasks',
+    ],
+    [
+        'title' => 'Bổ sung trạng thái hoàn thành cho Kanban',
+        'project' => 'Module Báo cáo',
+        'assignee' => 'Lê Chi',
+        'prio' => 'high',
+        'due' => 'Hôm nay',
+        'reason' => 'Tiến độ báo cáo đang tính sai khi status tùy chỉnh',
+        'status' => 'Todo',
+        'tone' => 'amber',
+        'href' => URLROOT . '/tasks',
+    ],
+    [
+        'title' => 'Cập nhật tài liệu bàn giao API',
+        'project' => 'Nâng cấp API Backend',
+        'assignee' => 'Trần Bình',
+        'prio' => 'medium',
+        'due' => 'Ngày mai',
+        'reason' => 'Đội frontend cần contract mới để tích hợp',
+        'status' => 'Đang xử lý',
+        'tone' => 'primary',
+        'href' => URLROOT . '/tasks',
+    ],
+];
+
+$riskProjects = [
+    [
+        'name' => 'Phát triển ứng dụng Nexus',
+        'code' => 'NX-APP',
+        'owner' => 'Nguyễn An',
+        'progress' => 64,
+        'daysLeft' => 2,
+        'overdue' => 3,
+        'health' => 'Rủi ro cao',
+        'signal' => 'Deadline gần, còn nhiều task review chưa đóng.',
+        'tone' => 'danger',
+        'icon' => 'flame',
+        'href' => URLROOT . '/projects',
+    ],
+    [
+        'name' => 'Module Báo cáo vận hành',
+        'code' => 'NX-RPT',
+        'owner' => 'Lê Chi',
+        'progress' => 42,
+        'daysLeft' => 7,
+        'overdue' => 2,
+        'health' => 'Đang chậm',
+        'signal' => 'Tiến độ thấp hơn kế hoạch tuần này 18%.',
+        'tone' => 'amber',
+        'icon' => 'trending-down',
+        'href' => URLROOT . '/projects',
+    ],
+    [
+        'name' => 'Nâng cấp API Backend',
+        'code' => 'NX-API',
+        'owner' => 'Trần Bình',
+        'progress' => 71,
+        'daysLeft' => 10,
+        'overdue' => 1,
+        'health' => 'Cần theo dõi',
+        'signal' => 'Một task bảo mật đang đứng yên 4 ngày.',
+        'tone' => 'primary',
+        'icon' => 'shield-alert',
+        'href' => URLROOT . '/projects',
+    ],
+];
+
+$workloadMembers = [
+    ['name' => 'Nguyễn An', 'role' => 'PM', 'tasks' => 11, 'overdue' => 2, 'capacity' => 94, 'tone' => 'danger'],
+    ['name' => 'Lê Chi', 'role' => 'Frontend', 'tasks' => 9, 'overdue' => 1, 'capacity' => 86, 'tone' => 'amber'],
+    ['name' => 'Trần Bình', 'role' => 'Backend', 'tasks' => 7, 'overdue' => 0, 'capacity' => 72, 'tone' => 'primary'],
+    ['name' => 'Hoàng Yến', 'role' => 'QA', 'tasks' => 5, 'overdue' => 0, 'capacity' => 58, 'tone' => 'emerald'],
+];
+
+$taskFlow = [
+    ['label' => 'Todo', 'count' => 14, 'tone' => 'slate'],
+    ['label' => 'Đang xử lý', 'count' => 16, 'tone' => 'primary'],
+    ['label' => 'Review', 'count' => 8, 'tone' => 'amber'],
+    ['label' => 'Hoàn thành', 'count' => 23, 'tone' => 'emerald'],
 ];
 
 $activities = [
-    ['name' => 'Nguyễn An', 'act' => 'hoàn thành', 'target' => 'Thiết kế UI', 'time' => '5 phút trước', 'icon' => 'check-circle-2', 'tone' => 'emerald'],
-    ['name' => 'Trần Bình', 'act' => 'được giao dự án', 'target' => 'NexusPM', 'time' => '12 phút trước', 'icon' => 'folder-plus', 'tone' => 'primary'],
-    ['name' => 'Lê Chi', 'act' => 'cập nhật tiến độ', 'target' => 'Module Báo cáo', 'time' => '45 phút trước', 'icon' => 'trending-up', 'tone' => 'warning'],
-    ['name' => 'Phạm Duy', 'act' => 'gia nhập đội ngũ', 'target' => 'Backend', 'time' => '2 giờ trước', 'icon' => 'user-plus', 'tone' => 'slate'],
-    ['name' => 'Hoàng Yến', 'act' => 'gửi phê duyệt', 'target' => 'Hợp đồng dự án A', 'time' => '5 giờ trước', 'icon' => 'send', 'tone' => 'danger'],
+    ['name' => 'Nguyễn An', 'act' => 'chuyển', 'target' => 'Chốt luồng tạo dự án wizard', 'time' => '8 phút trước', 'icon' => 'arrow-right-left', 'tone' => 'primary'],
+    ['name' => 'Lê Chi', 'act' => 'báo rủi ro', 'target' => 'Module Báo cáo vận hành', 'time' => '24 phút trước', 'icon' => 'alert-circle', 'tone' => 'amber'],
+    ['name' => 'Trần Bình', 'act' => 'cập nhật deadline', 'target' => 'Nâng cấp API Backend', 'time' => '1 giờ trước', 'icon' => 'calendar-plus', 'tone' => 'rose'],
+    ['name' => 'Hoàng Yến', 'act' => 'hoàn thành kiểm thử', 'target' => 'Kanban kéo thả', 'time' => '3 giờ trước', 'icon' => 'check-circle-2', 'tone' => 'emerald'],
 ];
 
-$completionRate = 68;
-$openTaskCount = count(array_filter($myTasks, static fn ($task) => empty($task['done'])));
+$openActionCount = count($actionTasks);
+$urgentActionCount = count(array_filter($actionTasks, static fn ($task) => in_array($task['prio'], ['urgent', 'high'], true)));
+$teamCapacity = 78;
 ?>
 
 <div class="page-toolbar dashboard-toolbar">
     <div>
-        <h1 class="page-title">Tổng quan</h1>
-        <p class="page-subtitle">Theo dõi tiến độ dự án, công việc ưu tiên và hoạt động mới nhất.</p>
+        <h1 class="page-title">Tổng quan hôm nay</h1>
+        <p class="page-subtitle">Tập trung vào việc cần xử lý, rủi ro dự án và tải công việc của đội nhóm.</p>
     </div>
 
     <div class="page-actions">
@@ -118,24 +185,23 @@ $openTaskCount = count(array_filter($myTasks, static fn ($task) => empty($task['
 </div>
 
 <div class="dashboard-shell">
-    <section class="dashboard-hero">
-        <div class="dashboard-hero-content">
+    <section class="dashboard-command-center">
+        <div class="dashboard-command-copy">
             <span class="dashboard-eyebrow">NexusPM Workspace</span>
-            <h2>Trung tâm điều phối dự án</h2>
-            <p>Ưu tiên hôm nay: xử lý các công việc quá hạn, giữ nhịp các dự án trọng tâm và cập nhật tiến độ cho đội nhóm.</p>
+            <h2>Bàn điều phối công việc</h2>
+            <p>Có <?= (int) $openActionCount ?> việc cần xử lý ngay, trong đó <?= (int) $urgentActionCount ?> việc đang ở mức ưu tiên cao.</p>
         </div>
-        <div class="dashboard-health-panel" aria-label="Tỷ lệ hoàn thành">
-            <div class="dashboard-health-ring" style="--value: <?= (int) $completionRate ?>%;">
-                <span><?= (int) $completionRate ?>%</span>
-            </div>
-            <div>
-                <div class="fw-bold text-slate-900">Nhịp hoàn thành</div>
-                <div class="text-slate-500 small">Còn <?= (int) $openTaskCount ?> việc đang mở hôm nay</div>
-            </div>
+
+        <div class="dashboard-command-actions" aria-label="Phạm vi dữ liệu">
+            <?php foreach ($scopeTabs as $tab): ?>
+                <button type="button" class="dashboard-scope-tab <?= $tab['active'] ? 'active' : '' ?>">
+                    <?= htmlspecialchars($tab['label'], ENT_QUOTES, 'UTF-8') ?>
+                </button>
+            <?php endforeach; ?>
         </div>
     </section>
 
-    <section class="dashboard-kpi-grid" aria-label="Chỉ số tổng quan">
+    <section class="dashboard-kpi-grid" aria-label="Chỉ số cần hành động">
         <?php foreach ($kpiCards as $card): ?>
             <a href="<?= htmlspecialchars($card['href'], ENT_QUOTES, 'UTF-8') ?>" class="dashboard-kpi-card ui-card">
                 <div class="dashboard-kpi-icon tone-<?= htmlspecialchars($card['tone'], ENT_QUOTES, 'UTF-8') ?>">
@@ -156,50 +222,8 @@ $openTaskCount = count(array_filter($myTasks, static fn ($task) => empty($task['
             <section class="dashboard-section">
                 <div class="dashboard-section-header">
                     <div>
-                        <h3>Dự án trọng tâm</h3>
-                        <p>Các dự án cần được theo dõi sát trong tuần này.</p>
-                    </div>
-                    <a href="<?= URLROOT ?>/projects" class="btn btn-white border border-slate-200 shadow-none">
-                        <span>Xem tất cả</span>
-                        <i data-lucide="arrow-right" size="16"></i>
-                    </a>
-                </div>
-
-                <div class="dashboard-project-list">
-                    <?php foreach ($featuredProjects as $project): ?>
-                        <?php $isUrgent = $project['daysLeft'] <= 3; ?>
-                        <article class="dashboard-project-item dashboard-compact-card tone-card-<?= htmlspecialchars($project['tone'], ENT_QUOTES, 'UTF-8') ?>">
-                            <div class="dashboard-project-top">
-                                <div class="dashboard-project-icon tone-<?= htmlspecialchars($project['tone'], ENT_QUOTES, 'UTF-8') ?>">
-                                    <i data-lucide="<?= htmlspecialchars($project['icon'], ENT_QUOTES, 'UTF-8') ?>"></i>
-                                </div>
-                                <span class="ui-badge dashboard-code-badge"><?= htmlspecialchars($project['code'], ENT_QUOTES, 'UTF-8') ?></span>
-                            </div>
-                            <h4><?= htmlspecialchars($project['name'], ENT_QUOTES, 'UTF-8') ?></h4>
-                            <p><?= htmlspecialchars($project['desc'], ENT_QUOTES, 'UTF-8') ?></p>
-                            <div class="dashboard-project-meta">
-                                <span><i data-lucide="user" size="14"></i><?= htmlspecialchars($project['owner'], ENT_QUOTES, 'UTF-8') ?></span>
-                                <span><i data-lucide="milestone" size="14"></i><?= htmlspecialchars($project['stage'], ENT_QUOTES, 'UTF-8') ?></span>
-                                <span class="<?= $isUrgent ? 'text-danger fw-semibold' : '' ?>">
-                                    <i data-lucide="clock" size="14"></i><?= (int) $project['daysLeft'] ?> ngày
-                                </span>
-                            </div>
-                            <div class="dashboard-progress-row">
-                                <div class="progress progress-thin">
-                                    <div class="progress-bar tone-<?= htmlspecialchars($project['tone'], ENT_QUOTES, 'UTF-8') ?>" style="width: <?= (int) $project['progress'] ?>%"></div>
-                                </div>
-                                <strong><?= (int) $project['progress'] ?>%</strong>
-                            </div>
-                        </article>
-                    <?php endforeach; ?>
-                </div>
-            </section>
-
-            <section class="dashboard-section">
-                <div class="dashboard-section-header">
-                    <div>
-                        <h3>Việc cần làm hôm nay</h3>
-                        <p>Bạn còn <strong class="text-primary-600"><?= (int) $openTaskCount ?></strong> việc chưa hoàn thành.</p>
+                        <h3>Việc cần xử lý ngay</h3>
+                        <p>Các việc quá hạn, đến hạn hôm nay hoặc đang chặn người khác.</p>
                     </div>
                     <a href="<?= URLROOT ?>/tasks" class="btn btn-white border border-slate-200 shadow-none">
                         <span>Mở danh sách</span>
@@ -207,30 +231,74 @@ $openTaskCount = count(array_filter($myTasks, static fn ($task) => empty($task['
                     </a>
                 </div>
 
-                <div class="dashboard-task-list">
-                    <?php foreach ($myTasks as $task): ?>
+                <div class="dashboard-action-list">
+                    <?php foreach ($actionTasks as $task): ?>
                         <?php $priority = $priorityMap[$task['prio']] ?? $priorityMap['low']; ?>
-                        <article class="dashboard-task-item dashboard-compact-card tone-card-<?= htmlspecialchars($task['tone'], ENT_QUOTES, 'UTF-8') ?> <?= $task['done'] ? 'is-done' : '' ?>">
-                            <div class="dashboard-task-top">
-                                <input class="form-check-input dashboard-task-check" type="checkbox" <?= $task['done'] ? 'checked' : '' ?> aria-label="Đánh dấu hoàn thành">
-                                <span class="ui-badge <?= htmlspecialchars($priority['class'], ENT_QUOTES, 'UTF-8') ?>">
-                                    <?= htmlspecialchars($priority['label'], ENT_QUOTES, 'UTF-8') ?>
-                                </span>
+                        <a href="<?= htmlspecialchars($task['href'], ENT_QUOTES, 'UTF-8') ?>" class="dashboard-action-item tone-card-<?= htmlspecialchars($task['tone'], ENT_QUOTES, 'UTF-8') ?>">
+                            <div class="dashboard-action-status">
+                                <span class="dashboard-status-dot"></span>
                             </div>
-                            <div class="dashboard-task-content">
-                                <h4><?= htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8') ?></h4>
-                                <div class="dashboard-task-meta">
+                            <div class="dashboard-action-content">
+                                <div class="dashboard-action-title-row">
+                                    <h4><?= htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8') ?></h4>
+                                    <span class="ui-badge <?= htmlspecialchars($priority['class'], ENT_QUOTES, 'UTF-8') ?>">
+                                        <?= htmlspecialchars($priority['label'], ENT_QUOTES, 'UTF-8') ?>
+                                    </span>
+                                </div>
+                                <p><?= htmlspecialchars($task['reason'], ENT_QUOTES, 'UTF-8') ?></p>
+                                <div class="dashboard-action-meta">
                                     <span><i data-lucide="briefcase" size="14"></i><?= htmlspecialchars($task['project'], ENT_QUOTES, 'UTF-8') ?></span>
-                                    <span><i data-lucide="calendar" size="14"></i><?= htmlspecialchars($task['due'], ENT_QUOTES, 'UTF-8') ?></span>
+                                    <span><i data-lucide="user" size="14"></i><?= htmlspecialchars($task['assignee'], ENT_QUOTES, 'UTF-8') ?></span>
+                                    <span><i data-lucide="calendar-clock" size="14"></i><?= htmlspecialchars($task['due'], ENT_QUOTES, 'UTF-8') ?></span>
+                                    <span><i data-lucide="circle-dot" size="14"></i><?= htmlspecialchars($task['status'], ENT_QUOTES, 'UTF-8') ?></span>
                                 </div>
                             </div>
-                            <div class="dashboard-task-footer">
-                                <span><i data-lucide="<?= $task['done'] ? 'check-circle-2' : 'circle-dot' ?>" size="14"></i><?= $task['done'] ? 'Hoàn tất' : 'Đang mở' ?></span>
-                                <button class="btn btn-icon-google dashboard-row-action" type="button" aria-label="Mở hành động">
-                                    <i data-lucide="more-vertical" size="16"></i>
-                                </button>
+                            <i data-lucide="chevron-right" class="dashboard-action-arrow"></i>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+
+            <section class="dashboard-section">
+                <div class="dashboard-section-header">
+                    <div>
+                        <h3>Dự án cần chú ý</h3>
+                        <p>Dự án có deadline gần, tiến độ thấp hoặc task bị kẹt.</p>
+                    </div>
+                    <a href="<?= URLROOT ?>/projects" class="btn btn-white border border-slate-200 shadow-none">
+                        <span>Xem dự án</span>
+                        <i data-lucide="arrow-right" size="16"></i>
+                    </a>
+                </div>
+
+                <div class="dashboard-project-list">
+                    <?php foreach ($riskProjects as $project): ?>
+                        <a href="<?= htmlspecialchars($project['href'], ENT_QUOTES, 'UTF-8') ?>" class="dashboard-project-item tone-card-<?= htmlspecialchars($project['tone'], ENT_QUOTES, 'UTF-8') ?>">
+                            <div class="dashboard-project-top">
+                                <div class="dashboard-project-icon tone-<?= htmlspecialchars($project['tone'], ENT_QUOTES, 'UTF-8') ?>">
+                                    <i data-lucide="<?= htmlspecialchars($project['icon'], ENT_QUOTES, 'UTF-8') ?>"></i>
+                                </div>
+                                <span class="ui-badge dashboard-code-badge"><?= htmlspecialchars($project['code'], ENT_QUOTES, 'UTF-8') ?></span>
                             </div>
-                        </article>
+                            <div>
+                                <h4><?= htmlspecialchars($project['name'], ENT_QUOTES, 'UTF-8') ?></h4>
+                                <p><?= htmlspecialchars($project['signal'], ENT_QUOTES, 'UTF-8') ?></p>
+                            </div>
+                            <div class="dashboard-project-meta">
+                                <span><i data-lucide="user" size="14"></i><?= htmlspecialchars($project['owner'], ENT_QUOTES, 'UTF-8') ?></span>
+                                <span><i data-lucide="clock" size="14"></i><?= (int) $project['daysLeft'] ?> ngày</span>
+                                <span><i data-lucide="alert-triangle" size="14"></i><?= (int) $project['overdue'] ?> quá hạn</span>
+                            </div>
+                            <div class="dashboard-progress-row">
+                                <div class="progress progress-thin">
+                                    <div class="progress-bar tone-<?= htmlspecialchars($project['tone'], ENT_QUOTES, 'UTF-8') ?>" style="width: <?= (int) $project['progress'] ?>%"></div>
+                                </div>
+                                <strong><?= (int) $project['progress'] ?>%</strong>
+                            </div>
+                            <div class="dashboard-risk-label">
+                                <?= htmlspecialchars($project['health'], ENT_QUOTES, 'UTF-8') ?>
+                            </div>
+                        </a>
                     <?php endforeach; ?>
                 </div>
             </section>
@@ -242,34 +310,55 @@ $openTaskCount = count(array_filter($myTasks, static fn ($task) => empty($task['
                     <h3>Tải công việc</h3>
                     <span class="ui-badge status-muted">Tuần này</span>
                 </div>
-                <div class="dashboard-workload">
-                    <div>
-                        <span>Thiết kế</span>
-                        <strong>12</strong>
+                <div class="dashboard-capacity-summary">
+                    <div class="dashboard-health-ring" style="--value: <?= (int) $teamCapacity ?>%;">
+                        <span><?= (int) $teamCapacity ?>%</span>
                     </div>
                     <div>
-                        <span>Backend</span>
-                        <strong>09</strong>
-                    </div>
-                    <div>
-                        <span>QA</span>
-                        <strong>06</strong>
+                        <strong>Công suất đội nhóm</strong>
+                        <p>2 thành viên đang gần ngưỡng quá tải.</p>
                     </div>
                 </div>
-                <div class="dashboard-capacity">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="small text-slate-500">Công suất đội nhóm</span>
-                        <strong class="small text-slate-800">82%</strong>
-                    </div>
-                    <div class="progress progress-thin">
-                        <div class="progress-bar tone-primary" style="width: 82%"></div>
-                    </div>
+
+                <div class="dashboard-workload-list">
+                    <?php foreach ($workloadMembers as $member): ?>
+                        <article class="dashboard-workload-item">
+                            <div>
+                                <strong><?= htmlspecialchars($member['name'], ENT_QUOTES, 'UTF-8') ?></strong>
+                                <span><?= htmlspecialchars($member['role'], ENT_QUOTES, 'UTF-8') ?> · <?= (int) $member['tasks'] ?> việc</span>
+                            </div>
+                            <div class="dashboard-workload-meter">
+                                <span class="<?= $member['overdue'] > 0 ? 'text-danger fw-semibold' : 'text-slate-500' ?>">
+                                    <?= (int) $member['overdue'] ?> quá hạn
+                                </span>
+                                <div class="progress progress-thin">
+                                    <div class="progress-bar tone-<?= htmlspecialchars($member['tone'], ENT_QUOTES, 'UTF-8') ?>" style="width: <?= (int) $member['capacity'] ?>%"></div>
+                                </div>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
                 </div>
             </section>
 
             <section class="ui-card dashboard-side-card">
                 <div class="dashboard-side-header">
-                    <h3>Hoạt động gần đây</h3>
+                    <h3>Luồng công việc</h3>
+                    <a href="<?= URLROOT ?>/tasks" class="text-decoration-none text-primary-600 small fw-semibold">Chi tiết</a>
+                </div>
+                <div class="dashboard-flow-list">
+                    <?php foreach ($taskFlow as $item): ?>
+                        <div class="dashboard-flow-item">
+                            <span class="dashboard-flow-dot tone-<?= htmlspecialchars($item['tone'], ENT_QUOTES, 'UTF-8') ?>"></span>
+                            <span><?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                            <strong><?= (int) $item['count'] ?></strong>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+
+            <section class="ui-card dashboard-side-card">
+                <div class="dashboard-side-header">
+                    <h3>Hoạt động liên quan</h3>
                     <a href="#" class="text-decoration-none text-primary-600 small fw-semibold">Xem thêm</a>
                 </div>
                 <div class="dashboard-activity-list">

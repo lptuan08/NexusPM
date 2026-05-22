@@ -10,6 +10,8 @@
  * @var array $currentFilters
  */
 $canCreateProject = \App\helpers\AuthHelper::can('projects.create.all');
+$listTableConfig = \App\helpers\ListTableHelper::config();
+$maxVisiblePages = max(1, (int) ($listTableConfig['max_visible_pages'] ?? 5));
 $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): string {
     $color = trim((string) $color);
     if (!preg_match('/^#(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/', $color)) {
@@ -33,51 +35,8 @@ $formatDate = static function ($date, string $format = 'd/m/Y'): string {
         max-width: 360px;
     }
 
-    .table-footer-outside {
-        background: transparent;
-        padding: 1rem 0;
-        border: none;
-    }
-
-    .table-container {
-        height: calc(100vh - 300px);
         /* Tính toán chiều cao dựa trên màn hình (trừ header/toolbar/footer) */
-        overflow-y: auto;
-        position: relative;
-    }
-
-    .table-custom thead {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-
     /* Tùy chỉnh phân trang */
-    .pagination {
-        gap: 0.5rem;
-    }
-
-    .pagination .page-link {
-        border-radius: 0.375rem !important;
-        border: 1px solid #e2e8f0;
-        color: #64748b;
-        min-width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 0.5rem;
-    }
-
-    .pagination .page-item.active .page-link {
-        background-color: #4f46e5;
-        border-color: #4f46e5;
-    }
-
-    .pagination .page-item.disabled .page-link {
-        background-color: #f8fafc;
-        color: #cbd5e1;
-    }
 </style>
 
 <div class="page-toolbar">
@@ -101,7 +60,7 @@ $formatDate = static function ($date, string $format = 'd/m/Y'): string {
     </div>
 </div>
 
-<div class="table-container">
+<div class="table-container table-container-paginated mb-3">
     <div class="table-responsive">
         <table class="table table-custom align-middle">
             <thead class="bg-slate-50">
@@ -143,8 +102,9 @@ $formatDate = static function ($date, string $format = 'd/m/Y'): string {
                                 </div>
                             </td>
                             <td>
-                                <span class="status-pill" style="border-left: 3px solid <?= htmlspecialchars($statusColor, ENT_QUOTES, 'UTF-8') ?>;">
-                                    <?= htmlspecialchars($statusName, ENT_QUOTES, 'UTF-8') ?>
+                                <span class="status-chip" style="--status-color: <?= htmlspecialchars($statusColor, ENT_QUOTES, 'UTF-8') ?>;">
+                                    <span class="status-chip-dot"></span>
+                                    <span class="status-chip-label"><?= htmlspecialchars($statusName, ENT_QUOTES, 'UTF-8') ?></span>
                                 </span>
                             </td>
                             <td class="text-meta">
@@ -244,7 +204,7 @@ $formatDate = static function ($date, string $format = 'd/m/Y'): string {
                 <?php endif; ?>
 
                 <?php
-                $max_visible = 5;
+                $max_visible = $maxVisiblePages;
                 if ($totalPage <= $max_visible):
                     for ($i = 1; $i <= $totalPage; $i++): ?>
                         <li class="page-item <?= ($i == $currentPage) ? 'active' : '' ?>">

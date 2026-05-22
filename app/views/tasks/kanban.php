@@ -46,57 +46,6 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         gap: 1rem;
     }
 
-    .tasks-project-dropdown > .dropdown-menu {
-        min-width: min(100vw - 1.5rem, 20rem);
-        max-width: min(100vw - 1.5rem, 22rem);
-        padding: 0.375rem 0;
-        margin-top: 0.35rem !important;
-        border-radius: 0.75rem;
-        box-shadow: 0 10px 40px -10px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(226, 232, 240, 0.8);
-        z-index: 1080;
-    }
-
-    .tasks-project-dropdown .project-dropdown-scroll {
-        max-height: min(52vh, 17.5rem);
-        overflow-y: auto;
-        overflow-x: hidden;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .tasks-project-dropdown .project-dropdown-scroll .dropdown-item {
-        gap: 0.5rem;
-        padding: 0.55rem 1rem;
-        white-space: normal;
-    }
-
-    .tasks-project-dropdown .project-dropdown-scroll .dropdown-item span:first-child {
-        flex: 1;
-        min-width: 0;
-        text-align: left;
-    }
-
-    .tasks-project-dropdown .dropdown-item.text-primary {
-        font-size: 0.9375rem;
-    }
-
-    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 999px;
-    }
-
-    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-    }
-
     .kanban-board-wrap {
         overflow-x: auto;
         padding-bottom: 0.75rem;
@@ -435,54 +384,25 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
 
 <div class="kanban-shell">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-3 px-1">
-        <div class="d-flex align-items-center gap-3 min-vw-0">
-            <div class="dropdown tasks-project-dropdown">
-                <button class="btn btn-link p-0 text-decoration-none d-flex align-items-center gap-2 shadow-none border-0" type="button" data-bs-toggle="dropdown" data-bs-offset="0,8" aria-expanded="false">
-                    <h4 class="mb-0 fw-bold text-slate-900 text-start text-truncate" style="max-width: min(70vw, 28rem);">
-                        <?= htmlspecialchars((string) ($selectedProject['name'] ?? 'Chọn dự án'), ENT_QUOTES, 'UTF-8') ?>
-                    </h4>
-                    <i data-lucide="chevron-down" class="text-slate-400 flex-shrink-0" size="20"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-start shadow-xl border-0">
-                    <li><a class="dropdown-item py-2 fw-medium text-primary" href="<?= URLROOT ?>/tasks">Tất cả dự án</a></li>
-                    <li><hr class="dropdown-divider opacity-50 my-1"></li>
-                    <li class="px-0 py-0">
-                        <div class="project-dropdown-scroll">
-                            <?php foreach ($projects as $p): ?>
-                                <?php $isCurrentProject = (string) ($selectedProject['id'] ?? '') === (string) ($p['id'] ?? ''); ?>
-                                <a class="dropdown-item d-flex align-items-center justify-content-between <?= $isCurrentProject ? 'active' : '' ?>" href="<?= URLROOT ?>/tasks/<?= (int) $p['id'] ?>/kanban">
-                                    <span class="text-truncate"><?= htmlspecialchars((string) ($p['name'] ?? 'Dự án'), ENT_QUOTES, 'UTF-8') ?></span>
-                                    <span class="text-xs flex-shrink-0 ms-2 <?= $isCurrentProject ? 'text-white' : 'text-slate-400' ?>"><?= htmlspecialchars((string) ($p['project_code'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
-                                </a>
-                            <?php endforeach; ?>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-
-            <?php if (!empty($selectedProject)): ?>
-                <?php $projectStatusColor = $selectedProject['status_color'] ?? '#64748b'; ?>
-                <div class="d-flex align-items-center gap-2 ms-2 ps-3 border-start border-slate-200 h-100">
-                    <span class="text-slate-500 small fw-medium"><?= htmlspecialchars((string) ($selectedProject['project_code'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
-                    <?php if (!empty($selectedProject['status_name'])): ?>
-                        <span class="status-pill py-0 px-2" style="font-size: 11px; background-color: <?= htmlspecialchars($projectStatusColor, ENT_QUOTES, 'UTF-8') ?>20; color: <?= htmlspecialchars($projectStatusColor, ENT_QUOTES, 'UTF-8') ?>;">
-                            <?= htmlspecialchars((string) $selectedProject['status_name'], ENT_QUOTES, 'UTF-8') ?>
-                        </span>
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
-        </div>
+        <?php
+        $projectSwitcherAllowAll = false;
+        $projectSwitcherMode = 'kanban';
+        $projectSwitcherAllUrl = URLROOT . '/tasks';
+        $projectSwitcherTitle = !empty($selectedProject['name']) ? (string) $selectedProject['name'] : 'Chọn dự án';
+        $projectSwitcherTaskCount = $totalTasks;
+        require VIEW_PATH . '/partials/project_switcher.php';
+        ?>
 
         <div class="d-flex align-items-center gap-2 flex-wrap">
-            <a href="<?= URLROOT ?>/tasks/<?= (int) ($selectedProject['id'] ?? 0) ?>/list" class="btn btn-white border border-slate-200 px-3 shadow-none">
+            <a href="<?= URLROOT ?>/tasks/<?= (int) ($selectedProject['id'] ?? 0) ?>/list" class="btn btn-outline-secondary">
                 <i data-lucide="list" size="18"></i>
                 <span>Dạng list</span>
             </a>
-            <a href="<?= URLROOT ?>/projects/<?= (int) ($selectedProject['id'] ?? 0) ?>" class="btn btn-white border border-slate-200 px-3 shadow-none">
+            <a href="<?= URLROOT ?>/projects/<?= (int) ($selectedProject['id'] ?? 0) ?>" class="btn btn-outline-secondary">
                 <i data-lucide="folder-kanban" size="18"></i>
                 <span>Dự án chi tiết</span>
             </a>
-            <a href="<?= URLROOT ?>/tasks/create?project_id=<?= (int) ($selectedProject['id'] ?? 0) ?>" class="btn btn-primary px-3 shadow-sm">
+            <a href="<?= URLROOT ?>/tasks/create?project_id=<?= (int) ($selectedProject['id'] ?? 0) ?>" class="btn btn-primary">
                 <i data-lucide="plus" size="18"></i>
                 <span>Thêm mới</span>
             </a>

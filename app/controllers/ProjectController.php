@@ -12,6 +12,7 @@ use App\models\TaskStatusModel;
 use App\models\UserModel;
 use App\core\Session;
 use App\helpers\AuthHelper;
+use App\helpers\ListTableHelper;
 
 /**
  * @property \App\core\Request $request
@@ -19,7 +20,6 @@ use App\helpers\AuthHelper;
  */
 class ProjectController extends Controller
 {
-    private const PER_PAGE = 10;
     private const MEMBER_ROLES = ['manager', 'member', 'viewer'];
 
     private ProjectModel $modelProject;
@@ -27,6 +27,11 @@ class ProjectController extends Controller
     private ProjectStatusModel $modelProjectStatus;
     private TaskStatusModel $modelTaskStatus;
 
+    /**
+     * =============================================================
+     * NHOM KHOI TAO
+     * =============================================================
+     */
     public function __construct()
     {
         parent::__construct();
@@ -38,13 +43,17 @@ class ProjectController extends Controller
 
     /**
      * Hiển thị danh sách dự án có phân trang
+     *
+     * =============================================================
+     * NHOM HIEN THI VA TRA CUU DU AN
+     * =============================================================
      */
     public function index()
     {
         // lấy page nếu page
         $query = $this->request->getQuery();
         $page = $this->positiveInt($query['page'] ?? 1, 1);
-        $perPage = self::PER_PAGE;
+        $perPage = ListTableHelper::perPage();
         // lấy danh sách trạng thái nạp cho bộ lọc
         $statusOptions = $this->modelProjectStatus->getList();
 
@@ -148,6 +157,10 @@ class ProjectController extends Controller
 
     /**
      * Hiển thị form tạo dự án mới
+     *
+     * =============================================================
+     * NHOM TAO MOI DU AN
+     * =============================================================
      */
     public function create()
     {
@@ -161,6 +174,10 @@ class ProjectController extends Controller
 
     /**
      * Xử lý thêm nhiều thành viên vào dự án thông qua Modal
+     *
+     * =============================================================
+     * NHOM THANH VIEN DU AN
+     * =============================================================
      */
     public function addMembers($id)
     {
@@ -236,6 +253,10 @@ class ProjectController extends Controller
 
     /**
      * Hiển thị form chỉnh sửa dự án
+     *
+     * =============================================================
+     * NHOM CAP NHAT DU AN
+     * =============================================================
      */
     public function edit($id)
     {
@@ -287,6 +308,10 @@ class ProjectController extends Controller
 
     /**
      * Xử lý xóa dự án (Xóa mềm hoặc xóa cứng tùy thuộc vào cấu hình Model)
+     *
+     * =============================================================
+     * NHOM XOA DU AN
+     * =============================================================
      */
     public function delete($id)
     {
@@ -303,6 +328,10 @@ class ProjectController extends Controller
     /**
      * Chuẩn hóa và lấy dữ liệu từ Request Body
      * @return array
+     *
+     * =============================================================
+     * NHOM CHUAN HOA DU LIEU FORM
+     * =============================================================
      */
     private function getFormData(?array $body = null): array
     {
@@ -337,6 +366,10 @@ class ProjectController extends Controller
     /**
      * Thực hiện kiểm tra các quy tắc nghiệp vụ cho dữ liệu dự án
      * @param array $data
+     *
+     * =============================================================
+     * NHOM KIEM TRA DU LIEU DU AN
+     * =============================================================
      */
     private function validateProjectData(array $data)
     {
@@ -472,6 +505,11 @@ class ProjectController extends Controller
         }
     }
 
+    /**
+     * =============================================================
+     * NHOM WIZARD TAO DU AN
+     * =============================================================
+     */
     private function wizardCreateViewData(array $extra = []): array
     {
         return array_merge([
@@ -569,6 +607,10 @@ class ProjectController extends Controller
     /**
      * Lấy ID user đang đăng nhập.
      * Dự án hiện đã lưu thông tin user trong Session ở AuthController::initSession().
+     *
+     * =============================================================
+     * NHOM PHAN QUYEN DU AN
+     * =============================================================
      */
     private function currentUserId(): int
     {
@@ -600,6 +642,11 @@ class ProjectController extends Controller
         return $project;
     }
 
+    /**
+     * =============================================================
+     * NHOM BO LOC VA CHUAN HOA GIA TRI
+     * =============================================================
+     */
     private function getProjectFilters(array $query, array $statusOptions): array
     {
         $validStatusIds = array_flip(array_map('intval', array_column($statusOptions, 'id')));

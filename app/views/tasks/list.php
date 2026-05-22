@@ -17,14 +17,21 @@ $users = $users ?? [];
 $statuses = $statuses ?? [];
 $filters = $filters ?? [];
 $pagination = $pagination ?? [];
+$listTableConfig = \App\helpers\ListTableHelper::config();
+$maxVisiblePages = max(1, (int) ($listTableConfig['max_visible_pages'] ?? 5));
 
 /**
  * Trích xuất thông tin phân trang
  */
 $currentPage = $pagination['current_page'] ?? 1;
-$perPage = $pagination['per_page'] ?? 15;
-$totalItem = $pagination['total_items'] ?? 0;
-$totalPage = $pagination['total_pages'] ?? 1;
+$perPage = $pagination['per_page'] ?? max(count($tasks), 1);
+$totalItem = $pagination['total_items'] ?? count($tasks);
+$totalPage = $pagination['total_pages'] ?? max((int) ceil($totalItem / $perPage), 1);
+$currentListQuery = $_GET;
+if (!empty($filters['project_id']) && empty($currentListQuery['project_id'])) {
+    $currentListQuery['project_id'] = (int) $filters['project_id'];
+}
+$currentTaskListUrl = URLROOT . '/tasks' . ($currentListQuery ? '?' . http_build_query($currentListQuery) : '');
 
 /**
  * Hàm closure để tạo URL ảnh đại diện hoặc UI Avatars nếu trống.
@@ -38,109 +45,29 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
     return 'https://ui-avatars.com/api/?name=' . urlencode((string) $name) . '&background=E2E8F0&color=0F172A&rounded=true&size=' . $size;
 };
 
+$safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): string {
+    $color = trim((string) $color);
+    if (!preg_match('/^#(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/', $color)) {
+        return $fallback;
+    }
+
+    if (strlen($color) === 4) {
+        return '#' . $color[1] . $color[1] . $color[2] . $color[2] . $color[3] . $color[3];
+    }
+
+    return $color;
+};
+
 ?>
 
 <style>
-    .table-footer-outside {
-        background: transparent;
-        padding: 1rem 0;
-        border: none;
+    .task-list-title {
+        max-width: 360px;
     }
 
     /* Tùy chỉnh phân trang */
-    .pagination {
-        gap: 0.5rem;
-    }
-
-    .pagination .page-link {
-        border-radius: 0.375rem !important;
-        border: 1px solid #e2e8f0;
-        color: #64748b;
-        min-width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 0.5rem;
-    }
-
-    .pagination .page-item.active .page-link {
-        background-color: #4f46e5;
-        border-color: #4f46e5;
-    }
-
     /* Thiết lập chiều cao cố định và thanh cuộn cho container bảng */
-    .table-container {
-        max-height: calc(100vh - 320px); /* Tự động tính toán chiều cao dựa trên màn hình */
-        overflow-y: auto;
-        border: 1px solid #e2e8f0;
-        border-radius: 0.75rem;
-        position: relative;
-    }
-
     /* Cố định tiêu đề bảng (Sticky Header) */
-    .table-custom thead th {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        background-color: #f8fafc !important; /* Đồng bộ màu nền bg-slate-50 */
-        box-shadow: inset 0 -1px 0 #e2e8f0; /* Tạo đường kẻ dưới header khi scroll */
-    }
-
-    /* Dropdown chọn dự án: kích thước, vị trí, vùng cuộn danh sách */
-    .tasks-project-dropdown > .dropdown-menu {
-        min-width: min(100vw - 1.5rem, 20rem);
-        max-width: min(100vw - 1.5rem, 22rem);
-        padding: 0.375rem 0;
-        margin-top: 0.35rem !important;
-        border-radius: 0.75rem;
-        box-shadow: 0 10px 40px -10px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(226, 232, 240, 0.8);
-        z-index: 1080;
-    }
-
-    .tasks-project-dropdown .project-dropdown-scroll {
-        max-height: min(52vh, 17.5rem);
-        overflow-y: auto;
-        overflow-x: hidden;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .tasks-project-dropdown .project-dropdown-scroll .dropdown-item {
-        padding-top: 0.55rem;
-        padding-bottom: 0.55rem;
-        padding-left: 1rem;
-        padding-right: 1rem;
-        white-space: normal;
-        gap: 0.5rem;
-    }
-
-    .tasks-project-dropdown .project-dropdown-scroll .dropdown-item span:first-child {
-        flex: 1;
-        min-width: 0;
-        text-align: left;
-    }
-
-    .tasks-project-dropdown .dropdown-item.text-primary {
-        font-size: 0.9375rem;
-    }
-
-    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 999px;
-    }
-
-    .tasks-project-dropdown .project-dropdown-scroll::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-    }
 </style>
 
 <div class="page-toolbar">
@@ -149,68 +76,42 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
         <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
         <span class="page-title">Danh sách</span>
     </div>
+
 </div>
 
-<!-- Thanh thông tin dự án và hành động phụ (Flat Design) -->
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 px-1">
-    <!-- Bên trái: thông tin dự án & dropdown -->
-    <div class="d-flex align-items-center gap-3">
-        <div class="dropdown tasks-project-dropdown">
-            <button class="btn btn-link p-0 text-decoration-none d-flex align-items-center gap-2 shadow-none border-0" type="button" data-bs-toggle="dropdown" data-bs-offset="0,8" aria-expanded="false">
-                <h4 class="mb-0 fw-bold text-slate-900 text-start" style="max-width: min(70vw, 28rem);">
-                    <?= $selectedProject ? htmlspecialchars($selectedProject['name']) : 'Công việc của tất cả dự án' ?>
-                </h4>
-                <i data-lucide="chevron-down" class="text-slate-400 flex-shrink-0" size="20"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-start shadow-xl border-0">
-                <li><a class="dropdown-item py-2 fw-medium text-primary" href="<?= URLROOT ?>/tasks">Tất cả dự án</a></li>
-                <li><hr class="dropdown-divider opacity-50 my-1"></li>
-                <li class="px-0 py-0">
-                    <div class="project-dropdown-scroll">
-                        <?php foreach ($projects as $p): ?>
-                            <a class="dropdown-item d-flex align-items-center justify-content-between <?= (isset($filters['project_id']) && (string) $filters['project_id'] === (string) $p['id']) ? 'active' : '' ?>" href="<?= URLROOT ?>/tasks?project_id=<?= (int) $p['id'] ?>">
-                                <span class="text-truncate"><?= htmlspecialchars($p['name']) ?></span>
-                                <span class="text-xs flex-shrink-0 ms-2 <?= (isset($filters['project_id']) && (string) $filters['project_id'] === (string) $p['id']) ? 'text-white' : 'text-slate-400' ?>"><?= htmlspecialchars((string) ($p['project_code'] ?? '')) ?></span>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                </li>
-            </ul>
-        </div>
-        
-        <?php if ($selectedProject): ?>
-            <div class="d-flex align-items-center gap-2 ms-2 ps-3 border-start border-slate-200 h-100">
-                <span class="text-slate-500 small fw-medium"><?= htmlspecialchars($selectedProject['project_code']) ?></span>
-                <span class="status-pill py-0 px-2" style="font-size: 11px; background-color: <?= $selectedProject['status_color'] ?>20; color: <?= $selectedProject['status_color'] ?>;">
-                    <?= htmlspecialchars($selectedProject['status_name']) ?>
-                </span>
-            </div>
-        <?php endif; ?>
-    </div>
+    <?php
+    $projectSwitcherAllowAll = true;
+    $projectSwitcherMode = 'list';
+    $projectSwitcherAllUrl = URLROOT . '/tasks';
+    $projectSwitcherTitle = $selectedProject ? (string) $selectedProject['name'] : 'Tất cả công việc';
+    $projectSwitcherTaskCount = $selectedProject ? $totalItem : null;
+    require VIEW_PATH . '/partials/project_switcher.php';
+    ?>
 
-    <!-- Bên phải: bộ lọc, thêm tasks, kanban -->
-    <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-white border border-slate-200 px-3 shadow-none" data-bs-toggle="modal" data-bs-target="#filterModal">
-            <i data-lucide="filter" size="18"></i>
-            <span>Bộ lọc</span>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <button id="filterButton" class="btn btn-outline-secondary" title="Lọc dữ liệu" data-bs-toggle="modal"
+            data-bs-target="#filterModal">
+            <i data-lucide="filter"></i>
+            <span class="d-none d-md-inline">Bộ lọc</span>
         </button>
 
         <?php if ($selectedProject): ?>
-            <a href="<?= URLROOT ?>/tasks/<?= $selectedProject['id'] ?>/kanban" class="btn btn-white border border-slate-200 px-3 shadow-none">
-                <i data-lucide="layout-kanban" size="18"></i>
-                <span>Bảng Kanban</span>
+            <a href="<?= URLROOT ?>/tasks/<?= (int) $selectedProject['id'] ?>/kanban" class="btn btn-outline-secondary">
+                <i data-lucide="layout-kanban"></i>
+                <span class="d-none d-md-inline">Bảng Kanban</span>
             </a>
         <?php endif; ?>
 
-        <a href="<?= URLROOT ?>/tasks/create<?= $selectedProject ? '?project_id='.$selectedProject['id'] : '' ?>" class="btn btn-primary px-3 shadow-sm">
-            <i data-lucide="plus" size="18"></i>
-            <span>Thêm công việc</span>
+        <a href="<?= URLROOT ?>/tasks/create<?= $selectedProject ? '?project_id=' . (int) $selectedProject['id'] : '' ?>" class="btn btn-primary">
+            <i data-lucide="plus"></i>
+            <span>Thêm mới</span>
         </a>
     </div>
 </div>
 
 <!-- Danh sách Công việc -->
-<div class="table-container">
+<div class="table-container table-container-paginated mb-3">
     <div class="table-responsive">
         <table class="table table-custom align-middle">
             <thead class="bg-slate-50">
@@ -222,7 +123,7 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                     <th>Trạng thái</th>
                     <th>Mức độ ưu tiên</th>
                     <th>Hạn chót</th>
-                    <th class="col-actions text-center">Hành động</th>
+                    <th class="col-actions text-center"></th>
                 </tr>
             </thead>
             <tbody>
@@ -249,7 +150,11 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                         ?>
                         <tr>
                             <td class="text-center text-stt"><?= ($currentPage - 1) * $perPage + $index + 1 ?></td>
-                            <td class="text-name"><?= htmlspecialchars($task['title']) ?></td>
+                            <td>
+                                <a href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>" class="text-decoration-none text-name d-inline-block text-truncate task-list-title">
+                                    <?= htmlspecialchars($task['title']) ?>
+                                </a>
+                            </td>
                             <td class="text-meta"><?= htmlspecialchars($task['project_name'] ?? '-') ?></td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
@@ -258,21 +163,32 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                                 </div>
                             </td>
                             <td>
-                                <span class="status-pill" style="border-left: 4px solid <?= $task['status_color'] ?? '#64748b' ?>; background-color: <?= ($task['status_color'] ?? '#64748b') ?>15; color: <?= $task['status_color'] ?? '#64748b' ?>;">
-                                    <?= htmlspecialchars($task['status_name'] ?? 'N/A') ?>
+                                <?php $taskStatusColor = $safeHexColor($task['status_color'] ?? null); ?>
+                                <span class="status-chip" style="--status-color: <?= htmlspecialchars($taskStatusColor, ENT_QUOTES, 'UTF-8') ?>;">
+                                    <span class="status-chip-dot"></span>
+                                    <span class="status-chip-label"><?= htmlspecialchars($task['status_name'] ?? 'N/A') ?></span>
                                 </span>
                             </td>
                             <td><span class="ui-badge <?= $priorityClass ?>"><?= $priorityLabel ?></span></td>
                             <td class="<?= $isOverdue ? 'text-danger fw-bold' : 'text-slate-600' ?>">
                                 <?= !empty($task['due_date']) ? date('d/m/Y', strtotime($task['due_date'])) : '-' ?>
                             </td>
-                            <td class="text-center">
-                                <div class="d-flex justify-content-center gap-1">
-                                    <a href="<?= URLROOT ?>/tasks/<?= $task['id'] ?>" class="btn btn-white btn-action" title="Xem chi tiết"><i data-lucide="eye" size="16"></i></a>
-                                    <a href="<?= URLROOT ?>/tasks/<?= $task['id'] ?>/edit" class="btn btn-white btn-action" title="Chỉnh sửa"><i data-lucide="edit-3" size="16"></i></a>
-                                    <button type="button" class="btn btn-white btn-action text-danger" title="Xóa" onclick="showDeleteModal('<?= URLROOT ?>/tasks/<?= $task['id'] ?>/delete', 'Xác nhận xóa công việc này?')">
-                                        <i data-lucide="trash-2" size="16"></i>
-                                    </button>
+                            <td>
+                                <div class="dropdown position-static">
+                                    <button class="btn btn-link btn-action shadow-none"
+                                        data-bs-toggle="dropdown"><i data-lucide="more-vertical"></i></button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>"><i data-lucide="eye" class="text-slate-600"></i> Chi tiết</a></li>
+                                        <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>/edit"><i data-lucide="edit-3" class="text-slate-600"></i> Chỉnh sửa</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center gap-2 text-danger"
+                                                href="javascript:void(0)"
+                                                onclick="showDeleteModal('<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>/delete', <?= htmlspecialchars(json_encode('Bạn có chắc chắn muốn xóa công việc ' . ($task['title'] ?? '') . '?', JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
+                                                <i data-lucide="trash-2"></i> Xóa
+                                            </a>
+                                        </li>
+                                    </ul>
                                 </div>
                             </td>
                         </tr>
@@ -318,7 +234,7 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                 <?php endif; ?>
 
                 <?php
-                $max_visible = 5;
+                $max_visible = $maxVisiblePages;
                 if ($totalPage <= $max_visible):
                     for ($i = 1; $i <= $totalPage; $i++): ?>
                         <li class="page-item <?= ($i == $currentPage) ? 'active' : '' ?>">
@@ -367,24 +283,50 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
     </div>
 </div>
 
+<!-- Delete Confirm Modal -->
+<div class="modal fade modal-confirm" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-confirm-dialog">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-body text-center">
+                <div class="icon-box">
+                    <i data-lucide="alert-triangle" size="32"></i>
+                </div>
+                <h5 class="fw-bold text-slate-800 mb-2">Xác nhận xóa</h5>
+                <p class="text-slate-500 small mb-4" id="deleteConfirmMessage">Hành động này không thể hoàn tác. Bạn có chắc chắn?</p>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary w-100" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <form id="deleteForm" method="POST" action="" class="w-100 m-0">
+                        <?php \App\helpers\SecurityHelper::csrfInput(); ?>
+                        <input type="hidden" name="redirect_to" value="<?= htmlspecialchars($currentTaskListUrl, ENT_QUOTES, 'UTF-8') ?>">
+                        <button type="submit" class="btn btn-danger w-100">Xác nhận xóa</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Filter Modal -->
 <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
         <div class="modal-content shadow-lg border-0">
-            <div class="modal-header">
-                <h5 class="modal-title" id="filterModalLabel">Bộ lọc công việc</h5>
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold text-slate-800" id="filterModalLabel">Bộ lọc công việc</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <form action="<?= URLROOT ?>/tasks" method="GET">
+            <div class="modal-body p-4">
+                <form action="<?= URLROOT ?>/tasks" method="GET" class="m-0">
                     <input type="hidden" name="page" value="1">
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Tìm kiếm tiêu đề</label>
-                        <input type="text" name="search" class="form-control" placeholder="Nhập từ khóa..." value="<?= htmlspecialchars($filters['search'] ?? '') ?>">
+                        <label class="form-label fw-semibold small text-slate-600">Tìm kiếm tiêu đề</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-slate-400"><i data-lucide="search" size="18"></i></span>
+                            <input type="text" name="search" class="form-control border-start-0" placeholder="Nhập từ khóa..." value="<?= htmlspecialchars($filters['search'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Dự án</label>
+                        <label class="form-label fw-semibold small text-slate-600">Dự án</label>
                         <select name="project_id" class="form-select">
                             <option value="">-- Tất cả dự án --</option>
                             <?php foreach($projects as $p): ?>
@@ -396,7 +338,7 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Người thực hiện</label>
+                        <label class="form-label fw-semibold small text-slate-600">Người thực hiện</label>
                         <select name="assigned_to" class="form-select">
                             <option value="">-- Tất cả nhân viên --</option>
                             <?php foreach($users as $u): ?>
@@ -408,7 +350,7 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Trạng thái</label>
+                        <label class="form-label fw-semibold small text-slate-600">Trạng thái</label>
                         <select name="status_id" class="form-select">
                             <option value="">-- Tất cả trạng thái --</option>
                             <?php foreach($statuses as $s): ?>
@@ -419,9 +361,12 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                         </select>
                     </div>
 
-                    <div class="d-flex gap-2 pt-3">
-                        <button type="submit" class="btn btn-primary w-100">Áp dụng bộ lọc</button>
-                        <a href="<?= URLROOT ?>/tasks" class="btn btn-outline-secondary w-100">Xóa lọc</a>
+                    <div class="modal-footer border-top bg-light px-0 pb-0 mt-4">
+                        <a href="<?= URLROOT ?>/tasks" class="btn btn-outline-secondary px-4">Đặt lại bộ lọc</a>
+                        <button type="submit" class="btn btn-primary px-5">
+                            <i data-lucide="filter"></i>
+                            <span>Áp dụng</span>
+                        </button>
                     </div>
                 </form>
             </div>

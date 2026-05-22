@@ -11,6 +11,14 @@ class PermissionModel extends Model
     protected $tablePermission = 'permissions'; // Giả định bảng pivot lưu quan hệ vai trò-quyền
     protected $tableRolePermission = 'role_permissions'; // Giả định bảng pivot lưu quan hệ vai trò-quyền
 
+    /**
+     * =============================================================
+     * NHOM THONG KE QUYEN THEO VAI TRO
+     * =============================================================
+     *
+     * @param int|string $roleId ID vai tro can dem so quyen.
+     * @return int So luong quyen dang gan voi vai tro.
+     */
     public function countPermissionsForRole($roleId)
     {
         $sql = "SELECT COUNT(*) FROM {$this->tableRolePermission} WHERE role_id = :role_id";
@@ -19,6 +27,12 @@ class PermissionModel extends Model
 
     /**
      * Lấy toàn bộ quyền trong hệ thống và nhóm theo Module
+     *
+     * =============================================================
+     * NHOM TRUY VAN DANH SACH QUYEN
+     * =============================================================
+     *
+     * @return array<string, array<int, array<string, mixed>>> Danh sach quyen nhom theo module.
      */
     public function getAllPermissionsGrouped()
     {
@@ -34,6 +48,9 @@ class PermissionModel extends Model
 
     /**
      * Lấy danh sách ID các quyền mà một vai trò đang sở hữu
+     *
+     * @param int|string $roleId ID vai tro can lay quyen dang kich hoat.
+     * @return array<int, int|string> Danh sach permission_id.
      */
     public function getActivePermissionIds($roleId)
     {
@@ -41,6 +58,10 @@ class PermissionModel extends Model
         return $this->db->query($sql, ['role_id' => $roleId])->fetchAll(PDO::FETCH_COLUMN);
     }
 
+    /**
+     * @param int|string $id ID vai tro can lay chi tiet quyen.
+     * @return array<int, array<string, mixed>> Danh sach quyen cua vai tro.
+     */
     public function getRolePermission($id)
     {
         $sql = "SELECT p.*
@@ -52,6 +73,15 @@ class PermissionModel extends Model
         return $this->db->query($sql, ['id' => $id])->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * =============================================================
+     * NHOM DONG BO QUYEN THEO VAI TRO
+     * =============================================================
+     *
+     * @param int|string $id ID vai tro can dong bo quyen.
+     * @param array<int, int|string> $permission Danh sach permission_id moi.
+     * @return bool True neu dong bo thanh cong, false neu transaction that bai.
+     */
     public function syncRolePermissions($id, $permission)
     {
         try {

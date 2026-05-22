@@ -9,11 +9,21 @@ use App\core\View;
  */
 class DashboardController extends Controller
 {
+    /**
+     * =============================================================
+     * NHOM KHOI TAO
+     * =============================================================
+     */
     public function __construct()
     {
         parent::__construct();
     }
-    
+
+    /**
+     * =============================================================
+     * NHOM HIEN THI TONG QUAN
+     * =============================================================
+     */
     public function index()
     {
         // In a real application, you would fetch data here

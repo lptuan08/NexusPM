@@ -7,6 +7,18 @@
  * @var array $old
  * @var array $errors
  */
+$safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): string {
+    $color = trim((string) $color);
+    if (!preg_match('/^#(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/', $color)) {
+        return $fallback;
+    }
+
+    if (strlen($color) === 4) {
+        return '#' . $color[1] . $color[1] . $color[2] . $color[2] . $color[3] . $color[3];
+    }
+
+    return $color;
+};
 ?>
 
 <style>
@@ -95,7 +107,11 @@
                         <tr class="<?= ($status['is_locked'] ?? false) ? 'table-light text-muted' : '' ?>">
                             <td class="text-center text-stt"><?= $status['position'] ?? ($index + 1) ?></td>
                             <td class="text-name">
-                                <?= htmlspecialchars($status['name']) ?>
+                                <?php $statusColor = $safeHexColor($status['color'] ?? null); ?>
+                                <span class="status-chip <?= ($status['is_active'] ?? false) ? '' : 'is-muted' ?>" style="--status-color: <?= htmlspecialchars($statusColor, ENT_QUOTES, 'UTF-8') ?>;">
+                                    <span class="status-chip-dot"></span>
+                                    <span class="status-chip-label"><?= htmlspecialchars($status['name']) ?></span>
+                                </span>
                                 <?php if ($status['is_locked'] ?? false): ?>
                                     <span class="ui-badge priority-high ms-1">Mặc định</span>
                                 <?php endif; ?>
@@ -103,7 +119,7 @@
                             <td><span class="ui-badge status-muted"><?= htmlspecialchars($status['slug']) ?></span></td>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <span class="color-box" style="background-color: <?= htmlspecialchars($status['color'] ?? '#94a3b8') ?>; <?= ($status['is_active'] ?? false) ? 'opacity: 0.5;' : '' ?>"></span>
+                                    <span class="color-box" style="background-color: <?= htmlspecialchars($statusColor, ENT_QUOTES, 'UTF-8') ?>; <?= ($status['is_active'] ?? false) ? '' : 'opacity: 0.5;' ?>"></span>
                                     <code><?= htmlspecialchars($status['color'] ?? '#94a3b8') ?></code>
                                 </div>
                             </td>

@@ -9,6 +9,31 @@
  * @var array $old
  * @var array $errors
  */
+$projects = $projects ?? [];
+$statuses = $statuses ?? [];
+$projectId = ($projectId ?? null) !== '' ? ($projectId ?? null) : null;
+$selectedProject = null;
+$safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): string {
+    $color = trim((string) $color);
+    if (!preg_match('/^#(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/', $color)) {
+        return $fallback;
+    }
+
+    if (strlen($color) === 4) {
+        return '#' . $color[1] . $color[1] . $color[2] . $color[2] . $color[3] . $color[3];
+    }
+
+    return $color;
+};
+
+if ($projectId !== null) {
+    foreach ($projects as $projectOption) {
+        if ((string) ($projectOption['id'] ?? '') === (string) $projectId) {
+            $selectedProject = $projectOption;
+            break;
+        }
+    }
+}
 ?>
 
 <style>
@@ -54,27 +79,8 @@
         font-size: 0.9rem;
     }
 
-    .status-project-filter {
-        max-width: 360px;
-        min-width: 260px;
+    .task-status-context {
         margin-bottom: 1.25rem;
-    }
-
-    .status-project-select {
-        width: 100%;
-        height: 40px;
-        min-height: 40px;
-        border-radius: 24px;
-        border-color: var(--slate-200);
-        color: var(--slate-600);
-        font-weight: 500;
-        padding: 0.5rem 2.25rem 0.5rem 1rem;
-        background-color: #ffffff;
-    }
-
-    .status-project-select:hover {
-        background-color: var(--slate-50);
-        color: var(--slate-800);
     }
 </style>
 
@@ -86,8 +92,25 @@
         <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
         <span class="page-title">Trạng thái công việc</span>
     </div>
-    <div class="page-actions">
-        <button type="button" class="btn btn-white shadow-sm" data-bs-toggle="modal" data-bs-target="#sortModal" <?= empty($statuses) ? 'disabled' : '' ?>>
+</div>
+
+<div class="task-status-context d-flex flex-wrap justify-content-between align-items-center gap-3 px-1">
+    <?php
+    $projectSwitcherAllowAll = true;
+    $projectSwitcherMode = 'settings_task';
+    $projectSwitcherAllUrl = URLROOT . '/settings/task';
+    $projectSwitcherTitle = $selectedProject ? (string) $selectedProject['name'] : 'Cấu hình mặc định toàn hệ thống';
+    $projectSwitcherTaskCount = count($statuses);
+    $projectSwitcherEyebrow = 'Phạm vi cấu hình';
+    $projectSwitcherAllTitle = 'Cấu hình mặc định toàn hệ thống';
+    $projectSwitcherAllMeta = 'Dùng làm bộ trạng thái mẫu cho dự án mới';
+    $projectSwitcherAllIcon = 'settings';
+    $projectSwitcherCountLabel = 'trạng thái';
+    require VIEW_PATH . '/partials/project_switcher.php';
+    ?>
+
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sortModal" <?= empty($statuses) ? 'disabled' : '' ?>>
             <i data-lucide="arrow-up-down" size="18"></i>
             <span>Sắp xếp</span>
         </button>
@@ -96,20 +119,6 @@
             <span>Thêm mới</span>
         </button>
     </div>
-</div>
-
-<!-- Bộ lọc dự án nằm trên danh sách -->
-<div class="status-project-filter">
-    <select class="form-select status-project-select shadow-sm" id="project_selector" aria-label="Chọn dự án" onchange="changeProject(this.value)">
-        <option value="">Cấu hình mặc định toàn hệ thống</option>
-        <?php if (!empty($projects)): ?>
-            <?php foreach ($projects as $proj): ?>
-                <option value="<?= $proj['id'] ?>" <?= (isset($projectId) && $projectId == $proj['id']) ? 'selected' : '' ?>>
-                    [<?= htmlspecialchars($proj['project_code']) ?>] <?= htmlspecialchars($proj['name']) ?>
-                </option>
-            <?php endforeach; ?>
-        <?php endif; ?>
-    </select>
 </div>
 
 <div class="table-container">
@@ -133,12 +142,16 @@
                         <tr>
                             <td class="text-center text-stt"><?= $status['position'] ?? ($index + 1) ?></td>
                             <td class="text-name">
-                                <?= htmlspecialchars($status['name']) ?>
+                                <?php $statusColor = $safeHexColor($status['color'] ?? null); ?>
+                                <span class="status-chip <?= ($status['is_active'] ?? false) ? '' : 'is-muted' ?>" style="--status-color: <?= htmlspecialchars($statusColor, ENT_QUOTES, 'UTF-8') ?>;">
+                                    <span class="status-chip-dot"></span>
+                                    <span class="status-chip-label"><?= htmlspecialchars($status['name']) ?></span>
+                                </span>
                             </td>
                             <td><span class="ui-badge status-muted"><?= htmlspecialchars($status['slug']) ?></span></td>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <span class="color-box" style="background-color: <?= htmlspecialchars($status['color'] ?? '#94a3b8') ?>; <?= ($status['is_active'] ?? false) ? 'opacity: 0.5;' : '' ?>"></span>
+                                    <span class="color-box" style="background-color: <?= htmlspecialchars($statusColor, ENT_QUOTES, 'UTF-8') ?>; <?= ($status['is_active'] ?? false) ? '' : 'opacity: 0.5;' ?>"></span>
                                     <code class="text-slate-500"><?= htmlspecialchars($status['color'] ?? '#94a3b8') ?></code>
                                 </div>
                             </td>

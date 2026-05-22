@@ -5,6 +5,7 @@ use App\core\Controller;
 use App\core\View;
 use App\core\Response;
 use App\helpers\Helper;
+use App\helpers\ListTableHelper;
 use App\models\UserModel;
 use App\models\RoleModel;
 
@@ -16,6 +17,12 @@ class UserController extends Controller
 {
     private UserModel $modelUser;
     private RoleModel $modelRole;
+
+    /**
+     * =============================================================
+     * NHOM KHOI TAO
+     * =============================================================
+     */
     public function __construct()
     {
         parent::__construct();
@@ -29,10 +36,14 @@ class UserController extends Controller
 
     /**
      * Hiển thị danh sách toàn bộ nhân viên
+     *
+     * =============================================================
+     * NHOM HIEN THI VA TRA CUU NHAN VIEN
+     * =============================================================
      */
     public function index()
     {
-        $perPage = 7; 
+        $perPage = ListTableHelper::perPage();
         $query = $this->request->getQuery();
 
         $currentPage = (int)($query['page'] ?? 1);
@@ -98,6 +109,11 @@ class UserController extends Controller
     // =========================================================================
 
     // Load trang thêm mới
+    /**
+     * =============================================================
+     * NHOM TAO MOI NHAN VIEN
+     * =============================================================
+     */
     public function create()
     {
         $jobTitle = $this->modelUser->getJobTitle();
@@ -154,6 +170,11 @@ class UserController extends Controller
     // =========================================================================
 
     // Load trang hiển thị edit user 
+    /**
+     * =============================================================
+     * NHOM CAP NHAT NHAN VIEN
+     * =============================================================
+     */
     public function edit($id)
     {
         $user = $this->modelUser->getUserById($id);
@@ -223,6 +244,11 @@ class UserController extends Controller
         }
     }
     // Xóa nhân viên
+    /**
+     * =============================================================
+     * NHOM XOA NHAN VIEN
+     * =============================================================
+     */
     public function delete($id)
     {
         $result = $this->modelUser->delete($id);
@@ -233,6 +259,10 @@ class UserController extends Controller
     /**
      * TÁCH RIÊNG: Logic lấy và chuẩn hóa dữ liệu từ $_POST
      * @param bool $isUpdate Xác định xem là thêm mới hay cập nhật
+     *
+     * =============================================================
+     * NHOM CHUAN HOA DU LIEU FORM
+     * =============================================================
      */
     private function getFormData($isUpdate = false) //false = tao mới
     {
@@ -265,6 +295,10 @@ class UserController extends Controller
     /**
      * TÁCH RIÊNG: Logic xử lý upload file ảnh đại diện
      * @return string|null Trả về tên file nếu thành công, ngược lại null
+     *
+     * =============================================================
+     * NHOM XU LY ANH DAI DIEN
+     * =============================================================
      */
     private function uploadAvatar()
     {
@@ -311,6 +345,10 @@ class UserController extends Controller
      * @param string $targetPath Đường dẫn đích để lưu file
      * @param string $extension Định dạng file (jpg, png, gif)
      * @return bool Trả về true nếu xử lý thành công
+     *
+     * =============================================================
+     * NHOM TOI UU ANH DAI DIEN
+     * =============================================================
      */
     private function resizeImage($tmpName, $targetPath, $extension)
     {
@@ -380,6 +418,10 @@ class UserController extends Controller
 
     /**
      * Validate dữ liệu người dùng chung cho cả create và update
+     *
+     * =============================================================
+     * NHOM KIEM TRA DU LIEU NHAN VIEN
+     * =============================================================
      */
     private function validateUserData(array $data)
     {

@@ -14,6 +14,11 @@ class PermissionController extends Controller
     protected RoleModel $modelRole;
     protected PermissionModel $modelPermission;
 
+    /**
+     * =============================================================
+     * NHOM KHOI TAO
+     * =============================================================
+     */
     public function __construct()
     {
         parent::__construct();
@@ -21,6 +26,11 @@ class PermissionController extends Controller
         $this->modelPermission = $this->model('PermissionModel');
     }
 
+    /**
+     * =============================================================
+     * NHOM HIEN THI PHAN QUYEN
+     * =============================================================
+     */
     public function RolePermissions(string $id)
     {
         // 1. Lấy thông tin vai trò để hiển thị tiêu đề
@@ -49,6 +59,10 @@ class PermissionController extends Controller
      * Xử lý cập nhật danh sách quyền hạn cho một Vai trò
      * Phương thức: POST
      * Route: /admin/roles/{id}/permissions
+     *
+     * =============================================================
+     * NHOM CAP NHAT PHAN QUYEN
+     * =============================================================
      */
     public function RolePermissionsEdit(string $id)
     {

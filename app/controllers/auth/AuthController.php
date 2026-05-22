@@ -12,6 +12,11 @@ class AuthController extends Controller
 {
     protected $authModel;
 
+    /**
+     * =============================================================
+     * NHOM KHOI TAO
+     * =============================================================
+     */
     public function __construct()
     {
         parent::__construct();
@@ -29,6 +34,11 @@ class AuthController extends Controller
         ], null); // Truyền null để không sử dụng layout main (dashboard)
 
     }
+    /**
+     * =============================================================
+     * NHOM XU LY DANG NHAP
+     * =============================================================
+     */
     public function handleLogin()
     {
         if ($this->request->isPost()) {
@@ -90,6 +100,11 @@ class AuthController extends Controller
         }
     }
 
+    /**
+     * =============================================================
+     * NHOM QUAN LY PHIEN DANG NHAP
+     * =============================================================
+     */
     public function initSession($user)
     {
         
@@ -125,6 +140,11 @@ class AuthController extends Controller
         return; // Đảm bảo không có code nào được thực thi sau khi chuyển hướng
     }
 
+    /**
+     * =============================================================
+     * NHOM DANG XUAT
+     * =============================================================
+     */
     public function logout()
     {
         // Sử dụng phương thức destroy tập trung để xóa sạch dữ liệu và cookie session

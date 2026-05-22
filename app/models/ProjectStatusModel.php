@@ -11,6 +11,13 @@ class ProjectStatusModel extends Model
 {
     protected $table = 'project_statuses';
 
+    /**
+     * =============================================================
+     * NHOM TRUY VAN TRANG THAI DU AN
+     * =============================================================
+     *
+     * @return array<int, array<string, mixed>> Danh sach trang thai du an chua bi xoa.
+     */
     public function getList()
     {
         $sql = "SELECT * FROM {$this->table} WHERE deleted_at IS NULL ORDER BY position ASC";
@@ -18,6 +25,15 @@ class ProjectStatusModel extends Model
     }
 
 
+    /**
+     * =============================================================
+     * NHOM KIEM TRA TRUNG LAP
+     * =============================================================
+     *
+     * @param string $slug Slug can kiem tra.
+     * @param int|string|null $excludeId ID trang thai can loai tru khi cap nhat.
+     * @return bool True neu slug da ton tai.
+     */
     public function isSlugExists(string $slug, $excludeId = null)
     {
         $sql = "SELECT COUNT(*) FROM {$this->table} WHERE slug = :slug AND deleted_at IS NULL";
@@ -30,6 +46,14 @@ class ProjectStatusModel extends Model
 
         return (int)$this->db->query($sql, $params)->fetchColumn() > 0;
     }
+    /**
+     * =============================================================
+     * NHOM GHI DU LIEU TRANG THAI DU AN
+     * =============================================================
+     *
+     * @param array<string, mixed> $data Du lieu trang thai moi.
+     * @return void
+     */
     public function addProjectStatus(array $data)
     {
 
@@ -59,6 +83,11 @@ class ProjectStatusModel extends Model
         }
     }
 
+    /**
+     * @param int|string $id ID trang thai can cap nhat.
+     * @param array<string, mixed> $data Du lieu trang thai moi.
+     * @return mixed Ket qua truy van update tu database layer.
+     */
     public function updateProjectStatus(string $id, array $data)
     {
         $sql = "UPDATE {$this->table} SET 
@@ -78,6 +107,13 @@ class ProjectStatusModel extends Model
 
     /**
      * Cập nhật thứ tự vị trí hàng loạt
+     *
+     * =============================================================
+     * NHOM SAP XEP THU TU TRANG THAI
+     * =============================================================
+     *
+     * @param array<int, array{id:int|string, position:int}> $order Danh sach id va position moi.
+     * @return void
      */
     public function updateOrder(array $order)
     {
@@ -98,6 +134,9 @@ class ProjectStatusModel extends Model
     }
 
     //getAllStatus
+    /**
+     * @return array<int, array<string, mixed>> Danh sach trang thai rut gon cho API/form.
+     */
     public function getAllStatus()
     {
         $sql = "SELECT id, name, slug, color FROM {$this->table} WHERE deleted_at IS NULL ORDER BY position ASC";

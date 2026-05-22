@@ -12,11 +12,23 @@ use App\models\TaskStatusModel;
 class TaskStatusController extends Controller
 {
     protected TaskStatusModel $modelTaskStatus;
+
+    /**
+     * =============================================================
+     * NHOM KHOI TAO
+     * =============================================================
+     */
     public function __construct()
     {
         parent::__construct();
         $this->modelTaskStatus = $this->model('TaskStatusModel');
     }
+
+    /**
+     * =============================================================
+     * NHOM HIEN THI TRANG THAI CONG VIEC
+     * =============================================================
+     */
     public function list()
     {
         // Lấy project_id từ query string (?project_id=...)
@@ -36,6 +48,11 @@ class TaskStatusController extends Controller
         ]);
     }
 
+    /**
+     * =============================================================
+     * NHOM TAO MOI TRANG THAI CONG VIEC
+     * =============================================================
+     */
     public function store()
     {
         $data = $this->request->getBody();
@@ -76,6 +93,11 @@ class TaskStatusController extends Controller
         Response::redirect(URLROOT . $url);
     }
 
+    /**
+     * =============================================================
+     * NHOM CAP NHAT TRANG THAI CONG VIEC
+     * =============================================================
+     */
     public function edit(string $id)
     {
         if ($this->request->isPost()) {
@@ -127,6 +149,10 @@ class TaskStatusController extends Controller
      * 1. Nhận mảng status_ids từ form POST (đã đúng thứ tự mong muốn).
      * 2. Duyệt qua mảng: Vị trí (position) mới = Index của mảng + 1.
      * 3. Gọi Model để cập nhật hàng loạt trong một Database Transaction.
+     *
+     * =============================================================
+     * NHOM SAP XEP THU TU TRANG THAI
+     * =============================================================
      */
     public function reorder()
     {
@@ -156,6 +182,11 @@ class TaskStatusController extends Controller
         Response::redirect(URLROOT . '/settings/task' . (isset($body['project_id']) && $body['project_id'] ? '?project_id=' . $body['project_id'] : ''));
     }
 
+    /**
+     * =============================================================
+     * NHOM XOA TRANG THAI CONG VIEC
+     * =============================================================
+     */
     public function delete(string $id)
     {
         $body = $this->request->getBody();
@@ -172,6 +203,10 @@ class TaskStatusController extends Controller
 
     /**
      * Hàm validate chung cho Task Status
+     *
+     * =============================================================
+     * NHOM KIEM TRA DU LIEU TRANG THAI
+     * =============================================================
      */
     private function validateStatus(array $data, ?int $projectId, $id = null)
     {

@@ -13,11 +13,23 @@ use App\models\ProjectStatusModel;
 class ProjectStatusController extends Controller
 {
     protected ProjectStatusModel $modelProjectStatus;
+
+    /**
+     * =============================================================
+     * NHOM KHOI TAO
+     * =============================================================
+     */
     public function __construct()
     {
         parent::__construct();
         $this->modelProjectStatus = $this->model('ProjectStatusModel');
     }
+
+    /**
+     * =============================================================
+     * NHOM HIEN THI TRANG THAI DU AN
+     * =============================================================
+     */
     public function list()
     {
         $data = $this->modelProjectStatus->getList();
@@ -27,6 +39,12 @@ class ProjectStatusController extends Controller
             'statuses' => $statuses
         ]);
     }
+
+    /**
+     * =============================================================
+     * NHOM TAO MOI TRANG THAI DU AN
+     * =============================================================
+     */
     public function store()
     {
         // Lấy dữ liệu form
@@ -73,6 +91,11 @@ class ProjectStatusController extends Controller
         Response::redirect(URLROOT . '/settings/project');
     }
 
+    /**
+     * =============================================================
+     * NHOM CAP NHAT TRANG THAI DU AN
+     * =============================================================
+     */
     public function update(string $id)
     {
         $body = $this->request->getBody();
@@ -118,6 +141,10 @@ class ProjectStatusController extends Controller
      * 1. Nhận mảng status_ids từ form POST (đã đúng thứ tự mong muốn).
      * 2. Duyệt qua mảng: Vị trí (position) mới = Index của mảng + 1.
      * 3. Gọi Model để cập nhật hàng loạt trong một Database Transaction.
+     *
+     * =============================================================
+     * NHOM SAP XEP THU TU TRANG THAI
+     * =============================================================
      */
     public function reorder()
     {
@@ -141,6 +168,11 @@ class ProjectStatusController extends Controller
         Response::redirect(URLROOT . '/settings/project');
     }
 
+    /**
+     * =============================================================
+     * NHOM XOA TRANG THAI DU AN
+     * =============================================================
+     */
     public function delete(string $id)
     {
         if ($this->modelProjectStatus->delete($id)) {

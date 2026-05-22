@@ -12,57 +12,12 @@
  * @var array $currentFilters
  * @var string $pageTitle
  */
+$listTableConfig = \App\helpers\ListTableHelper::config();
+$maxVisiblePages = max(1, (int) ($listTableConfig['max_visible_pages'] ?? 5));
 ?>
 <style>
-    .user-list-name {
-        max-width: 360px;
-    }
-
-    .table-footer-outside {
-        background: transparent;
-        padding: 1rem 0;
-        border: none;
-    }
-
-    .table-container {
-        height: calc(100vh - 240px);
         /* Tính toán chiều cao dựa trên màn hình (trừ header/toolbar/footer) */
-        overflow-y: auto;
-        position: relative;
-    }
-
-    .table-custom thead {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-
     /* Tùy chỉnh phân trang đồng bộ với dự án */
-    .pagination {
-        gap: 0.5rem;
-    }
-
-    .pagination .page-link {
-        border-radius: 0.375rem !important;
-        border: 1px solid #e2e8f0;
-        color: #64748b;
-        min-width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 0.5rem;
-    }
-
-    .pagination .page-item.active .page-link {
-        background-color: #4f46e5;
-        border-color: #4f46e5;
-    }
-
-    .pagination .page-item.disabled .page-link {
-        background-color: #f8fafc;
-        color: #cbd5e1;
-    }
 </style>
 
 <div class="page-toolbar">
@@ -87,7 +42,7 @@
 </div>
 
 <!-- Bảng Dữ Liệu -->
-<div class="table-container mb-3">
+<div class="table-container table-container-paginated mb-3">
     <div class="table-responsive">
         <table class="table table-custom align-middle">
             <thead class="bg-slate-50">
@@ -196,7 +151,7 @@
                 <?php endif; ?>
 
                 <?php
-                $max_visible = 5;
+                $max_visible = $maxVisiblePages;
                 if ($totalPage <= $max_visible):
                     for ($i = 1; $i <= $totalPage; $i++): ?>
                         <li class="page-item <?= ($i == $currentPage) ? 'active' : '' ?>">

@@ -366,6 +366,11 @@ return [
             'action'     => 'update',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
+        '/tasks/{id}/delete' => [
+            'controller' => 'TaskController',
+            'action'     => 'delete',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
         '/tasks/update-status' => [
             'controller' => 'TaskController',
             'action'     => 'updateStatus',

@@ -15,6 +15,9 @@ class UserModel extends Model
     // =========================================================================
 
     // Lấy danh sách tất cả user
+    /**
+     * @return array<int, array<string, mixed>> Danh sach tat ca user chua bi xoa.
+     */
     public function getAllUsers()
     {
         $sql = "SELECT u.id, u.employee_code, u.name, u.email, u.avatar, u.role_id, u.is_active,
@@ -27,6 +30,10 @@ class UserModel extends Model
 
         return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
+    /**
+     * @param array<string, mixed> $filters Bo loc user theo search, chuc danh, vai tro, ngay tao.
+     * @return int Tong so user thoa bo loc.
+     */
     public function countAll($filters = [])
     {
         $sql = "SELECT COUNT(*) FROM {$this->table} u 
@@ -69,6 +76,10 @@ class UserModel extends Model
     }
 
     // Detail.php 
+    /**
+     * @param int|string $id ID user can lay thong tin.
+     * @return array<string, mixed>|false Thong tin user, hoac false neu khong tim thay.
+     */
     public function getUserById($id)
     {
         $sql = "SELECT u.*, jt.name AS job_title, r.name AS role_name, r.slug AS role_slug
@@ -84,6 +95,9 @@ class UserModel extends Model
     // create.php
     /**
      * Thêm nhân viên và tự động tạo mã nhân viên trong một Transaction
+     *
+     * @param array<string, mixed> $data Du lieu user can tao.
+     * @return int|string ID user vua tao.
      */
     public function createWithEmployeeCode($data)
     {
@@ -137,6 +151,8 @@ class UserModel extends Model
 
     /**
      * Lấy danh sách chức danh cho thẻ Select
+     *
+     * @return array<int, array<string, mixed>> Danh sach chuc danh cho form user.
      */
     public function getJobTitle()
     {
@@ -144,6 +160,9 @@ class UserModel extends Model
         return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * @return array<int, array<string, mixed>> Danh sach user co the chon lam owner du an.
+     */
     public function getProjectOwnerOptions()
     {
         $sql = "SELECT id, name, email
@@ -160,6 +179,9 @@ class UserModel extends Model
 
     /**
      * Lấy danh sách các dự án mà một nhân viên cụ thể đang tham gia
+     *
+     * @param int|string $userId ID nhan vien can lay du an.
+     * @return array<int, array<string, mixed>> Danh sach du an user tham gia.
      */
     public function getUserProjects($userId)
     {
@@ -182,6 +204,9 @@ class UserModel extends Model
 
     /**
      * Lấy danh sách công việc mà nhân viên đó được giao (Assigned To)
+     *
+     * @param int|string $userId ID nhan vien can lay cong viec.
+     * @return array<int, array<string, mixed>> Danh sach cong viec user duoc gan.
      */
     public function getUserTasks($userId)
     {
@@ -198,10 +223,19 @@ class UserModel extends Model
             JOIN projects p ON t.project_id = p.id
             LEFT JOIN task_statuses ts ON t.status_id = ts.id
             WHERE ta.user_id = :user_id
+              AND ta.deleted_at IS NULL
+              AND t.deleted_at IS NULL
+              AND p.deleted_at IS NULL
             ORDER BY t.due_date ASC";
         return $this->db->query($sql, ['user_id' => $userId])->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * @param int $page Trang hien tai.
+     * @param int $perPage So user tren moi trang.
+     * @param array<string, mixed> $filters Bo loc user.
+     * @return array<int, array<string, mixed>> Danh sach user theo trang.
+     */
     public function getUserByPage($page, $perPage, $filters = [])
     {
         // công thức tính phân trang
@@ -254,6 +288,9 @@ class UserModel extends Model
         return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * @return array<int, string> Danh sach ten chuc danh duy nhat.
+     */
     public function getUniqueJobTitles()
     {
         return $this->db->query("SELECT DISTINCT name FROM job_titles ORDER BY name")->fetchAll(PDO::FETCH_COLUMN);

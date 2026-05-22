@@ -13,12 +13,22 @@ class JobController extends Controller
 {
     protected JobModel $jobModel;
 
+    /**
+     * =============================================================
+     * NHOM KHOI TAO
+     * =============================================================
+     */
     public function __construct()
     {
         parent::__construct();
         $this->jobModel = $this->model('JobModel');
     }
 
+    /**
+     * =============================================================
+     * NHOM HIEN THI DANH MUC CHUC DANH
+     * =============================================================
+     */
     public function list()
     {
         $data = $this->jobModel->getJobAll();
@@ -27,6 +37,12 @@ class JobController extends Controller
             'pageTitle' => 'Quản lý công việc'
         ]);
     }
+
+    /**
+     * =============================================================
+     * NHOM TAO MOI VA CAP NHAT CHUC DANH
+     * =============================================================
+     */
     public function store()
     {
         $body = $this->request->getBody();
@@ -62,6 +78,11 @@ class JobController extends Controller
         }
     }
 
+    /**
+     * =============================================================
+     * NHOM KIEM TRA DU LIEU
+     * =============================================================
+     */
     public function validateForm(array $body)
     {
         $this->validator->required('name', $body['name'], "Tên chức danh ");
@@ -69,6 +90,12 @@ class JobController extends Controller
 
         return $this->validator->passes();
     }
+
+    /**
+     * =============================================================
+     * NHOM XOA CHUC DANH
+     * =============================================================
+     */
     public function deleted(string $id)
     {
         if ($this->jobModel->deleteJob($id)) {
