@@ -1,4 +1,5 @@
 <?php
+
 namespace App\helpers;
 
 use App\core\Session;
@@ -67,6 +68,7 @@ class Helper
         echo "</pre>";
         die();
     }
+
     // load file Middleware
     public static function loadMiddleware($mwName)
     {
@@ -89,7 +91,7 @@ class Helper
     }
 
 
-
+    //_______________SPAM_________________
     // debug mvc
     public static function debug_mvc_widget()
     {
@@ -156,5 +158,81 @@ class Helper
             </div>
         </div>
 <?php
+    }
+    // ___ end debug mvc
+
+    // view permission user
+    public static function viewPermission()
+    {
+
+        $user = $_SESSION['user'] ?? null;
+        $permissions = $user['permissions'] ?? ($_SESSION['user_permissions'] ?? []);
+                    
+        if (empty($permissions)) {
+            return;
+        }
+
+        $widgetId = 'debug-permissions-' . uniqid();
+?>
+        <div id="<?= $widgetId ?>" style="
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 270px;
+            max-height: 80vh;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            z-index: 99999;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        ">
+            <div style="padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <strong style="font-size: 13px; color: #1e293b;">🛠️ Debug: Quyền hạn</strong>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <a href="?refresh_permissions=1" title="Lấy dữ liệu mới nhất từ DB" style="
+                        text-decoration: none; 
+                        font-size: 11px; 
+                        background: #3b82f6; 
+                        color: white; 
+                        padding: 2px 6px; 
+                        border-radius: 4px;">Sync DB</a>
+                    <button onclick="document.getElementById('<?= $widgetId ?>').remove()" style="border: none; background: transparent; cursor: pointer; color: #94a3b8; font-size: 18px; line-height: 1;">&times;</button>
+                </div>
+            </div>
+            <div style="padding: 12px; overflow-y: auto; flex: 1;">
+                <div style="margin-bottom: 12px; padding: 8px; background: #f1f5f9; border-radius: 6px;">
+                    <div style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 2px;">Người dùng</div>
+                    <div style="font-size: 13px; color: #0f172a; font-weight: 500;"><?= htmlspecialchars($user['name'] ?? 'Khách') ?></div>
+                    <div style="font-size: 11px; color: #64748b;"><?= htmlspecialchars($user['role'] ?? 'N/A') ?></div>
+                </div>
+                
+                <div style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 8px;">Permission Slugs</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                    <?php foreach ($permissions as $perm): ?>
+                        <span style="background: #eff6ff; color: #1d4ed8; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-family: monospace; border: 1px solid #dbeafe;">
+                            <?= htmlspecialchars($perm) ?>
+                        </span>
+                    <?php endforeach; ?>
+                </div>
+
+                <details style="margin-top: 15px; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+                    <summary style="font-size: 11px; color: #94a3b8; cursor: pointer;">Raw Session Data</summary>
+                    <pre style="font-size: 10px; background: #27272a; color: #a1a1aa; padding: 10px; border-radius: 6px; margin-top: 8px; overflow-x: auto;"><?php print_r($_SESSION); ?></pre>
+                </details>
+            </div>
+        </div>
+<?php
+        // Logic xử lý khi bấm nút Sync trên widget
+        if (isset($_GET['refresh_permissions'])) {
+            \App\helpers\AuthHelper::refreshSession();
+            // Loại bỏ query param để tránh lặp lại
+            $cleanUrl = strtok($_SERVER["REQUEST_URI"], '?');
+            // header("Location: " . $cleanUrl);
+            exit;
+        }
     }
 }

@@ -40,4 +40,42 @@ class AuthHelper
         }
         return false;
     }
+
+    public static function id(): int
+    {
+        $user = self::user();
+
+        return (int) ($user['id'] ?? 0);
+    }
+ 
+
+    //  sử dụng cho DEBUG
+    /**
+     * Làm mới dữ liệu Session từ Database
+     * Giúp cập nhật quyền hạn ngay lập tức mà không cần đăng nhập lại
+     */
+    public static function refreshSession(): bool
+    {
+        $sessionUser = self::user();
+        if (empty($sessionUser['id'])) return false;
+
+        // Khởi tạo model thủ công (vì Helper không có phương thức model() như Controller)
+        $authModel = new \App\models\AuthModel();
+        $userModel = new \App\models\UserModel();
+
+        $user = $userModel->getUserById($sessionUser['id']);
+        if (!$user) return false;
+
+        $permissions = $authModel->getPermissionSlugsByRoleId($user['role_id']);
+
+        // Cập nhật lại mảng dữ liệu trong Session
+        $sessionUser['name'] = $user['name'];
+        $sessionUser['role_id'] = $user['role_id'];
+        $sessionUser['role'] = $user['role_slug'];
+        $sessionUser['avatar'] = $user['avatar'];
+        $sessionUser['permissions'] = $permissions;
+
+        Session::set('user', $sessionUser);
+        return true;
+    }
 }

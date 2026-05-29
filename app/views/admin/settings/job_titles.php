@@ -71,13 +71,25 @@
                                 <?= isset($title['updated_at']) ? date('H:i d/m/Y', strtotime($title['updated_at'])) : '---' ?>
                             </td>
                             <td class="text-center">
-                                <div class="d-inline-flex align-items-center gap-1">
-                                    <button class="btn btn-white btn-action" onclick='editJobTitle(<?= htmlspecialchars(json_encode($title, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)' title="Chỉnh sửa">
-                                        <i data-lucide="edit-3" size="16"></i>
+                                <div class="dropdown position-static">
+                                    <button class="btn btn-link btn-action shadow-none" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Mở hành động">
+                                        <i data-lucide="more-vertical"></i>
                                     </button>
-                                    <button class="btn btn-white btn-action text-danger" onclick="deleteJobTitle(<?= (int) $title['id'] ?>, <?= htmlspecialchars(json_encode($title['name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)" title="Xóa">
-                                        <i data-lucide="trash-2" size="16"></i>
-                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <button type="button" class="dropdown-item d-flex align-items-center gap-2" onclick='editJobTitle(<?= htmlspecialchars(json_encode($title, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)'>
+                                                <i data-lucide="edit-3" class="text-slate-600"></i> Chỉnh sửa
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li>
+                                            <button type="button" class="dropdown-item d-flex align-items-center gap-2 text-danger" onclick="deleteJobTitle(<?= (int) $title['id'] ?>, <?= htmlspecialchars(json_encode($title['name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
+                                                <i data-lucide="trash-2"></i> Xóa
+                                            </button>
+                                        </li>
+                                    </ul>
                                 </div>
                             </td>
                         </tr>

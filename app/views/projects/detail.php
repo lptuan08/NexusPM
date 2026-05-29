@@ -16,6 +16,7 @@ $allUsers = $allUsers ?? [];
 $stats = $stats ?? ['total' => 0, 'completed' => 0, 'overdue' => 0, 'percent' => 0];
 $canUpdateProject = $canUpdateProject ?? false;
 $canDeleteProject = $canDeleteProject ?? false;
+$canCreateTask = $canCreateTask ?? false;
 
 $priorityMap = [
     'urgent' => ['text' => 'Khẩn cấp', 'class' => 'priority-high'],
@@ -416,6 +417,122 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
         color: #ffffff !important;
     }
 
+    /* Material 3 productivity refinement */
+    .project-detail-header,
+    .project-stat-card,
+    .project-panel {
+        background: var(--md-surface);
+        border: 1px solid var(--md-outline-variant);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--md-shadow-1);
+    }
+
+    .project-detail-banner {
+        background: var(--md-surface);
+        color: var(--md-on-surface);
+        border-bottom: 1px solid var(--md-outline-variant);
+        padding: 1.25rem !important;
+    }
+
+    .project-detail-banner::after {
+        display: none;
+    }
+
+    .project-banner-pill-outline,
+    .project-banner-pill-soft {
+        background: var(--md-surface-container-low) !important;
+        border-color: var(--md-outline-variant);
+        color: var(--md-on-surface-variant);
+    }
+
+    .project-detail-banner h1 {
+        color: var(--md-on-surface);
+        font-size: 1.25rem;
+        font-weight: 500 !important;
+        line-height: 1.35;
+        margin-bottom: 0.75rem !important;
+    }
+
+    .project-lead-avatar {
+        border-color: var(--md-surface);
+        border-radius: 999px;
+        box-shadow: var(--md-shadow-1);
+    }
+
+    .project-section-title {
+        color: var(--md-on-surface);
+        font-size: 1rem;
+        font-weight: 500;
+    }
+
+    .project-meta-label,
+    .project-mini-note,
+    .project-member-card-email,
+    .project-member-card-meta {
+        color: var(--md-on-surface-variant);
+    }
+
+    .project-progress {
+        background: var(--md-surface-container);
+        height: 8px;
+    }
+
+    .project-progress-bar {
+        background: var(--md-primary);
+    }
+
+    .project-tabset {
+        border-bottom-color: var(--md-outline-variant);
+        gap: 0.25rem;
+    }
+
+    .project-tabset .nav-link {
+        border-radius: 999px;
+        border-bottom: 0;
+        color: var(--md-on-surface-variant);
+        padding: 0.55rem 0.9rem;
+    }
+
+    .project-tabset .nav-link.active,
+    .project-tabset .nav-link:hover {
+        background: var(--md-primary-container);
+        color: var(--md-on-primary-container);
+    }
+
+    .project-member-card {
+        background: var(--md-surface);
+        border-color: var(--md-outline-variant) !important;
+        border-radius: var(--radius-md);
+    }
+
+    .project-member-card:hover {
+        border-color: var(--md-outline) !important;
+        box-shadow: var(--md-shadow-1);
+    }
+
+    .project-table th {
+        background: var(--md-surface-container-low);
+        border-bottom-color: var(--md-outline-variant);
+        color: var(--md-on-surface-variant);
+        font-weight: 500;
+    }
+
+    .project-table td {
+        border-bottom-color: var(--md-outline-variant);
+    }
+
+    .btn-outline-delete {
+        background: var(--md-surface);
+        border-color: var(--md-outline) !important;
+        color: var(--md-error) !important;
+    }
+
+    .btn-outline-delete:hover {
+        background: var(--md-error-container) !important;
+        border-color: var(--md-error-container) !important;
+        color: var(--md-error) !important;
+    }
+
     @media (max-width: 991.98px) {
         .project-detail-shell {
             margin: -1rem;
@@ -661,10 +778,12 @@ $buildAvatar = static function (array $person, string $nameKey = 'name', string 
                                 <div class="project-section-title mb-1">Công việc dự án</div>
                                 <div class="project-mini-note">Quản lý và theo dõi các đầu việc chi tiết.</div>
                             </div>
+                            <?php if ($canCreateTask): ?>
                             <a href="<?= URLROOT ?>/tasks/create?project_id=<?= (int) ($project['id'] ?? 0) ?>" class="btn btn-sm btn-primary px-3 shadow-sm">
                                 <i data-lucide="plus"></i>
                                 <span>Thêm công việc</span>
                             </a>
+                            <?php endif; ?>
                         </div>
 
                         <div class="project-table-card overflow-hidden">

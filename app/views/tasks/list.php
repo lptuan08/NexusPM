@@ -11,12 +11,16 @@
  * @var array|null $selectedProject Thông tin dự án chi tiết đang chọn
  */
 
+
+
+
 $tasks = $tasks ?? [];
 $projects = $projects ?? [];
 $users = $users ?? [];
 $statuses = $statuses ?? [];
 $filters = $filters ?? [];
 $pagination = $pagination ?? [];
+$canCreateTask = $canCreateTask ?? false;
 $listTableConfig = \App\helpers\ListTableHelper::config();
 $maxVisiblePages = max(1, (int) ($listTableConfig['max_visible_pages'] ?? 5));
 
@@ -103,10 +107,12 @@ $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): 
             </a>
         <?php endif; ?>
 
+        <?php if ($canCreateTask): ?>
         <a href="<?= URLROOT ?>/tasks/create<?= $selectedProject ? '?project_id=' . (int) $selectedProject['id'] : '' ?>" class="btn btn-primary">
             <i data-lucide="plus"></i>
             <span>Thêm mới</span>
         </a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -179,7 +185,10 @@ $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): 
                                         data-bs-toggle="dropdown"><i data-lucide="more-vertical"></i></button>
                                     <ul class="dropdown-menu dropdown-menu-end">
                                         <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>"><i data-lucide="eye" class="text-slate-600"></i> Chi tiết</a></li>
+                                        <?php if (!empty($task['can_update'])): ?>
                                         <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>/edit"><i data-lucide="edit-3" class="text-slate-600"></i> Chỉnh sửa</a></li>
+                                        <?php endif; ?>
+                                        <?php if (!empty($task['can_delete'])): ?>
                                         <li><hr class="dropdown-divider"></li>
                                         <li>
                                             <a class="dropdown-item d-flex align-items-center gap-2 text-danger"
@@ -188,6 +197,7 @@ $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): 
                                                 <i data-lucide="trash-2"></i> Xóa
                                             </a>
                                         </li>
+                                        <?php endif; ?>
                                     </ul>
                                 </div>
                             </td>

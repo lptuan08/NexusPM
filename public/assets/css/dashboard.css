@@ -770,3 +770,127 @@
         gap: 0.35rem;
     }
 }
+
+/* Material 3 productivity pass */
+.dashboard-shell {
+    gap: 1rem;
+}
+
+.dashboard-command-center {
+    background: var(--md-surface);
+    border-color: var(--md-outline-variant);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--md-shadow-1);
+    padding: 1rem;
+}
+
+.dashboard-eyebrow {
+    background: transparent;
+    color: var(--md-on-surface-variant);
+    display: block;
+    margin-bottom: 0.35rem;
+    padding: 0;
+    text-transform: none;
+}
+
+.dashboard-command-center h2 {
+    color: var(--md-on-surface);
+    font-size: 1.05rem;
+    font-weight: 500;
+}
+
+.dashboard-command-center p {
+    color: var(--md-on-surface-variant);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+}
+
+.dashboard-command-actions {
+    background: var(--md-surface-container-low);
+    border-color: var(--md-outline-variant);
+    border-radius: 999px;
+}
+
+.dashboard-scope-tab {
+    border-radius: 999px;
+    color: var(--md-on-surface-variant);
+    font-weight: 500;
+}
+
+.dashboard-scope-tab.active {
+    background: var(--md-surface);
+    color: var(--md-primary);
+    box-shadow: var(--md-shadow-1);
+}
+
+.dashboard-kpi-grid,
+.dashboard-grid,
+.dashboard-main,
+.dashboard-aside,
+.dashboard-section {
+    gap: 1rem;
+}
+
+.dashboard-kpi-card,
+.dashboard-action-item,
+.dashboard-project-item,
+.dashboard-side-card {
+    border-color: var(--md-outline-variant);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--md-shadow-1);
+}
+
+.dashboard-kpi-card,
+.dashboard-side-card {
+    background: var(--md-surface);
+}
+
+.dashboard-kpi-card:hover,
+.dashboard-action-item:hover,
+.dashboard-project-item:hover {
+    border-color: var(--md-outline);
+    box-shadow: var(--md-shadow-2);
+    transform: translateY(-1px);
+}
+
+.dashboard-action-item,
+.dashboard-project-item {
+    background: var(--md-surface);
+    border-left-width: 3px;
+}
+
+.dashboard-project-item {
+    border-left: 3px solid var(--accent, var(--md-primary));
+    border-top-width: 1px;
+}
+
+.dashboard-section-header h3,
+.dashboard-side-header h3,
+.dashboard-action-title-row h4,
+.dashboard-project-item h4 {
+    color: var(--md-on-surface);
+    font-weight: 500;
+}
+
+.dashboard-section-header p,
+.dashboard-action-content p,
+.dashboard-project-item p,
+.dashboard-capacity-summary p,
+.dashboard-activity-item small {
+    color: var(--md-on-surface-variant);
+}
+
+.dashboard-kpi-main strong {
+    font-size: 1.35rem;
+    font-weight: 500;
+}
+
+.dashboard-kpi-main span,
+.dashboard-kpi-main small {
+    color: var(--md-on-surface-variant);
+}
+
+.dashboard-capacity-summary {
+    background: var(--md-surface-container-low);
+    border-color: var(--md-outline-variant);
+}

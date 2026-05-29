@@ -10,6 +10,7 @@
  * @var array $currentFilters
  */
 $canCreateProject = \App\helpers\AuthHelper::can('projects.create.all');
+
 $listTableConfig = \App\helpers\ListTableHelper::config();
 $maxVisiblePages = max(1, (int) ($listTableConfig['max_visible_pages'] ?? 5));
 $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): string {
@@ -41,8 +42,7 @@ $formatDate = static function ($date, string $format = 'd/m/Y'): string {
 
 <div class="page-toolbar">
     <div>
-        <h1 class="page-title">Quản lý dự án</h1>
-        <p class="page-subtitle">Theo dõi trạng thái, tiến độ và nhân sự phụ trách dự án.</p>
+        <h1 class="page-title">Dự án</h1>
     </div>
 
     <div class="page-actions">

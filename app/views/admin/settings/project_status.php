@@ -129,13 +129,25 @@ $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): 
                                 </div>
                             </td>
                             <td class="text-center">
-                                <div class="d-inline-flex align-items-center gap-1">
-                                    <button class="btn btn-white btn-action" onclick='editStatus(<?= htmlspecialchars(json_encode($status, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)' <?= ($status['is_locked'] ?? false) ? 'disabled' : '' ?> title="Chỉnh sửa">
-                                        <i data-lucide="edit-3" size="14"></i>
+                                <div class="dropdown position-static">
+                                    <button class="btn btn-link btn-action shadow-none" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Mở hành động" <?= ($status['is_locked'] ?? false) ? 'disabled' : '' ?>>
+                                        <i data-lucide="more-vertical"></i>
                                     </button>
-                                    <button class="btn btn-white btn-action text-danger" onclick="deleteStatus(<?= (int) $status['id'] ?>, <?= htmlspecialchars(json_encode($status['name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)" <?= ($status['is_locked'] ?? false) ? 'disabled' : '' ?> title="Xóa">
-                                        <i data-lucide="trash-2" size="14"></i>
-                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <button type="button" class="dropdown-item d-flex align-items-center gap-2" onclick='editStatus(<?= htmlspecialchars(json_encode($status, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)'>
+                                                <i data-lucide="edit-3" class="text-slate-600"></i> Chỉnh sửa
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li>
+                                            <button type="button" class="dropdown-item d-flex align-items-center gap-2 text-danger" onclick="deleteStatus(<?= (int) $status['id'] ?>, <?= htmlspecialchars(json_encode($status['name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
+                                                <i data-lucide="trash-2"></i> Xóa
+                                            </button>
+                                        </li>
+                                    </ul>
                                 </div>
                             </td>
                         </tr>

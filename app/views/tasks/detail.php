@@ -5,6 +5,8 @@
  * @var array $task Thông tin công việc
  */
 $task = $task ?? [];
+$canUpdateTask = $canUpdateTask ?? false;
+$canDeleteTask = $canDeleteTask ?? false;
 
 $priorityBadgeMap = [
     'low'    => 'bg-secondary',
@@ -29,10 +31,13 @@ $priorityTextMap = [
     </div>
 
     <div class="page-actions">
+        <?php if ($canUpdateTask): ?>
         <a href="<?= URLROOT ?>/tasks/<?= $task['id'] ?>/edit" class="btn btn-outline-secondary">
             <i data-lucide="edit-3"></i>
             <span>Chỉnh sửa</span>
         </a>
+        <?php endif; ?>
+        <?php if ($canDeleteTask): ?>
         <div class="dropdown">
             <button class="btn btn-outline-secondary px-2" type="button" data-bs-toggle="dropdown">
                 <i data-lucide="more-horizontal" size="18"></i>
@@ -48,6 +53,7 @@ $priorityTextMap = [
                 </li>
             </ul>
         </div>
+        <?php endif; ?>
     </div>
 </div>
 

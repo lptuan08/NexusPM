@@ -46,9 +46,13 @@ class PermissionController extends Controller
         // 3. Lấy danh sách ID các quyền mà vai trò này đang có
         $activePermissions = $this->modelPermission->getActivePermissionIds($id);
 
-        // 4. Render giao diện
+        // 4. Lấy danh sách vai trò để người dùng chuyển nhanh khi phân quyền
+        $roles = $this->modelRole->getRoles();
+
+        // 5. Render giao diện
         View::render('admin/role/permissions', [
             'role' => $role,
+            'roles' => $roles,
             'permissionsByGroup' => $permissionsByGroup,
             'activePermissions' => $activePermissions,
             'pageTitle' => 'Phân quyền: ' . $role['name']

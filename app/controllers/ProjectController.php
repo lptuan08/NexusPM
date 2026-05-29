@@ -31,6 +31,8 @@ class ProjectController extends Controller
      * =============================================================
      * NHOM KHOI TAO
      * =============================================================
+     *
+     * @return void
      */
     public function __construct()
     {
@@ -41,12 +43,16 @@ class ProjectController extends Controller
         $this->modelTaskStatus = $this->model('TaskStatusModel');
     }
 
+
     /**
      * Hiển thị danh sách dự án có phân trang
      *
      * =============================================================
      * NHOM HIEN THI VA TRA CUU DU AN
      * =============================================================
+     *
+     * @return void
+     * @throws \Exception Khi user không có quyền xem danh sách dự án.
      */
     public function index()
     {
@@ -73,8 +79,9 @@ class ProjectController extends Controller
         $totalPage = (int) ceil($totalItem / $perPage);
 
         foreach ($projects as &$project) {
+            $projectRole = $this->modelProject->getUserProjectRole((int) ($project['id'] ?? 0), AuthHelper::id());
             $project['can_update'] = AuthHelper::can('projects.update.all')
-                || (AuthHelper::can('projects.update.joined') && $this->isJoinedProject($project));
+                || (AuthHelper::can('projects.update.joined') && $projectRole === 'manager');
             $project['can_delete'] = AuthHelper::can('projects.delete.all');
         }
         unset($project);
@@ -92,21 +99,33 @@ class ProjectController extends Controller
     }
 
     /**
-     * Hiển thị chi tiết dự án
+     * Hiển thị chi tiết dự án theo quyền của user hiện tại.
+     *
+     * Role trong project:
+     * - manager: được cập nhật project nếu có quyền projects.update.joined.
+     * - member: được thao tác task nếu có quyền task theo project.
+     * - viewer: chỉ xem nội dung dự án/task.
+     *
+     * @param int|string $id ID dự án cần xem.
+     * @return void
+     * @throws \Exception Khi user không có quyền xem dự án.
      */
     public function show($id)
     {
         $project = $this->findProjectOrRedirect($id);
         $projectId = (int) $project['id'];
-
-        // Lấy thông tin thành viên và công việc thuộc dự án
         $this->requireCanViewProject($project);
+        $projectRole = $this->modelProject->getUserProjectRole($projectId, AuthHelper::id());
+        $canUpdateProject = $this->canUpdateProject($project);
 
+        // Kiểm tra quyền xóa dự án (Lấy quyền golbal)
+        $canDeleteProject = AuthHelper::can('projects.delete.all');
+        $canCreateTask = $this->canCreateTaskInProject($projectId, $projectRole);
+
+        // Chỉ manager/người có quyền sửa mới cần danh sách user để thêm thành viên
+        $allUsers = $canUpdateProject ? $this->modelUser->getAllUsers() : [];
         $members = $this->modelProject->getProjectMembers($projectId);
         $tasks = $this->modelProject->getProjectTasks($projectId);
-
-        // Lấy danh sách toàn bộ nhân viên để hiển thị trong Modal thêm thành viên
-        $allUsers = $this->modelUser->getAllUsers();
 
         // Business Logic: Calculate stats here instead of in the View
         $stats = [
@@ -139,10 +158,6 @@ class ProjectController extends Controller
             return $orderA <=> $orderB;
         });
 
-        $canUpdateProject = AuthHelper::can('projects.update.all')
-            || (AuthHelper::can('projects.update.joined') && $this->isJoinedProject($project));
-        $canDeleteProject = AuthHelper::can('projects.delete.all');
-
         View::render('projects/detail', [
             'project' => $project,
             'members' => $members,
@@ -151,6 +166,7 @@ class ProjectController extends Controller
             'allUsers' => $allUsers,
             'canUpdateProject' => $canUpdateProject,
             'canDeleteProject' => $canDeleteProject,
+            'canCreateTask' => $canCreateTask,
             'pageTitle' => 'Chi tiết dự án: ' . $project['name'],
         ]);
     }
@@ -161,6 +177,8 @@ class ProjectController extends Controller
      * =============================================================
      * NHOM TAO MOI DU AN
      * =============================================================
+     *
+     * @return void|null Render form hoặc chuyển sang store khi là POST.
      */
     public function create()
     {
@@ -178,6 +196,10 @@ class ProjectController extends Controller
      * =============================================================
      * NHOM THANH VIEN DU AN
      * =============================================================
+     *
+     * @param int|string $id ID dự án cần thêm thành viên.
+     * @return void
+     * @throws \Exception Khi user không có quyền cập nhật dự án.
      */
     public function addMembers($id)
     {
@@ -223,6 +245,8 @@ class ProjectController extends Controller
 
     /**
      * Xử lý lưu dự án mới vào cơ sở dữ liệu
+     *
+     * @return void|null Render lại form khi validate lỗi, redirect khi thành công.
      */
     public function store()
     {
@@ -257,6 +281,10 @@ class ProjectController extends Controller
      * =============================================================
      * NHOM CAP NHAT DU AN
      * =============================================================
+     *
+     * @param int|string $id ID dự án cần chỉnh sửa.
+     * @return void
+     * @throws \Exception Khi user không có quyền cập nhật dự án.
      */
     public function edit($id)
     {
@@ -272,6 +300,10 @@ class ProjectController extends Controller
 
     /**
      * Xử lý cập nhật thông tin dự án
+     *
+     * @param int|string $id ID dự án cần cập nhật.
+     * @return void|null Render lại form khi validate lỗi, redirect khi thành công.
+     * @throws \Exception Khi user không có quyền cập nhật dự án.
      */
     public function update($id)
     {
@@ -312,6 +344,10 @@ class ProjectController extends Controller
      * =============================================================
      * NHOM XOA DU AN
      * =============================================================
+     *
+     * @param int|string $id ID dự án cần xóa.
+     * @return void
+     * @throws \Exception Khi user không có quyền xóa dự án.
      */
     public function delete($id)
     {
@@ -327,11 +363,13 @@ class ProjectController extends Controller
 
     /**
      * Chuẩn hóa và lấy dữ liệu từ Request Body
-     * @return array
      *
      * =============================================================
      * NHOM CHUAN HOA DU LIEU FORM
      * =============================================================
+     *
+     * @param array<string, mixed>|null $body Request body đã có sẵn, null để tự lấy từ request.
+     * @return array<string, mixed> Dữ liệu dự án đã chuẩn hóa.
      */
     private function getFormData(?array $body = null): array
     {
@@ -349,8 +387,9 @@ class ProjectController extends Controller
 
     /**
      * Chuẩn bị dữ liệu bổ trợ cho View của Project Form (như danh sách nhân viên để chọn Owner)
-     * @param array $data Dữ liệu hiện có
-     * @return array
+     *
+     * @param array<string, mixed> $extra Dữ liệu bổ sung hoặc override cho view.
+     * @return array<string, mixed> Dữ liệu đầy đủ để render form dự án.
      */
     private function getProjectFormViewData(array $extra = []): array
     {
@@ -365,11 +404,13 @@ class ProjectController extends Controller
 
     /**
      * Thực hiện kiểm tra các quy tắc nghiệp vụ cho dữ liệu dự án
-     * @param array $data
      *
      * =============================================================
      * NHOM KIEM TRA DU LIEU DU AN
      * =============================================================
+     *
+     * @param array<string, mixed> $data Dữ liệu dự án đã chuẩn hóa.
+     * @return void
      */
     private function validateProjectData(array $data)
     {
@@ -403,7 +444,8 @@ class ProjectController extends Controller
         }
 
         // Kiểm tra logic thời gian: Ngày kết thúc không được trước ngày bắt đầu
-        if ($this->isValidDateOrNull($data['start_date'])
+        if (
+            $this->isValidDateOrNull($data['start_date'])
             && $this->isValidDateOrNull($data['due_date'])
             && !empty($data['start_date'])
             && !empty($data['due_date'])
@@ -416,7 +458,9 @@ class ProjectController extends Controller
     /**
      * Giải mã chuỗi JSON từ hidden input wizard; rỗng → [].
      *
-     * @return array|null null nếu JSON lỗi (đã addError vào $fieldKey).
+     * @param string $raw Chuỗi JSON thô từ form.
+     * @param string $fieldKey Tên field dùng để gán lỗi validate.
+     * @return array<int, mixed>|null null nếu JSON lỗi (đã addError vào $fieldKey).
      */
     private function decodeJsonArrayField(string $raw, string $fieldKey): ?array
     {
@@ -434,6 +478,9 @@ class ProjectController extends Controller
 
     /**
      * Kiểm tra mảng trạng thái công việc do client gửi (bước 2 wizard).
+     *
+     * @param array<int, array<string, mixed>> $rows Danh sách trạng thái task tùy chỉnh.
+     * @return void
      */
     private function validateWizardTaskStatuses(array $rows): void
     {
@@ -480,6 +527,8 @@ class ProjectController extends Controller
      * Thành viên bổ sung (bước 3): user hợp lệ, không trùng owner, role thuộc whitelist.
      *
      * @param array<int, array<string, mixed>> $members
+     * @param int $ownerId ID trưởng dự án đã chọn ở bước thông tin chung.
+     * @return void
      */
     private function validateWizardMembers(array $members, int $ownerId): void
     {
@@ -509,6 +558,9 @@ class ProjectController extends Controller
      * =============================================================
      * NHOM WIZARD TAO DU AN
      * =============================================================
+     *
+     * @param array<string, mixed> $extra Dữ liệu bổ sung khi render wizard.
+     * @return array<string, mixed> Dữ liệu view cho wizard tạo dự án.
      */
     private function wizardCreateViewData(array $extra = []): array
     {
@@ -518,7 +570,11 @@ class ProjectController extends Controller
         ], $extra);
     }
 
-    // STEP BY STEP
+    /**
+     * Hiển thị wizard tạo dự án theo từng bước.
+     *
+     * @return void
+     */
     public function showStep()
     {
         View::render('projects/createWizard', $this->wizardCreateViewData());
@@ -527,6 +583,8 @@ class ProjectController extends Controller
     /**
      * Lưu dự án từ wizard: POST form (CSRF + Auth) — cùng payload với hidden JSON bước 2–3.
      * Luồng DB: tạo bản ghi projects → task_statuses (tùy chỉnh hoặc clone mẫu hệ thống) → project_members (owner + danh sách).
+     *
+     * @return void|null Render lại wizard khi validate lỗi, redirect khi tạo thành công.
      */
     public function postStep()
     {
@@ -611,22 +669,76 @@ class ProjectController extends Controller
      * =============================================================
      * NHOM PHAN QUYEN DU AN
      * =============================================================
+     *
+     * @return int ID user hiện tại, hoặc 0 nếu session không hợp lệ.
      */
     private function currentUserId(): int
     {
         return (int) (Session::get('user')['id'] ?? 0);
     }
 
+    /**
+     * Kiểm tra user hiện tại có thuộc dự án hay không.
+     *
+     * @param array<string, mixed> $project Dữ liệu dự án cần kiểm tra.
+     * @return bool True nếu user là owner hoặc thành viên active.
+     */
     private function isJoinedProject(array $project): bool
     {
         $userId = $this->currentUserId();
         $projectId = (int) ($project['id'] ?? 0);
-        $ownerId = (int) ($project['owner_id'] ?? 0);
 
         return $userId > 0
-            && ($ownerId === $userId || $this->modelProject->isActiveMember($projectId, $userId));
+            && $this->modelProject->getUserProjectRole($projectId, $userId) !== null;
     }
 
+    /**
+     * Kiểm tra user hiện tại có quyền cập nhật project cụ thể hay không.
+     *
+     * @param array<string, mixed> $project Dữ liệu dự án cần kiểm tra.
+     * @return bool True nếu có quyền update all hoặc là manager với quyền update joined.
+     */
+    private function canUpdateProject(array $project): bool
+    {
+        if (AuthHelper::can('projects.update.all')) {
+            return true;
+        }
+
+        if (!AuthHelper::can('projects.update.joined')) {
+            return false;
+        }
+
+        return $this->modelProject->getUserProjectRole((int) ($project['id'] ?? 0), $this->currentUserId()) === 'manager';
+    }
+
+    /**
+     * Kiểm tra user hiện tại có quyền tạo task trong một project hay không.
+     *
+     * @param int $projectId ID dự án cần tạo task.
+     * @param string|null $projectRole Vai trò đã biết trong dự án, null để tự truy vấn.
+     * @return bool True nếu có quyền tạo task trong dự án.
+     */
+    private function canCreateTaskInProject(int $projectId, ?string $projectRole = null): bool
+    {
+        if (AuthHelper::can('tasks.create.all')) {
+            return true;
+        }
+
+        if (!AuthHelper::can('tasks.create.project')) {
+            return false;
+        }
+
+        $projectRole = $projectRole ?? $this->modelProject->getUserProjectRole($projectId, $this->currentUserId());
+
+        return in_array($projectRole, ['manager', 'member'], true);
+    }
+
+    /**
+     * Tìm dự án theo ID hoặc redirect về danh sách nếu không hợp lệ/không tồn tại.
+     *
+     * @param int|string $id ID dự án cần tìm.
+     * @return array<string, mixed> Dữ liệu dự án.
+     */
     private function findProjectOrRedirect($id): array
     {
         $projectId = $this->positiveInt($id);
@@ -646,6 +758,10 @@ class ProjectController extends Controller
      * =============================================================
      * NHOM BO LOC VA CHUAN HOA GIA TRI
      * =============================================================
+     *
+     * @param array<string, mixed> $query Query string hiện tại.
+     * @param array<int, array<string, mixed>> $statusOptions Danh sách trạng thái hợp lệ.
+     * @return array<string, mixed> Bộ lọc dự án đã chuẩn hóa.
      */
     private function getProjectFilters(array $query, array $statusOptions): array
     {
@@ -665,6 +781,12 @@ class ProjectController extends Controller
         ];
     }
 
+    /**
+     * Chuẩn hóa một hoặc nhiều giá trị ID thành danh sách số nguyên dương duy nhất.
+     *
+     * @param mixed $value Giá trị ID đơn hoặc mảng ID.
+     * @return array<int, int> Danh sách ID hợp lệ.
+     */
     private function normalizeIdList($value): array
     {
         $items = is_array($value) ? $value : [$value];
@@ -680,7 +802,13 @@ class ProjectController extends Controller
         return array_values($ids);
     }
 
-    // xử lý validate giá trị page, nhỏ nhất là 1, mặc định là 0
+    /**
+     * Chuẩn hóa giá trị thành số nguyên dương.
+     *
+     * @param mixed $value Giá trị cần chuyển đổi.
+     * @param int $default Giá trị mặc định nếu không hợp lệ.
+     * @return int Số nguyên dương hợp lệ hoặc default.
+     */
     private function positiveInt($value, int $default = 0): int
     {
         $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
@@ -688,6 +816,12 @@ class ProjectController extends Controller
         return $id === false ? $default : (int) $id;
     }
 
+    /**
+     * Chuẩn hóa ngày từ form; chuỗi rỗng được quy về null.
+     *
+     * @param mixed $value Giá trị ngày từ request.
+     * @return string|null Chuỗi ngày hoặc null.
+     */
     private function normalizeDate($value): ?string
     {
         $date = trim((string) ($value ?? ''));
@@ -695,6 +829,12 @@ class ProjectController extends Controller
         return $date === '' ? null : $date;
     }
 
+    /**
+     * Kiểm tra chuỗi ngày có hợp lệ theo định dạng Y-m-d hoặc null/rỗng hay không.
+     *
+     * @param string|null $date Ngày cần kiểm tra.
+     * @return bool True nếu ngày rỗng/null hoặc đúng định dạng Y-m-d.
+     */
     private function isValidDateOrNull(?string $date): bool
     {
         if ($date === null || $date === '') {
@@ -706,6 +846,12 @@ class ProjectController extends Controller
         return $parsed instanceof \DateTimeImmutable && $parsed->format('Y-m-d') === $date;
     }
 
+    /**
+     * Chuẩn hóa role thành viên trong dự án.
+     *
+     * @param mixed $role Vai trò gửi từ form.
+     * @return string Role hợp lệ manager/member/viewer; mặc định member.
+     */
     private function normalizeMemberRole($role): string
     {
         $role = trim((string) $role);
@@ -713,6 +859,11 @@ class ProjectController extends Controller
         return in_array($role, self::MEMBER_ROLES, true) ? $role : 'member';
     }
 
+    /**
+     * Lấy map ID user hợp lệ để kiểm tra dữ liệu thành viên/owner.
+     *
+     * @return array<int, int> Map user_id => index từ danh sách user được chọn làm owner.
+     */
     private function validUserIdMap(): array
     {
         return array_flip(array_map('intval', array_column($this->modelUser->getProjectOwnerOptions(), 'id')));
@@ -725,6 +876,10 @@ class ProjectController extends Controller
      * - Có projects.view.all: được xem mọi project.
      * - Có projects.view.joined: chỉ xem được project mình sở hữu hoặc là thành viên active.
      * - Không có quyền phù hợp: chặn 403.
+     *
+     * @param array<string, mixed> $project Dữ liệu dự án cần kiểm tra.
+     * @return void
+     * @throws \Exception Khi user không có quyền xem dự án.
      */
     private function requireCanViewProject(array $project): void
     {
@@ -756,27 +911,29 @@ class ProjectController extends Controller
         throw new \Exception('Bạn không có quyền xem dự án này.', 403);
     }
 
+    /**
+     * Chặn thao tác cập nhật nếu user không có quyền với dự án.
+     *
+     * @param array<string, mixed> $project Dữ liệu dự án cần kiểm tra.
+     * @return void
+     * @throws \Exception Khi user không có quyền cập nhật dự án.
+     */
     private function requireCanUpdateProject(array $project): void
     {
-        if (AuthHelper::can('projects.update.all')) {
-            return;
-        }
-
-        if (!AuthHelper::can('projects.update.joined')) {
-            throw new \Exception('Bạn không có quyền cập nhật dự án này.', 403);
-        }
-
-        $userId = $this->currentUserId();
-        $projectId = (int) ($project['id'] ?? 0);
-        $ownerId = (int) ($project['owner_id'] ?? 0);
-
-        if ($ownerId === $userId || $this->modelProject->isActiveMember($projectId, $userId)) {
+        if ($this->canUpdateProject($project)) {
             return;
         }
 
         throw new \Exception('Bạn không có quyền cập nhật dự án này.', 403);
     }
 
+    /**
+     * Chặn thao tác xóa nếu user không có quyền xóa dự án.
+     *
+     * @param array<string, mixed> $project Dữ liệu dự án cần kiểm tra.
+     * @return void
+     * @throws \Exception Khi user không có quyền xóa dự án.
+     */
     private function requireCanDeleteProject(array $project): void
     {
         if (AuthHelper::can('projects.delete.all')) {

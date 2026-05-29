@@ -6,6 +6,7 @@
  * @var array $old
  * @var array $errors
  */
+$firstRole = $roles[0] ?? null;
 ?>
 <style>
     .role-badge-count {
@@ -29,6 +30,17 @@
         <span class="page-title">Vai trò & Phân quyền</span>
     </div>
     <div class="page-actions">
+        <?php if ($firstRole): ?>
+            <a href="<?= URLROOT ?>/admin/roles/<?= (int)$firstRole['id'] ?>/permissions" class="btn btn-outline-secondary">
+                <i data-lucide="shield-check" size="18"></i>
+                <span>Phân quyền</span>
+            </a>
+        <?php else: ?>
+            <button type="button" class="btn btn-outline-secondary" disabled title="Cần tạo vai trò trước">
+                <i data-lucide="shield-check" size="18"></i>
+                <span>Phân quyền</span>
+            </button>
+        <?php endif; ?>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#roleModal" onclick="resetRoleForm()">
             <i data-lucide="plus" size="18"></i>
             <span>Thêm mới</span>

@@ -26,22 +26,34 @@ return [
         '/users' => [
             'controller' => 'UserController',
             'action'     => 'index',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', ['users.view.all']]
+            ]
         ],
         '/users/create' => [
             'controller' => 'UserController',
             'action'     => 'create',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', ['users.create.all']]
+            ]
         ],
         '/users/{id}/edit' => [
             'controller' => 'UserController',
             'action'     => 'edit',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', ['users.update.all']]
+            ]
         ],
         '/users/{id}' => [
             'controller' => 'UserController',
             'action'     => 'show',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', ['users.view.all']]
+            ]
         ],
 
         // --- Project Management ---
@@ -118,37 +130,84 @@ return [
         '/tasks' => [
             'controller' => 'TaskController',
             'action'     => 'index',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'tasks.view.project',
+                    'tasks.view.own',
+                    'tasks.view.all'
+                ]]
+            ]
         ],
         '/tasks/list' => [
             'controller' => 'TaskController',
-            'action'     => 'list',
-            'middleware' => ['AuthMiddleware']
+            'action'     => 'index',
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'tasks.view.project',
+                    'tasks.view.own',
+                    'tasks.view.all'
+                ]]
+            ]
         ],
         '/tasks/create' => [
             'controller' => 'TaskController',
             'action'     => 'create',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'tasks.create.project',
+                    'tasks.create.all'
+                ]]
+            ]
         ],
         '/tasks/{id}/edit' => [
             'controller' => 'TaskController',
             'action'     => 'edit',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'tasks.update.project',
+                    'tasks.update.own',
+                    'tasks.update.all'
+                ]]
+            ]
         ],
         '/tasks/{id}' => [
             'controller' => 'TaskController',
             'action'     => 'show',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'tasks.view.project',
+                    'tasks.view.own',
+                    'tasks.view.all'
+                ]]
+            ]
         ],
         '/tasks/{id}/list' => [
             'controller' => 'TaskController',
             'action'     => 'listIdProject',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'tasks.view.project',
+                    'tasks.view.own',
+                    'tasks.view.all'
+                ]]
+            ]
         ],
         '/tasks/{id}/kanban' => [
             'controller' => 'TaskController',
             'action'     => 'kanban',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'tasks.view.project',
+                    'tasks.view.all'
+                ]]
+            ]
         ],
 
         // --- Admin Settings ---
@@ -206,17 +265,29 @@ return [
         '/users/create' => [
             'controller' => 'UserController',
             'action'     => 'store',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['users.create.all']]
+            ]
         ],
         '/users/{id}/edit' => [
             'controller' => 'UserController',
             'action'     => 'update',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['users.update.all']]
+            ]
         ],
         '/users/{id}/delete' => [
             'controller' => 'UserController',
             'action'     => 'delete',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['users.delete.all']]
+            ]
         ],
 
         // --- Project Management ---
@@ -359,22 +430,52 @@ return [
         '/tasks/store' => [
             'controller' => 'TaskController',
             'action'     => 'store',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', [
+                    'tasks.create.project',
+                    'tasks.create.all'
+                ]]
+            ]
         ],
         '/tasks/{id}/edit' => [
             'controller' => 'TaskController',
             'action'     => 'update',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', [
+                    'tasks.update.project',
+                    'tasks.update.own',
+                    'tasks.update.all'
+                ]]
+            ]
         ],
         '/tasks/{id}/delete' => [
             'controller' => 'TaskController',
             'action'     => 'delete',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', [
+                    'tasks.delete.project',
+                    'tasks.delete.all'
+                ]]
+            ]
         ],
         '/tasks/update-status' => [
             'controller' => 'TaskController',
             'action'     => 'updateStatus',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', [
+                    'tasks.update.project',
+                    'tasks.update.own',
+                    'tasks.update.all'
+                ]]
+            ]
         ],
     ]
 ];

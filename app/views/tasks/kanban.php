@@ -12,6 +12,8 @@ $projects = $projects ?? [];
 $statuses = $statuses ?? [];
 $groupedTasks = $groupedTasks ?? [];
 $selectedProject = $project;
+$canCreateTask = $canCreateTask ?? false;
+$canUpdateProjectTasks = $canUpdateProjectTasks ?? false;
 
 if (empty($projects) && !empty($project)) {
     $projects = [$project];
@@ -48,7 +50,7 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
 
     .kanban-board-wrap {
         overflow-x: auto;
-        padding-bottom: 0.75rem;
+        padding-bottom: 0.6rem;
         scrollbar-color: var(--slate-300) transparent;
         scrollbar-width: thin;
     }
@@ -56,31 +58,32 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
     .kanban-board {
         align-items: flex-start;
         display: flex;
-        gap: 1rem;
+        gap: 0.75rem;
         min-height: calc(100vh - 275px);
-        min-width: max-content;
-        padding: 0.25rem 0.125rem 0.75rem;
+        min-width: 100%;
+        padding: 0.125rem 0 0.6rem;
+        width: 100%;
     }
 
     .kanban-column {
         background: #ffffff;
         border: 1px solid rgba(218, 220, 224, 0.9);
-        border-top: 4px solid var(--status-color, var(--slate-300));
+        border-top: 3px solid var(--status-color, var(--slate-300));
         border-radius: var(--radius-md);
-        box-shadow: var(--google-shadow-soft);
+        box-shadow: none;
         display: flex;
-        flex: 0 0 clamp(300px, 24vw, 360px);
+        flex: 1 1 0;
         flex-direction: column;
         max-height: calc(100vh - 285px);
         min-height: 18rem;
-        min-width: 300px;
+        min-width: 220px;
         overflow: hidden;
     }
 
     .kanban-column-header {
-        background: linear-gradient(180deg, rgba(248, 249, 250, 0.95), #ffffff);
+        background: #ffffff;
         border-bottom: 1px solid var(--slate-100);
-        padding: 0.9rem 1rem;
+        padding: 0.75rem 0.85rem;
     }
 
     .kanban-status-row {
@@ -103,7 +106,6 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
     .kanban-status-dot {
         background: var(--status-color, var(--slate-400));
         border-radius: 999px;
-        box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-color, var(--slate-400)) 14%, transparent);
         flex: 0 0 0.55rem;
         height: 0.55rem;
         width: 0.55rem;
@@ -132,8 +134,8 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
     .kanban-column-progress {
         background: var(--slate-100);
         border-radius: 999px;
-        height: 5px;
-        margin-top: 0.75rem;
+        height: 4px;
+        margin-top: 0.6rem;
         overflow: hidden;
     }
 
@@ -149,10 +151,10 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         display: flex;
         flex: 1 1 auto;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 0.6rem;
         min-height: 11rem;
         overflow-y: auto;
-        padding: 0.85rem;
+        padding: 0.65rem;
     }
 
     .kanban-empty {
@@ -176,22 +178,21 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         background: #ffffff;
         border: 1px solid var(--slate-200);
         border-radius: var(--radius-sm);
-        box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08);
+        box-shadow: none;
         color: inherit;
         cursor: grab;
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
-        padding: 0.9rem;
+        gap: 0.65rem;
+        padding: 0.75rem;
         text-decoration: none;
-        transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+        transition: background-color 0.18s ease, border-color 0.18s ease;
     }
 
     .task-card:hover {
         border-color: var(--primary-200);
-        box-shadow: var(--google-shadow-soft);
+        background-color: var(--slate-50);
         color: inherit;
-        transform: translateY(-1px);
     }
 
     .task-card:active {
@@ -208,8 +209,8 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
     .task-card-title {
         color: var(--slate-900);
         display: -webkit-box;
-        font-size: 0.925rem;
-        font-weight: 700;
+        font-size: 0.875rem;
+        font-weight: 600;
         line-height: 1.4;
         overflow: hidden;
         text-decoration: none;
@@ -322,7 +323,7 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         background: #ffffff;
         border: 1px solid rgba(218, 220, 224, 0.7);
         border-radius: var(--radius-lg);
-        box-shadow: var(--google-shadow-soft);
+        box-shadow: none;
         color: var(--slate-500);
         display: flex;
         flex-direction: column;
@@ -354,22 +355,118 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
     }
 
     .sortable-chosen {
-        box-shadow: var(--google-shadow) !important;
+        box-shadow: none !important;
     }
 
     .sortable-drag {
         opacity: 0.95 !important;
-        transform: rotate(1deg);
+    }
+
+    /* Material 3 productivity refinement */
+    .kanban-board {
+        gap: 0.75rem;
+    }
+
+    .kanban-column,
+    .kanban-state {
+        background: var(--md-surface);
+        border-color: var(--md-outline-variant);
+        border-radius: var(--radius-lg);
+        box-shadow: none;
+    }
+
+    .kanban-column {
+        border-top-width: 3px;
+    }
+
+    .kanban-column-header {
+        background: var(--md-surface);
+        border-bottom-color: var(--md-outline-variant);
+    }
+
+    .kanban-status-name {
+        color: var(--md-on-surface);
+        font-weight: 500;
+    }
+
+    .kanban-count {
+        background: var(--md-surface);
+        border-color: var(--md-outline-variant);
+        color: var(--md-on-surface-variant);
+    }
+
+    .task-card {
+        background: var(--md-surface);
+        border-color: var(--md-outline-variant);
+        border-radius: var(--radius-md);
+        box-shadow: none;
+    }
+
+    .task-card:hover {
+        border-color: var(--md-outline);
+        background-color: var(--md-surface-container-low);
+        box-shadow: none;
+    }
+
+    .task-card-title {
+        color: var(--md-on-surface);
+        font-weight: 500;
+    }
+
+    .task-meta,
+    .task-assignee span,
+    .kanban-save-state {
+        color: var(--md-on-surface-variant);
     }
 
     @media (max-width: 767.98px) {
         .kanban-column {
-            flex-basis: min(86vw, 320px);
             max-height: none;
+            min-width: 180px;
         }
 
         .kanban-board {
             min-height: 28rem;
+        }
+
+        .kanban-column-header {
+            padding: 0.65rem 0.7rem;
+        }
+
+        .kanban-status-name {
+            font-size: 0.8125rem;
+            gap: 0.4rem;
+        }
+
+        .kanban-count {
+            font-size: 0.6875rem;
+            min-width: 1.45rem;
+            padding: 0.28rem 0.45rem;
+        }
+
+        .kanban-tasks {
+            gap: 0.5rem;
+            padding: 0.55rem;
+        }
+
+        .task-card {
+            padding: 0.65rem;
+        }
+    }
+
+    @media (min-width: 768px) and (max-width: 1199.98px) {
+        .kanban-column {
+            min-width: 200px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .kanban-board {
+            gap: 0.5rem;
+        }
+
+        .kanban-column {
+            min-width: 172px;
         }
     }
 </style>
@@ -402,10 +499,12 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
                 <i data-lucide="folder-kanban" size="18"></i>
                 <span>Dự án chi tiết</span>
             </a>
+            <?php if ($canCreateTask): ?>
             <a href="<?= URLROOT ?>/tasks/create?project_id=<?= (int) ($selectedProject['id'] ?? 0) ?>" class="btn btn-primary">
                 <i data-lucide="plus" size="18"></i>
                 <span>Thêm mới</span>
             </a>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -466,12 +565,15 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
                                                         <span>Chi tiết</span>
                                                     </a>
                                                 </li>
+                                                <?php if (!empty($task['can_update'])): ?>
                                                 <li>
                                                     <a class="dropdown-item" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>/edit">
                                                         <i data-lucide="edit-3" class="text-slate-600"></i>
                                                         <span>Chỉnh sửa</span>
                                                     </a>
                                                 </li>
+                                                <?php endif; ?>
+                                                <?php if (!empty($task['can_delete'])): ?>
                                                 <li><hr class="dropdown-divider my-1"></li>
                                                 <li>
                                                     <button type="button" class="dropdown-item text-danger" onclick="showDeleteModal('<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>/delete', <?= htmlspecialchars(json_encode('Xác nhận xóa công việc ' . ($task['title'] ?? '') . '?', JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
@@ -479,6 +581,7 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
                                                         <span>Xóa</span>
                                                     </button>
                                                 </li>
+                                                <?php endif; ?>
                                             </ul>
                                         </div>
                                     </div>
@@ -530,6 +633,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const columns = document.querySelectorAll('.kanban-tasks');
     const saveState = document.getElementById('kanban-save-state');
     const csrfToken = '<?= htmlspecialchars(\App\helpers\SecurityHelper::generateToken(), ENT_QUOTES, 'UTF-8') ?>';
+    const canUpdateProjectTasks = <?= json_encode((bool) $canUpdateProjectTasks) ?>;
+
+    if (!canUpdateProjectTasks) {
+        return;
+    }
 
     function setSaveState(message, type = 'muted') {
         if (!saveState) return;

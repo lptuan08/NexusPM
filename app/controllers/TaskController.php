@@ -12,6 +12,7 @@ use App\models\TaskModel;
 use App\models\ProjectModel;
 use App\models\UserModel;
 use App\models\TaskStatusModel;
+use App\helpers\AuthHelper;
 
 /**
  * @property \App\core\Request $request
@@ -37,10 +38,301 @@ class TaskController extends Controller
         $this->statusModel = $this->model('TaskStatusModel');
     }
 
+
+    /**
+     * Lấy vai trò của user hiện tại trong một dự án.
+     *
+     * Owner của dự án được ProjectModel quy về vai trò manager; thành viên thường
+     * lấy theo bảng project_members. Trả về null nếu user không thuộc dự án.
+     *
+     * @param int $projectId ID dự án cần kiểm tra.
+     * @return string|null Vai trò manager/member/viewer hoặc null nếu không tham gia.
+     */
+    private function projectRole(int $projectId): ?string
+    {
+        return $this->projectModel->getUserProjectRole($projectId, $this->currentUserId());
+    }
+
+    /**
+     * Kiểm tra user hiện tại có một trong các vai trò yêu cầu trong dự án hay không.
+     *
+     * @param int $projectId ID dự án cần kiểm tra.
+     * @param array<int, string> $roles Danh sách vai trò hợp lệ.
+     * @return bool True nếu vai trò hiện tại thuộc danh sách được phép.
+     */
+    private function hasProjectRole(int $projectId, array $roles): bool
+    {
+        return in_array($this->projectRole($projectId), $roles, true);
+    }
+
+    /**
+     * Xác định task có thuộc trách nhiệm trực tiếp của user hiện tại hay không.
+     *
+     * Một task được xem là "own" khi user là người tạo hoặc đang được phân công
+     * active trong bảng task_assignments.
+     *
+     * @param array<string, mixed> $task Dữ liệu task lấy từ database.
+     * @return bool True nếu task do user tạo hoặc đang được giao cho user.
+     */
+    private function taskBelongsToCurrentUser(array $task): bool
+    {
+        $taskId = (int) ($task['id'] ?? 0);
+        $userId = $this->currentUserId();
+
+        return $userId > 0
+            && (
+                (int) ($task['created_by'] ?? 0) === $userId
+                || ($taskId > 0 && $this->taskModel->isTaskAssignedToUser($taskId, $userId))
+            );
+    }
+
+    /**
+     * Kiểm tra quyền xem một task cụ thể theo quyền global/project/own.
+     *
+     * @param array<string, mixed> $task Dữ liệu task cần kiểm tra.
+     * @return bool True nếu user hiện tại được xem task.
+     */
+    private function canViewTask(array $task): bool
+    {
+        $projectId = (int) ($task['project_id'] ?? 0);
+
+        return AuthHelper::can('tasks.view.all')
+            || (AuthHelper::can('tasks.view.project') && $this->hasProjectRole($projectId, ['manager', 'member', 'viewer']))
+            || (AuthHelper::can('tasks.view.own') && $this->taskBelongsToCurrentUser($task));
+    }
+
+    /**
+     * Chặn truy cập nếu user hiện tại không được xem task.
+     *
+     * @param array<string, mixed> $task Dữ liệu task cần kiểm tra.
+     * @return void
+     * @throws \Exception Khi user không có quyền xem task.
+     */
+    private function requireCanViewTask(array $task): void
+    {
+        if ($this->canViewTask($task)) {
+            return;
+        }
+
+        throw new \Exception('Bạn không có quyền xem công việc này.', 403);
+    }
+
+    /**
+     * Kiểm tra quyền xem toàn bộ task trong một dự án.
+     *
+     * Quyền này dùng cho các màn theo ngữ cảnh dự án như list theo project và Kanban.
+     *
+     * @param int $projectId ID dự án cần kiểm tra.
+     * @return bool True nếu user có quyền xem task trong dự án.
+     */
+    private function canViewProjectTasks(int $projectId): bool
+    {
+        return AuthHelper::can('tasks.view.all')
+            || (AuthHelper::can('tasks.view.project') && $this->hasProjectRole($projectId, ['manager', 'member', 'viewer']));
+    }
+
+    /**
+     * Chặn truy cập nếu user không được xem task trong dự án.
+     *
+     * @param int $projectId ID dự án cần kiểm tra.
+     * @return void
+     * @throws \Exception Khi user không có quyền xem task của dự án.
+     */
+    private function requireCanViewProjectTasks(int $projectId): void
+    {
+        if ($this->canViewProjectTasks($projectId)) {
+            return;
+        }
+
+        throw new \Exception('Bạn không có quyền xem công việc của dự án này.', 403);
+    }
+
+    /**
+     * Kiểm tra quyền tạo task trong một dự án.
+     *
+     * Manager và member của dự án được phép tạo khi role hệ thống có
+     * tasks.create.project; viewer chỉ được xem.
+     *
+     * @param int $projectId ID dự án cần tạo task.
+     * @return bool True nếu user được tạo task trong dự án.
+     */
+    private function canCreateTaskInProject(int $projectId): bool
+    {
+        return AuthHelper::can('tasks.create.all')
+            || (AuthHelper::can('tasks.create.project') && $this->hasProjectRole($projectId, ['manager', 'member']));
+    }
+
+    /**
+     * Chặn thao tác tạo task nếu user không đủ quyền trong dự án.
+     *
+     * @param int $projectId ID dự án cần tạo task.
+     * @return void
+     * @throws \Exception Khi user không có quyền tạo task.
+     */
+    private function requireCanCreateTaskInProject(int $projectId): void
+    {
+        if ($this->canCreateTaskInProject($projectId)) {
+            return;
+        }
+
+        throw new \Exception('Bạn không có quyền tạo công việc trong dự án này.', 403);
+    }
+
+    /**
+     * Kiểm tra quyền cập nhật task theo quyền global/project/own.
+     *
+     * @param array<string, mixed> $task Dữ liệu task cần kiểm tra.
+     * @return bool True nếu user được cập nhật task.
+     */
+    private function canUpdateTask(array $task): bool
+    {
+        $projectId = (int) ($task['project_id'] ?? 0);
+
+        return AuthHelper::can('tasks.update.all')
+            || (AuthHelper::can('tasks.update.project') && $this->hasProjectRole($projectId, ['manager', 'member']))
+            || (AuthHelper::can('tasks.update.own') && $this->taskBelongsToCurrentUser($task));
+    }
+
+    /**
+     * Chặn thao tác cập nhật nếu user không có quyền với task.
+     *
+     * @param array<string, mixed> $task Dữ liệu task cần kiểm tra.
+     * @return void
+     * @throws \Exception Khi user không có quyền cập nhật task.
+     */
+    private function requireCanUpdateTask(array $task): void
+    {
+        if ($this->canUpdateTask($task)) {
+            return;
+        }
+
+        throw new \Exception('Bạn không có quyền cập nhật công việc này.', 403);
+    }
+
+    /**
+     * Kiểm tra quyền xóa task theo quyền global hoặc quyền trong dự án.
+     *
+     * @param array<string, mixed> $task Dữ liệu task cần kiểm tra.
+     * @return bool True nếu user được xóa task.
+     */
+    private function canDeleteTask(array $task): bool
+    {
+        $projectId = (int) ($task['project_id'] ?? 0);
+
+        return AuthHelper::can('tasks.delete.all')
+            || (AuthHelper::can('tasks.delete.project') && $this->hasProjectRole($projectId, ['manager', 'member']));
+    }
+
+    /**
+     * Chặn thao tác xóa nếu user không có quyền với task.
+     *
+     * @param array<string, mixed> $task Dữ liệu task cần kiểm tra.
+     * @return void
+     * @throws \Exception Khi user không có quyền xóa task.
+     */
+    private function requireCanDeleteTask(array $task): void
+    {
+        if ($this->canDeleteTask($task)) {
+            return;
+        }
+
+        throw new \Exception('Bạn không có quyền xóa công việc này.', 403);
+    }
+
+    /**
+     * Kiểm tra quyền phân công task trong một dự án.
+     *
+     * @param int $projectId ID dự án chứa task cần phân công.
+     * @return bool True nếu user được phân công người thực hiện task.
+     */
+    private function canAssignTaskInProject(int $projectId): bool
+    {
+        return AuthHelper::can('tasks.assign.all')
+            || (AuthHelper::can('tasks.assign.project') && $this->hasProjectRole($projectId, ['manager', 'member']));
+    }
+
+    /**
+     * Chặn thao tác phân công nếu user không có quyền trong dự án.
+     *
+     * @param int $projectId ID dự án chứa task cần phân công.
+     * @return void
+     * @throws \Exception Khi user không có quyền phân công task.
+     */
+    private function requireCanAssignTaskInProject(int $projectId): void
+    {
+        if ($this->canAssignTaskInProject($projectId)) {
+            return;
+        }
+
+        throw new \Exception('Bạn không có quyền phân công công việc trong dự án này.', 403);
+    }
+
+    /**
+     * Tạo bộ lọc quyền xem task để truyền xuống TaskModel.
+     *
+     * Nếu có tasks.view.all thì không cần thêm điều kiện giới hạn. Nếu không,
+     * model sẽ lọc theo task trong project user tham gia và/hoặc task của chính user.
+     *
+     * @return array<string, mixed> Bộ lọc quyền xem task.
+     */
+    private function taskVisibilityFilters(): array
+    {
+        if (AuthHelper::can('tasks.view.all')) {
+            return [];
+        }
+
+        return [
+            'visibility_user_id' => $this->currentUserId(),
+            'visibility_project' => AuthHelper::can('tasks.view.project'),
+            'visibility_own' => AuthHelper::can('tasks.view.own'),
+        ];
+    }
+
+    /**
+     * Lấy danh sách dự án được phép xuất hiện trong bộ lọc/list task.
+     *
+     * @return array<int, array<string, mixed>> Danh sách dự án theo quyền xem hiện tại.
+     */
+    private function projectOptionsForTaskList(): array
+    {
+        if (AuthHelper::can('tasks.view.all') || AuthHelper::can('projects.view.all')) {
+            return $this->projectModel->getAllProjects();
+        }
+
+        return $this->projectModel->getProjectsForUser($this->currentUserId());
+    }
+
+    /**
+     * Lấy danh sách dự án user được phép tạo task.
+     *
+     * @return array<int, array<string, mixed>> Danh sách dự án có thể tạo task.
+     */
+    private function projectOptionsForTaskCreate(): array
+    {
+        if (AuthHelper::can('tasks.create.all')) {
+            return $this->projectModel->getAllProjects();
+        }
+
+        if (AuthHelper::can('tasks.create.project')) {
+            return $this->projectModel->getProjectsForUser($this->currentUserId(), ['manager', 'member']);
+        }
+
+        return [];
+    }
+
     /**
      * =============================================================
      * NHOM HIEN THI VA TRA CUU CONG VIEC
      * =============================================================
+     */
+
+
+
+    /**
+     * Hiển thị danh sách task có phân trang, bộ lọc và giới hạn theo quyền.
+     *
+     * @return void
+     * @throws \Exception Khi project_id trên query không hợp lệ.
      */
     public function index()
     {
@@ -61,19 +353,30 @@ class TaskController extends Controller
             throw new \Exception("ID dự án không hợp lệ.", 400);
         }
 
+        $filters = array_merge($filters, $this->taskVisibilityFilters());
+
         // Lấy dữ liệu từ Model dựa trên bộ lọc và phân trang
         $totalItem = $this->taskModel->countAll($filters);
         $totalPage = max((int) ceil($totalItem / $perPage), 1);
         $page = min($page, $totalPage);
         $tasks = $this->taskModel->getTasksByPage($page, $perPage, $filters);
+        foreach ($tasks as &$task) {
+            $task['can_update'] = $this->canUpdateTask($task);
+            $task['can_delete'] = $this->canDeleteTask($task);
+        }
+        unset($task);
 
         // Lấy thông tin bổ trợ để hiển thị trên giao diện (dropdown lọc, breadcrumb)
         $selectedProject = !empty($filters['project_id']) ? $this->projectModel->find($filters['project_id']) : null;
         $statuses = $this->statusModel->getList($filters['project_id'] ?? null);
+        $createProjectOptions = $this->projectOptionsForTaskCreate();
+        $canCreateTask = $selectedProject
+            ? $this->canCreateTaskInProject((int) $selectedProject['id'])
+            : !empty($createProjectOptions);
 
         View::render('tasks/list', [
             'tasks'           => $tasks,
-            'projects'        => $this->projectModel->getAllProjects(),
+            'projects'        => $this->projectOptionsForTaskList(),
             'users'           => $this->userModel->getAllUsers(),
             'statuses'        => $statuses,
             'filters'         => $filters,
@@ -84,12 +387,17 @@ class TaskController extends Controller
                 'total_pages' => $totalPage,
             ],
             'selectedProject' => $selectedProject,
+            'canCreateTask'   => $canCreateTask,
             'pageTitle'       => 'Danh sách công việc'
         ]);
     }
 
     /**
-     * Hiển thị chi tiết công việc
+     * Hiển thị chi tiết một task sau khi kiểm tra quyền xem.
+     *
+     * @param int|string $id ID task cần xem.
+     * @return void
+     * @throws \Exception Khi user không có quyền xem task.
      */
     public function show($id)
     {
@@ -99,18 +407,25 @@ class TaskController extends Controller
             Response::redirect(URLROOT . '/tasks');
         }
 
+        $this->requireCanViewTask($task);
+
         View::render('tasks/detail', [
             'task' => $task,
+            'canUpdateTask' => $this->canUpdateTask($task),
+            'canDeleteTask' => $this->canDeleteTask($task),
             'pageTitle' => 'Chi tiết công việc'
         ]);
     }
 
     /**
-     * Hiển thị form chỉnh sửa công việc
+     * Hiển thị form chỉnh sửa task.
      *
-     * =============================================================
-     * NHOM CAP NHAT CONG VIEC
-     * =============================================================
+     * Dự án của task bị khóa khi chỉnh sửa để tránh di chuyển task sang project
+     * khác ngoài ý muốn và để giữ đúng phạm vi phân quyền.
+     *
+     * @param int $id ID task cần chỉnh sửa.
+     * @return void
+     * @throws \Exception Khi user không có quyền cập nhật task.
      */
     public function edit(int $id)
     {
@@ -122,12 +437,15 @@ class TaskController extends Controller
             Response::redirect(URLROOT . '/tasks');
         }
 
+        $this->requireCanUpdateTask($task);
+        $projectOptions = array_values(array_filter([$this->projectModel->find((int) $task['project_id'])]));
+
         View::render('tasks/create', [
             'task' => $task,
-            'projects' => $this->projectModel->getAllProjects(),
+            'projects' => $projectOptions,
             'users' => $this->userModel->getAllUsers(),
             'statuses' => $this->statusModel->getList($task['project_id']),
-            'statusesByProject' => $this->getStatusesByProject(),
+            'statusesByProject' => $this->getStatusesByProject($projectOptions),
             'pageTitle' => 'Chỉnh sửa công việc',
             'action_url' => URLROOT . '/tasks/' . $id . '/edit',
             'old' => $task,
@@ -135,7 +453,14 @@ class TaskController extends Controller
     }
 
     /**
-     * Xử lý cập nhật công việc
+     * Xử lý cập nhật task và người được phân công.
+     *
+     * Hàm kiểm tra quyền cập nhật task, khóa project_id về project gốc, validate
+     * status thuộc đúng project, rồi cập nhật task trong transaction.
+     *
+     * @param int $id ID task cần cập nhật.
+     * @return void
+     * @throws \Exception Khi user không có quyền cập nhật hoặc phân công task.
      */
     public function update(int $id)
     {
@@ -151,8 +476,10 @@ class TaskController extends Controller
             return;
         }
 
+        $this->requireCanUpdateTask($task);
         $body = $this->request->getBody();
         $data = $this->getFormData();
+        $projectOptions = array_values(array_filter([$this->projectModel->find((int) $task['project_id'])]));
 
         // Khi chỉnh sửa, không cho đổi dự án của công việc.
         // Dự án thật luôn lấy từ dữ liệu hiện tại trong database.
@@ -186,10 +513,10 @@ class TaskController extends Controller
         if (!$this->validator->passes()) {
             return View::render('tasks/create', [
                 'task' => $task,
-                'projects' => $this->projectModel->getAllProjects(),
+                'projects' => $projectOptions,
                 'users' => $this->userModel->getAllUsers(),
                 'statuses' => $this->statusModel->getList($originalProjectId),
-                'statusesByProject' => $this->getStatusesByProject(),
+                'statusesByProject' => $this->getStatusesByProject($projectOptions),
                 'errors' => $this->validator->getErrors(),
                 'old' => array_merge($body, ['project_id' => $originalProjectId]),
                 'pageTitle' => 'Chỉnh sửa công việc',
@@ -198,6 +525,9 @@ class TaskController extends Controller
         }
 
         $assigneeId = !empty($data['assigned_to']) ? (int) $data['assigned_to'] : null;
+        if ($assigneeId) {
+            $this->requireCanAssignTaskInProject($originalProjectId);
+        }
         unset($data['assigned_to']);
 
         try {
@@ -223,11 +553,11 @@ class TaskController extends Controller
         }
     }
 
-    //VALIDATE project_id
     /**
-     * =============================================================
-     * NHOM KIEM TRA DU LIEU DU AN
-     * =============================================================
+     * Kiểm tra định dạng project_id trên URL/query.
+     *
+     * @param mixed $id Giá trị project_id cần kiểm tra.
+     * @return bool True nếu là số nguyên dương trong phạm vi cho phép.
      */
     public function validateProjectId($id): bool
     {
@@ -243,11 +573,11 @@ class TaskController extends Controller
 
 
     /**
-     * Hiển thị danh sách công việc với bộ lọc và phân trang
+     * Hiển thị danh sách task theo một project cụ thể.
      *
-     * =============================================================
-     * NHOM HIEN THI CONG VIEC THEO DU AN
-     * =============================================================
+     * @param int|string $id ID dự án cần lọc task.
+     * @return void
+     * @throws \Exception Khi project_id không hợp lệ.
      */
     public function listIdProject($id)
     {
@@ -264,9 +594,13 @@ class TaskController extends Controller
             'assigned_to' => $query['assigned_to'] ?? null,
             'status_id'   => $query['status_id'] ?? null,
         ];
+        $filters = array_merge($filters, $this->taskVisibilityFilters());
 
-        $allProject = $this->projectModel->getAllProjects();
         $selectedProject = $this->projectModel->find($id);
+        if (!$selectedProject) {
+            Helper::setFlash('danger', 'Dự án không tồn tại.');
+            Response::redirect(URLROOT . '/tasks');
+        }
         $statusTask = $this->statusModel->getList($id);
 
         // Lấy dữ liệu từ Model dựa trên bộ lọc và phân trang
@@ -274,11 +608,20 @@ class TaskController extends Controller
         $totalPage = max((int) ceil($totalItem / $perPage), 1);
         $page = min($page, $totalPage);
         $tasks = $this->taskModel->getTasksByPage($page, $perPage, $filters);
+        foreach ($tasks as &$task) {
+            $task['can_update'] = $this->canUpdateTask($task);
+            $task['can_delete'] = $this->canDeleteTask($task);
+        }
+        unset($task);
+        $createProjectOptions = $this->projectOptionsForTaskCreate();
+        $canCreateTask = $selectedProject
+            ? $this->canCreateTaskInProject((int) $selectedProject['id'])
+            : !empty($createProjectOptions);
 
         // Thu thập các tham số lọc từ URL
         View::render('tasks/list', [
             'tasks'             => $tasks,
-            'projects'          => $allProject,
+            'projects'          => $this->projectOptionsForTaskList(),
             'users'             => $this->userModel->getAllUsers(),
             'statuses'          => $statusTask,
             'filters'           => $filters,
@@ -289,12 +632,17 @@ class TaskController extends Controller
                 'total_pages' => $totalPage,
             ],
             'selectedProject'   => $selectedProject,
+            'canCreateTask'     => $canCreateTask,
             'pageTitle'         => 'Danh sách công việc'
         ]);
     }
 
     /**
-     * Hiển thị bảng Kanban cho một dự án cụ thể
+     * Hiển thị bảng Kanban cho task của một dự án.
+     *
+     * @param int|string $id ID dự án cần hiển thị Kanban.
+     * @return void
+     * @throws \Exception Khi user không có quyền xem task của dự án.
      */
     public function kanban($id)
     {
@@ -304,8 +652,17 @@ class TaskController extends Controller
             Response::redirect(URLROOT . '/tasks');
         }
 
+        $projectId = (int) $id;
+        $this->requireCanViewProjectTasks($projectId);
         $statuses = $this->statusModel->getList($id);
         $tasks = $this->taskModel->getTaskByIdProject($id);
+        foreach ($tasks as &$task) {
+            $task['can_update'] = $this->canUpdateTask($task);
+            $task['can_delete'] = $this->canDeleteTask($task);
+        }
+        unset($task);
+        $canUpdateProjectTasks = AuthHelper::can('tasks.update.all')
+            || (AuthHelper::can('tasks.update.project') && $this->hasProjectRole($projectId, ['manager', 'member']));
 
         // Nhóm các task theo status_id
         $groupedTasks = [];
@@ -318,19 +675,20 @@ class TaskController extends Controller
 
         View::render('tasks/kanban', [
             'project'      => $project,
-            'projects'     => $this->projectModel->getAllProjects(),
+            'projects'     => $this->projectOptionsForTaskList(),
             'statuses'     => $statuses,
             'groupedTasks' => $groupedTasks,
+            'canCreateTask' => $this->canCreateTaskInProject($projectId),
+            'canUpdateProjectTasks' => $canUpdateProjectTasks,
             'pageTitle'    => 'Bảng Kanban: ' . $project['name']
         ]);
     }
 
     /**
-     * API xử lý cập nhật trạng thái qua AJAX (Kanban Drag & Drop)
+     * API cập nhật trạng thái task từ thao tác kéo thả Kanban.
      *
-     * =============================================================
-     * NHOM API CAP NHAT TRANG THAI
-     * =============================================================
+     * @return void JSON success/error được gửi trực tiếp qua Response.
+     * @throws \Exception Khi user không có quyền cập nhật task.
      */
     public function updateStatus()
     {
@@ -339,7 +697,17 @@ class TaskController extends Controller
         $statusId = $body['status_id'] ?? null;
 
         if ($taskId && $statusId) {
-            $this->taskModel->update($taskId, ['status_id' => $statusId]);
+            $task = $this->taskModel->find((int) $taskId);
+            if (!$task) {
+                return Response::error('Công việc không tồn tại.', [], 404);
+            }
+
+            $this->requireCanUpdateTask($task);
+            if (!$this->statusModel->belongsToProject((int) $statusId, (int) $task['project_id'])) {
+                return Response::error('Trạng thái không thuộc dự án của công việc.', [], 422);
+            }
+
+            $this->taskModel->update((int) $taskId, ['status_id' => (int) $statusId]);
             return Response::success([], 'Cập nhật trạng thái thành công');
         }
 
@@ -347,9 +715,11 @@ class TaskController extends Controller
     }
 
     /**
-     * =============================================================
-     * NHOM XOA CONG VIEC
-     * =============================================================
+     * Xóa mềm một task sau khi kiểm tra quyền xóa.
+     *
+     * @param int|string $id ID task cần xóa.
+     * @return void
+     * @throws \Exception Khi user không có quyền xóa task.
      */
     public function delete($id)
     {
@@ -359,34 +729,48 @@ class TaskController extends Controller
         }
 
         $taskId = $this->positiveInt($id);
-        if ($taskId <= 0 || !$this->taskModel->find($taskId)) {
+        $task = $taskId > 0 ? $this->taskModel->find($taskId) : false;
+        if ($taskId <= 0 || !$task) {
             Helper::setFlash('danger', 'Công việc không tồn tại.');
             Response::redirect(URLROOT . '/tasks');
             return;
         }
 
+        $this->requireCanDeleteTask($task);
         $this->taskModel->delete($taskId);
         Helper::setFlash('success', 'Xóa công việc thành công.');
         Response::redirect($this->taskListRedirectUrl());
     }
 
     /**
-     * =============================================================
-     * NHOM TAO MOI CONG VIEC
-     * =============================================================
+     * Hiển thị form tạo task mới.
+     *
+     * Nếu truyền project_id trên query, hàm kiểm tra user có được tạo task trong
+     * project đó hay không trước khi render form.
+     *
+     * @return void
+     * @throws \Exception Khi user không có dự án nào được phép tạo task.
      */
     public function create()
     {
         $query = $this->request->getQuery();
+        $projectOptions = $this->projectOptionsForTaskCreate();
+        if (empty($projectOptions)) {
+            throw new \Exception('Bạn không có quyền tạo công việc trong dự án nào.', 403);
+        }
+
         $prefillProjectId = isset($query['project_id']) && $query['project_id'] !== '' && $query['project_id'] !== null
             ? (int) $query['project_id']
             : null;
+        if ($prefillProjectId !== null) {
+            $this->requireCanCreateTaskInProject($prefillProjectId);
+        }
 
         View::render('tasks/create', [
-            'projects' => $this->projectModel->getAllProjects(),
+            'projects' => $projectOptions,
             'users' => $this->userModel->getAllUsers(),
             'statuses' => $this->statusModel->getList($prefillProjectId),
-            'statusesByProject' => $this->getStatusesByProject(),
+            'statusesByProject' => $this->getStatusesByProject($projectOptions),
             'pageTitle' => 'Tạo công việc mới',
             'action_url' => URLROOT . '/tasks/store',
             'old' => $this->request->getBody(),
@@ -394,7 +778,10 @@ class TaskController extends Controller
     }
 
     /**
-     * Xử lý lưu công việc mới
+     * Xử lý lưu task mới và phân công người thực hiện nếu có.
+     *
+     * @return void
+     * @throws \Exception Khi user không có quyền tạo hoặc phân công task.
      */
     public function store()
     {
@@ -405,6 +792,10 @@ class TaskController extends Controller
 
         $body = $this->request->getBody();
         $data = $this->getFormData();
+        $projectOptions = $this->projectOptionsForTaskCreate();
+        if (empty($projectOptions)) {
+            throw new \Exception('Bạn không có quyền tạo công việc trong dự án nào.', 403);
+        }
         $this->ensureStatusForSelectedProject($data);
 
         $this->validator->required('title', $data['title'], 'Tiêu đề');
@@ -419,16 +810,18 @@ class TaskController extends Controller
                 $this->validator->addError('project_id', 'Dự án không tồn tại hoặc đã bị xóa.');
             } elseif (!$this->statusModel->belongsToProject($statusId, $projectId)) {
                 $this->validator->addError('status_id', 'Trạng thái không thuộc dự án đã chọn.');
+            } else {
+                $this->requireCanCreateTaskInProject($projectId);
             }
         }
 
         if (!$this->validator->passes()) {
             $statusProjectId = !empty($body['project_id']) ? (int) $body['project_id'] : null;
             return View::render('tasks/create', [
-                'projects' => $this->projectModel->getAllProjects(),
+                'projects' => $projectOptions,
                 'users' => $this->userModel->getAllUsers(),
                 'statuses' => $this->statusModel->getList($statusProjectId),
-                'statusesByProject' => $this->getStatusesByProject(),
+                'statusesByProject' => $this->getStatusesByProject($projectOptions),
                 'errors' => $this->validator->getErrors(),
                 'old' => $body,
                 'pageTitle' => 'Tạo công việc mới',
@@ -437,6 +830,9 @@ class TaskController extends Controller
         }
 
         $assigneeId = !empty($data['assigned_to']) ? (int) $data['assigned_to'] : null;
+        if ($assigneeId) {
+            $this->requireCanAssignTaskInProject((int) $data['project_id']);
+        }
         unset($data['assigned_to']);
 
         try {
@@ -460,9 +856,9 @@ class TaskController extends Controller
     }
 
     /**
-     * =============================================================
-     * NHOM CHUAN HOA DU LIEU FORM
-     * =============================================================
+     * Chuẩn hóa dữ liệu task lấy từ request body.
+     *
+     * @return array<string, mixed> Dữ liệu task đã chuẩn hóa để validate/lưu DB.
      */
     private function getFormData(): array
     {
@@ -491,9 +887,9 @@ class TaskController extends Controller
     }
 
     /**
-     * =============================================================
-     * NHOM TIEN ICH PHIEN LAM VIEC
-     * =============================================================
+     * Lấy ID user hiện tại từ session.
+     *
+     * @return int ID user đang đăng nhập, hoặc 0 nếu session không hợp lệ.
      */
     private function currentUserId(): int
     {
@@ -501,14 +897,16 @@ class TaskController extends Controller
     }
 
     /**
-     * =============================================================
-     * NHOM TIEN ICH TRANG THAI CONG VIEC
-     * =============================================================
+     * Lấy danh sách trạng thái task theo từng project để render dropdown phụ thuộc.
+     *
+     * @param array<int, array<string, mixed>>|null $projects Danh sách project cần lấy trạng thái.
+     * @return array<int, array<int, array<string, mixed>>> Map project_id => danh sách trạng thái.
      */
-    private function getStatusesByProject(): array
+    private function getStatusesByProject(?array $projects = null): array
     {
         $statusesByProject = [];
-        foreach ($this->projectModel->getAllProjects() as $project) {
+        $projects = $projects ?? $this->projectOptionsForTaskList();
+        foreach ($projects as $project) {
             $projectId = (int) ($project['id'] ?? 0);
             if ($projectId > 0) {
                 $statusesByProject[$projectId] = $this->statusModel->getList($projectId);
@@ -518,6 +916,12 @@ class TaskController extends Controller
         return $statusesByProject;
     }
 
+    /**
+     * Tự chọn trạng thái đầu tiên của project nếu form chưa gửi status_id.
+     *
+     * @param array<string, mixed> $data Dữ liệu form task, được cập nhật trực tiếp.
+     * @return void
+     */
     private function ensureStatusForSelectedProject(array &$data): void
     {
         if (!empty($data['status_id']) || empty($data['project_id'])) {
@@ -531,9 +935,11 @@ class TaskController extends Controller
     }
 
     /**
-     * =============================================================
-     * NHOM TIEN ICH DIEU HUONG VA DINH DANG
-     * =============================================================
+     * Chuẩn hóa một giá trị thành số nguyên dương.
+     *
+     * @param mixed $value Giá trị cần chuyển đổi.
+     * @param int $default Giá trị mặc định nếu không hợp lệ.
+     * @return int Số nguyên dương hợp lệ hoặc giá trị mặc định.
      */
     private function positiveInt($value, int $default = 0): int
     {
@@ -542,6 +948,13 @@ class TaskController extends Controller
         return $id === false ? $default : (int) $id;
     }
 
+    /**
+     * Xác định URL quay lại sau khi xóa task.
+     *
+     * Chỉ chấp nhận redirect nội bộ dưới /tasks để tránh open redirect.
+     *
+     * @return string URL danh sách task an toàn.
+     */
     private function taskListRedirectUrl(): string
     {
         $body = $this->request->getBody();

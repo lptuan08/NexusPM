@@ -94,7 +94,11 @@ class TaskModel extends Model
     }
 
     /**
-     * Helper chung để xây dựng WHERE clauses cho các phương thức lấy danh sách
+     * Xây dựng điều kiện WHERE dùng chung cho các truy vấn danh sách task.
+     *
+     * Ngoài các bộ lọc UI như search/project/assignee/status, hàm còn nhận
+     * visibility_user_id, visibility_project và visibility_own để giới hạn dữ liệu
+     * theo quyền xem task hiện tại.
      *
      * =============================================================
      * NHOM BO LOC DANH SACH CONG VIEC
@@ -130,6 +134,43 @@ class TaskModel extends Model
             $where[] = "t.status_id = :status_id";
             $params[':status_id'] = (int)$filters['status_id'];
         }
+
+        if (!empty($filters['visibility_user_id'])) {
+            $userId = (int) $filters['visibility_user_id'];
+            $visibility = [];
+
+            if (!empty($filters['visibility_project'])) {
+                $visibility[] = "(p.owner_id = :visibility_project_owner_id OR EXISTS (
+                    SELECT 1
+                    FROM project_members pm_v
+                    WHERE pm_v.project_id = t.project_id
+                      AND pm_v.user_id = :visibility_project_member_id
+                      AND pm_v.is_active = 1
+                      AND pm_v.left_at IS NULL
+                ))";
+                $params[':visibility_project_owner_id'] = $userId;
+                $params[':visibility_project_member_id'] = $userId;
+            }
+
+            if (!empty($filters['visibility_own'])) {
+                $visibility[] = "(t.created_by = :visibility_own_created_by OR EXISTS (
+                    SELECT 1
+                    FROM task_assignments ta_o
+                    WHERE ta_o.task_id = t.id
+                      AND ta_o.user_id = :visibility_own_user_id
+                      AND ta_o.deleted_at IS NULL
+                ))";
+                $params[':visibility_own_created_by'] = $userId;
+                $params[':visibility_own_user_id'] = $userId;
+            }
+
+            if ($visibility !== []) {
+                $where[] = '(' . implode(' OR ', $visibility) . ')';
+            } else {
+                $where[] = '1 = 0';
+            }
+        }
+
         return [$where, $params];
     }
 
@@ -155,6 +196,10 @@ class TaskModel extends Model
     }
 
     /**
+     * Lấy danh sách task thuộc một dự án cụ thể.
+     *
+     * Nếu $id là null, hàm trả về các task không gắn với dự án nào.
+     *
      * @param int|string|null $id ID du an, hoac null de lay task khong thuoc du an.
      * @return array<int, array<string, mixed>> Danh sach cong viec theo du an.
      */
@@ -179,41 +224,25 @@ class TaskModel extends Model
     }
 
     /**
+     * Đếm số lượng task thỏa bộ lọc và quyền xem.
+     *
      * @param array<string, mixed> $filters Bo loc dung de dem cong viec.
      * @return int Tong so cong viec thoa bo loc.
      */
     public function countAll($filters = [])
     {
-        $sql = "SELECT COUNT(*) as count FROM {$this->table} WHERE deleted_at IS NULL";
-        $params = [];
-
-        if (!empty($filters['search'])) {
-            $sql .= " AND (title LIKE :search OR description LIKE :search)";
-            $params[':search'] = '%' . $filters['search'] . '%';
-        }
-        if (!empty($filters['project_id'])) {
-            $sql .= " AND project_id = :project_id";
-            $params[':project_id'] = $filters['project_id'];
-        }
-        if (!empty($filters['assigned_to'])) {
-            $sql .= " AND EXISTS (
-                SELECT 1 FROM task_assignments ta_f
-                WHERE ta_f.task_id = {$this->table}.id
-                  AND ta_f.user_id = :assigned_to
-                  AND ta_f.deleted_at IS NULL
-            )";
-            $params[':assigned_to'] = $filters['assigned_to'];
-        }
-        if (!empty($filters['status_id'])) {
-            $sql .= " AND status_id = :status_id";
-            $params[':status_id'] = $filters['status_id'];
-        }
-
+        [$where, $params] = $this->buildFilterWhere($filters);
+        $whereSql = implode(' AND ', $where);
+        $sql = 'SELECT COUNT(*) as count
+                ' . $this->fromListJoins() . "
+                WHERE $whereSql";
         $result = $this->db->query($sql, $params)->fetch(PDO::FETCH_ASSOC);
         return (int)($result['count'] ?? 0);
     }
 
     /**
+     * Lấy danh sách task theo trang, bộ lọc và quyền xem.
+     *
      * @param int $page Trang hien tai.
      * @param int $perPage So ban ghi tren moi trang.
      * @param array<string, mixed> $filters Bo loc cong viec.
@@ -222,32 +251,9 @@ class TaskModel extends Model
     public function getTasksByPage($page, $perPage, $filters = [])
     {
         $offset = ($page - 1) * $perPage;
-        $whereClauses = ['t.deleted_at IS NULL'];
-        $params = [];
 
-        if (!empty($filters['search'])) {
-            $whereClauses[] = "(t.title LIKE :search OR t.description LIKE :search)";
-            $params[':search'] = '%' . $filters['search'] . '%';
-        }
-        if (!empty($filters['project_id'])) {
-            $whereClauses[] = "t.project_id = :project_id";
-            $params[':project_id'] = (int)$filters['project_id'];
-        }
-        if (!empty($filters['assigned_to'])) {
-            $whereClauses[] = "EXISTS (
-                SELECT 1 FROM task_assignments ta_f
-                WHERE ta_f.task_id = t.id
-                  AND ta_f.user_id = :assigned_to
-                  AND ta_f.deleted_at IS NULL
-            )";
-            $params[':assigned_to'] = (int)$filters['assigned_to'];
-        }
-        if (!empty($filters['status_id'])) {
-            $whereClauses[] = "t.status_id = :status_id";
-            $params[':status_id'] = (int)$filters['status_id'];
-        }
-
-        $whereSql = implode(' AND ', $whereClauses);
+        [$where, $params] = $this->buildFilterWhere($filters);
+        $whereSql = implode(' AND ', $where);
         $sql = 'SELECT ' . $this->selectListColumns() . '
                 ' . $this->fromListJoins() . "
                 WHERE $whereSql ORDER BY t.id DESC LIMIT :offset, :perPage";
@@ -256,5 +262,26 @@ class TaskModel extends Model
         $params[':perPage'] = $perPage;
 
         return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Kiểm tra user có đang được phân công active vào task hay không.
+     *
+     * @param int $taskId ID task cần kiểm tra.
+     * @param int $userId ID user cần kiểm tra.
+     * @return bool True nếu user đang được phân công vào task.
+     */
+    public function isTaskAssignedToUser(int $taskId, int $userId): bool
+    {
+        $sql = "SELECT COUNT(*)
+                FROM task_assignments
+                WHERE task_id = :task_id
+                  AND user_id = :user_id
+                  AND deleted_at IS NULL";
+
+        return (int) $this->db->query($sql, [
+            'task_id' => $taskId,
+            'user_id' => $userId,
+        ])->fetchColumn() > 0;
     }
 }

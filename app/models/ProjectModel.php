@@ -100,10 +100,7 @@ class ProjectModel extends Model
     }
 
     /**
-     * Lấy toàn bộ dự án có lọc theo tìm kiếm và trạng thái
-     * 
-     * @param array $filters Mảng chứa 'search' và 'status'
-     * @return array
+     * Lấy danh sách dự án rút gọn cho select/filter.
      *
      * @return array<int, array<string, mixed>> Danh sach du an rut gon cho select/filter.
      */
@@ -114,6 +111,8 @@ class ProjectModel extends Model
     }
 
     /**
+     * Lấy toàn bộ dự án kèm thông tin owner, trạng thái và số liệu tổng hợp.
+     *
      * @param array<string, mixed> $filters Bo loc tim kiem va trang thai.
      * @return array<int, array<string, mixed>> Danh sach du an kem thong tin tong hop.
      */
@@ -371,6 +370,8 @@ class ProjectModel extends Model
     }
 
     /**
+     * Kiểm tra một user có đang là thành viên active của dự án hay không.
+     *
      * @param int|string $projectId ID du an can kiem tra.
      * @param int|string $userId ID nguoi dung can kiem tra.
      * @return bool True neu nguoi dung dang la thanh vien active.
@@ -380,6 +381,7 @@ class ProjectModel extends Model
         $sql = "SELECT COUNT(*) FROM {$this->tableProjectMember}
                 WHERE project_id = :project_id
                 AND user_id = :user_id
+                AND is_active = 1
                 AND left_at IS NULL";
 
         return (int)$this->db->query($sql, [
@@ -404,6 +406,8 @@ class ProjectModel extends Model
     }
 
     /**
+     * Đếm số dự án đang hoạt động thỏa bộ lọc.
+     *
      * =============================================================
      * NHOM DEM VA PHAN TRANG DU AN
      * =============================================================
@@ -422,6 +426,8 @@ class ProjectModel extends Model
     }
 
     /**
+     * Lấy danh sách dự án theo trang dành cho user chỉ được xem dự án tham gia.
+     *
      * @param int|string $userId ID user dang xem danh sach du an tham gia.
      * @param int $page Trang hien tai.
      * @param int $perPage So ban ghi tren moi trang.
@@ -449,6 +455,7 @@ class ProjectModel extends Model
                         FROM {$this->tableProjectMember} pm
                         WHERE pm.project_id = p.id
                         AND pm.user_id = :member_user_id
+                        AND pm.is_active = 1
                         AND pm.left_at IS NULL
                     )
                 )";
@@ -468,6 +475,8 @@ class ProjectModel extends Model
     }
 
     /**
+     * Đếm số dự án user được phép xem theo phạm vi tham gia.
+     *
      * @param int|string $userId ID user can dem du an tham gia.
      * @param array<string, mixed> $filters Bo loc du an.
      * @return int Tong so du an user duoc tham gia.
@@ -483,6 +492,7 @@ class ProjectModel extends Model
                         FROM {$this->tableProjectMember} pm
                         WHERE pm.project_id = p.id
                         AND pm.user_id = :member_user_id
+                        AND pm.is_active = 1
                         AND pm.left_at IS NULL
                     )
                 )";
@@ -495,5 +505,116 @@ class ProjectModel extends Model
         $this->applyProjectFilters($sql, $params, $filters);
 
         return (int)$this->db->query($sql, $params)->fetchColumn();
+    }
+
+    /**
+     * Lấy danh sách dự án mà user đang tham gia.
+     *
+     * Đây là wrapper giữ tương thích với tên hàm cũ, logic thực tế dùng
+     * getProjectsForUser().
+     *
+     * @param int|string $userId ID user cần lấy danh sách dự án.
+     * @return array<int, array<string, mixed>> Danh sách dự án user được tham gia.
+     */
+    public function getProjectsJoinedUser($userId)
+    {
+        return $this->getProjectsForUser((int) $userId);
+    }
+
+    /**
+     * Lấy danh sách dự án mà user đang tham gia, có thể giới hạn theo role trong project.
+     *
+     * @param int $userId ID người dùng.
+     * @param array<int, string>|null $memberRoles Danh sách role hợp lệ trong project_members.
+     * @return array<int, array<string, mixed>>
+     */
+    public function getProjectsForUser(int $userId, ?array $memberRoles = null): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $params = [
+            'owner_user_id' => $userId,
+            'member_user_id' => $userId,
+        ];
+        $roleSql = '';
+
+        if (is_array($memberRoles) && $memberRoles !== []) {
+            $rolePlaceholders = [];
+            foreach (array_values($memberRoles) as $index => $role) {
+                $key = "member_role_{$index}";
+                $rolePlaceholders[] = ':' . $key;
+                $params[$key] = (string) $role;
+            }
+            $roleSql = ' AND pm.role IN (' . implode(',', $rolePlaceholders) . ')';
+        }
+
+        $sql = "SELECT p.id,
+                       p.name,
+                       p.project_code,
+                       p.status_id,
+                       ps.name AS status_name,
+                       ps.color AS status_color,
+                       ps.slug AS status_slug
+                FROM {$this->table} p
+                LEFT JOIN project_statuses ps ON p.status_id = ps.id
+                WHERE p.deleted_at IS NULL
+                AND (
+                    p.owner_id = :owner_user_id
+                    OR EXISTS (
+                        SELECT 1
+                        FROM {$this->tableProjectMember} pm
+                        WHERE pm.project_id = p.id
+                        AND pm.user_id = :member_user_id
+                        AND pm.is_active = 1
+                        AND pm.left_at IS NULL
+                        {$roleSql}
+                    )
+                )
+                ORDER BY p.created_at DESC";
+
+        return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Lấy vai trò của user trong một dự án.
+     *
+     * Owner của dự án luôn được quy về manager. Nếu user là thành viên active
+     * trong project_members thì trả về role được lưu trong bảng; ngược lại trả về null.
+     *
+     * @param int|string $projectId ID dự án cần kiểm tra.
+     * @param int|string $userId ID user cần kiểm tra.
+     * @return string|null Vai trò manager/member/viewer hoặc null nếu không tham gia.
+     */
+    public function getUserProjectRole($projectId, $userId)
+    {
+        if ((int) $userId <= 0 || (int) $projectId <= 0) {
+            return null;
+        }
+
+        $project = $this->find($projectId);
+        if (!$project) {
+            return null;
+        }
+        // Owner_id của project luôn được xem là manager
+        if ((int) $project['owner_id'] === (int) $userId) {
+            return 'manager';
+        }
+
+        $sql = "SELECT role
+            FROM {$this->tableProjectMember}
+            WHERE project_id = :project_id
+            AND user_id = :user_id
+            AND is_active = 1
+            AND left_at IS NULL
+            LIMIT 1";
+
+        $role = $this->db->query($sql, [
+            'project_id' => (int) $projectId,
+            'user_id' => (int) $userId,
+        ])->fetchColumn();
+
+        return $role !== false ? (string) $role : null;
     }
 }
