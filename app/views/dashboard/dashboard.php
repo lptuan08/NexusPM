@@ -1,5 +1,13 @@
 <?php
-$canCreateProject = \App\helpers\AuthHelper::can('projects.create.all');
+$canViewTasks = \App\helpers\AuthHelper::canAny([
+    'tasks.project',
+    'tasks.view.all',
+    'tasks.view.own'
+]);
+$canViewProjects = \App\helpers\AuthHelper::canAny([
+    'projects.view.all',
+    'projects.view.joined'
+]);
 
 $taskStats = [
     ['label' => 'Quá hạn', 'value' => 7, 'tone' => 'red', 'icon' => 'alarm-clock'],
@@ -136,6 +144,7 @@ $activities = [
 </div>
 
 <div class="dashboard-page">
+    <?php if ($canViewTasks): ?>
     <section class="dashboard-panel dashboard-panel-tasks" aria-labelledby="dashboard-task-title">
         <div class="dashboard-panel-header">
             <div>
@@ -182,7 +191,9 @@ $activities = [
             <?php endforeach; ?>
         </div>
     </section>
+    <?php endif; ?>
 
+    <?php if ($canViewProjects): ?>
     <section class="dashboard-panel dashboard-panel-projects" aria-labelledby="dashboard-project-title">
         <div class="dashboard-panel-header">
             <div>
@@ -228,6 +239,7 @@ $activities = [
             <?php endforeach; ?>
         </div>
     </section>
+    <?php endif; ?>
 
     <section class="dashboard-panel dashboard-panel-activity" aria-labelledby="dashboard-activity-title">
         <div class="dashboard-panel-header">

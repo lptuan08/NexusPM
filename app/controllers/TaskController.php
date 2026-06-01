@@ -24,6 +24,12 @@ class TaskController extends Controller
     private UserModel $userModel;
     private TaskStatusModel $statusModel;
 
+    private const PROJECT_TASK_ABILITIES = [
+        'manager' => ['view', 'create', 'update', 'delete', 'assign'],
+        'member' => ['view', 'create', 'update'],
+        'viewer' => ['view'],
+    ];
+
     /**
      * =============================================================
      * NHOM KHOI TAO
@@ -38,6 +44,32 @@ class TaskController extends Controller
         $this->statusModel = $this->model('TaskStatusModel');
     }
 
+    /**
+     * =============================================================
+     * DANH SACH QUYEN MODULE TASKS
+     * =============================================================
+     *
+     * Nhom xem:
+     * - tasks.view.all: Xem tat ca cong viec trong he thong.
+     * - tasks.view.own: Xem cong viec do user tao hoac dang duoc phan cong.
+     *
+     * Nhom tao:
+     * - tasks.create.all: Tao cong viec trong tat ca du an.
+     *
+     * Nhom cap nhat:
+     * - tasks.update.all: Cap nhat tat ca cong viec.
+     * - tasks.update.own: Cap nhat cong viec do user tao hoac dang duoc phan cong.
+     *
+     * Nhom xoa:
+     * - tasks.delete.all: Xoa tat ca cong viec.
+     *
+     * Nhom phan cong:
+     * - tasks.assign.all: Phan cong nguoi thuc hien cho tat ca cong viec.
+     *
+     * Nhom theo role trong project:
+     * - tasks.project: Cho phep dung role manager/member/viewer trong project de quyet dinh
+     *   user duoc view/create/update/delete/assign task trong project do.
+     */
 
     /**
      * Lấy vai trò của user hiện tại trong một dự án.
@@ -54,15 +86,42 @@ class TaskController extends Controller
     }
 
     /**
-     * Kiểm tra user hiện tại có một trong các vai trò yêu cầu trong dự án hay không.
+     * Kiem tra user co duoc thuc hien mot hanh dong task theo role trong project hay khong.
      *
-     * @param int $projectId ID dự án cần kiểm tra.
-     * @param array<int, string> $roles Danh sách vai trò hợp lệ.
-     * @return bool True nếu vai trò hiện tại thuộc danh sách được phép.
+     * Permission tasks.project chi mo cong xu ly theo project; role manager/member/viewer
+     * trong project moi quyet dinh hanh dong cu the.
+     *
+     * @param int $projectId ID du an can kiem tra.
+     * @param string $ability Hanh dong task: view/create/update/delete/assign.
+     * @return bool True neu role trong project duoc phep thuc hien hanh dong.
      */
-    private function hasProjectRole(int $projectId, array $roles): bool
+    private function canUseProjectTaskRole(int $projectId, string $ability): bool
     {
-        return in_array($this->projectRole($projectId), $roles, true);
+        if (!AuthHelper::can('tasks.project')) {
+            return false;
+        }
+
+        $projectRole = $this->projectRole($projectId);
+
+        return in_array($ability, self::PROJECT_TASK_ABILITIES[$projectRole] ?? [], true);
+    }
+
+    /**
+     * Lay danh sach project role duoc phep thuc hien mot hanh dong task.
+     *
+     * @param string $ability Hanh dong task: view/create/update/delete/assign.
+     * @return array<int, string> Danh sach role trong project.
+     */
+    private function projectRolesForTaskAbility(string $ability): array
+    {
+        $roles = [];
+        foreach (self::PROJECT_TASK_ABILITIES as $role => $abilities) {
+            if (in_array($ability, $abilities, true)) {
+                $roles[] = $role;
+            }
+        }
+
+        return $roles;
     }
 
     /**
@@ -97,7 +156,7 @@ class TaskController extends Controller
         $projectId = (int) ($task['project_id'] ?? 0);
 
         return AuthHelper::can('tasks.view.all')
-            || (AuthHelper::can('tasks.view.project') && $this->hasProjectRole($projectId, ['manager', 'member', 'viewer']))
+            || $this->canUseProjectTaskRole($projectId, 'view')
             || (AuthHelper::can('tasks.view.own') && $this->taskBelongsToCurrentUser($task));
     }
 
@@ -128,7 +187,7 @@ class TaskController extends Controller
     private function canViewProjectTasks(int $projectId): bool
     {
         return AuthHelper::can('tasks.view.all')
-            || (AuthHelper::can('tasks.view.project') && $this->hasProjectRole($projectId, ['manager', 'member', 'viewer']));
+            || $this->canUseProjectTaskRole($projectId, 'view');
     }
 
     /**
@@ -150,8 +209,8 @@ class TaskController extends Controller
     /**
      * Kiểm tra quyền tạo task trong một dự án.
      *
-     * Manager và member của dự án được phép tạo khi role hệ thống có
-     * tasks.create.project; viewer chỉ được xem.
+     * Manager va member cua du an duoc phep tao khi role he thong co tasks.project;
+     * viewer chi duoc xem.
      *
      * @param int $projectId ID dự án cần tạo task.
      * @return bool True nếu user được tạo task trong dự án.
@@ -159,7 +218,7 @@ class TaskController extends Controller
     private function canCreateTaskInProject(int $projectId): bool
     {
         return AuthHelper::can('tasks.create.all')
-            || (AuthHelper::can('tasks.create.project') && $this->hasProjectRole($projectId, ['manager', 'member']));
+            || $this->canUseProjectTaskRole($projectId, 'create');
     }
 
     /**
@@ -189,7 +248,7 @@ class TaskController extends Controller
         $projectId = (int) ($task['project_id'] ?? 0);
 
         return AuthHelper::can('tasks.update.all')
-            || (AuthHelper::can('tasks.update.project') && $this->hasProjectRole($projectId, ['manager', 'member']))
+            || $this->canUseProjectTaskRole($projectId, 'update')
             || (AuthHelper::can('tasks.update.own') && $this->taskBelongsToCurrentUser($task));
     }
 
@@ -220,7 +279,7 @@ class TaskController extends Controller
         $projectId = (int) ($task['project_id'] ?? 0);
 
         return AuthHelper::can('tasks.delete.all')
-            || (AuthHelper::can('tasks.delete.project') && $this->hasProjectRole($projectId, ['manager', 'member']));
+            || $this->canUseProjectTaskRole($projectId, 'delete');
     }
 
     /**
@@ -248,7 +307,7 @@ class TaskController extends Controller
     private function canAssignTaskInProject(int $projectId): bool
     {
         return AuthHelper::can('tasks.assign.all')
-            || (AuthHelper::can('tasks.assign.project') && $this->hasProjectRole($projectId, ['manager', 'member']));
+            || $this->canUseProjectTaskRole($projectId, 'assign');
     }
 
     /**
@@ -283,7 +342,7 @@ class TaskController extends Controller
 
         return [
             'visibility_user_id' => $this->currentUserId(),
-            'visibility_project' => AuthHelper::can('tasks.view.project'),
+            'visibility_project' => AuthHelper::can('tasks.project'),
             'visibility_own' => AuthHelper::can('tasks.view.own'),
         ];
     }
@@ -313,8 +372,8 @@ class TaskController extends Controller
             return $this->projectModel->getAllProjects();
         }
 
-        if (AuthHelper::can('tasks.create.project')) {
-            return $this->projectModel->getProjectsForUser($this->currentUserId(), ['manager', 'member']);
+        if (AuthHelper::can('tasks.project')) {
+            return $this->projectModel->getProjectsForUser($this->currentUserId(), $this->projectRolesForTaskAbility('create'));
         }
 
         return [];
@@ -662,7 +721,7 @@ class TaskController extends Controller
         }
         unset($task);
         $canUpdateProjectTasks = AuthHelper::can('tasks.update.all')
-            || (AuthHelper::can('tasks.update.project') && $this->hasProjectRole($projectId, ['manager', 'member']));
+            || $this->canUseProjectTaskRole($projectId, 'update');
 
         // Nhóm các task theo status_id
         $groupedTasks = [];

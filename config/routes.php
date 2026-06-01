@@ -12,7 +12,13 @@ return [
         '/' => [
             'controller' => 'DashboardController',
             'action'     => 'index',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'dashboard.view.all',
+                    'dashboard.view.own'
+                ]]
+            ]
         ],
 
         // --- Authentication ---
@@ -138,7 +144,7 @@ return [
             'middleware' => [
                 'AuthMiddleware',
                 ['PermissionMiddleware', [
-                    'tasks.view.project',
+                    'tasks.project',
                     'tasks.view.own',
                     'tasks.view.all'
                 ]]
@@ -150,7 +156,7 @@ return [
             'middleware' => [
                 'AuthMiddleware',
                 ['PermissionMiddleware', [
-                    'tasks.view.project',
+                    'tasks.project',
                     'tasks.view.own',
                     'tasks.view.all'
                 ]]
@@ -162,7 +168,7 @@ return [
             'middleware' => [
                 'AuthMiddleware',
                 ['PermissionMiddleware', [
-                    'tasks.create.project',
+                    'tasks.project',
                     'tasks.create.all'
                 ]]
             ]
@@ -173,7 +179,7 @@ return [
             'middleware' => [
                 'AuthMiddleware',
                 ['PermissionMiddleware', [
-                    'tasks.update.project',
+                    'tasks.project',
                     'tasks.update.own',
                     'tasks.update.all'
                 ]]
@@ -185,7 +191,7 @@ return [
             'middleware' => [
                 'AuthMiddleware',
                 ['PermissionMiddleware', [
-                    'tasks.view.project',
+                    'tasks.project',
                     'tasks.view.own',
                     'tasks.view.all'
                 ]]
@@ -197,7 +203,7 @@ return [
             'middleware' => [
                 'AuthMiddleware',
                 ['PermissionMiddleware', [
-                    'tasks.view.project',
+                    'tasks.project',
                     'tasks.view.own',
                     'tasks.view.all'
                 ]]
@@ -209,7 +215,7 @@ return [
             'middleware' => [
                 'AuthMiddleware',
                 ['PermissionMiddleware', [
-                    'tasks.view.project',
+                    'tasks.project',
                     'tasks.view.all'
                 ]]
             ]
@@ -219,32 +225,61 @@ return [
         '/settings' => [
             'controller' => 'admin/SettingsController',
             'action' => 'index',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'settings.view.all',
+                    'users.view.all',
+                    'job_titles.view.all',
+                    'project_statuses.view.all',
+                    'task_statuses.view.all',
+                    'roles.view.all',
+                    'roles.update_permissions.all'
+                ]]
+            ]
         ],
         '/settings/project' => [
             'controller' => 'admin/ProjectStatusController',
             'action' => 'list',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', ['project_statuses.view.all']]
+            ]
         ],
         '/settings/task' => [
             'controller' => 'admin/TaskStatusController',
             'action' => 'list',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', ['task_statuses.view.all']]
+            ]
         ],
         '/settings/job' => [
             'controller' => 'admin/JobController',
             'action' => 'list',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', ['job_titles.view.all']]
+            ]
         ],
         '/admin/roles' => [
             'controller' => 'admin/RoleController',
             'action' => 'index',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'roles.view.all',
+                    'roles.update_permissions.all'
+                ]]
+            ]
         ],
         '/admin/roles/{id}/permissions' => [
             'controller' => 'admin/PermissionController',
             'action' => 'RolePermissions',
-            'middleware' => ['AuthMiddleware']
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', ['roles.update_permissions.all']]
+            ]
         ],
 
 
@@ -357,83 +392,143 @@ return [
         '/settings/project/create' => [
             'controller' => 'admin/ProjectStatusController',
             'action'     => 'store',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['project_statuses.create.all']]
+            ]
         ],
         '/settings/project/reorder' => [
             'controller' => 'admin/ProjectStatusController',
             'action'     => 'reorder',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['project_statuses.reorder.all']]
+            ]
         ],
         '/settings/project/{id}/edit' => [
             'controller' => 'admin/ProjectStatusController',
             'action'     => 'update',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['project_statuses.update.all']]
+            ]
         ],
         '/settings/project/{id}/delete' => [
             'controller' => 'admin/ProjectStatusController',
             'action'     => 'delete',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['project_statuses.delete.all']]
+            ]
         ],
 
         // --- Admin Settings: Task Status ---
         '/settings/task/create' => [
             'controller' => 'admin/TaskStatusController',
             'action'     => 'store',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['task_statuses.create.all']]
+            ]
         ],
         '/settings/task/reorder' => [
             'controller' => 'admin/TaskStatusController',
             'action'     => 'reorder',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['task_statuses.reorder.all']]
+            ]
         ],
         '/settings/task/{id}/edit' => [
             'controller' => 'admin/TaskStatusController',
             'action' => 'edit',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['task_statuses.update.all']]
+            ]
         ],
         '/settings/task/{id}/delete' => [
             'controller' => 'admin/TaskStatusController',
             'action'     => 'delete',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['task_statuses.delete.all']]
+            ]
         ],
 
         // --- Admin Settings: Job Titles ---
         '/settings/job/create' => [
             'controller' => 'admin/JobController',
             'action'     => 'store',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['job_titles.create.all']]
+            ]
         ],
         '/settings/job/{id}/edit' => [
             'controller' => 'admin/JobController',
             'action'     => 'store',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['job_titles.update.all']]
+            ]
         ],
         '/settings/job/{id}/delete' => [
             'controller' => 'admin/JobController',
             'action'     => 'deleted',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['job_titles.delete.all']]
+            ]
         ],
 
         // --- Admin Settings: Roles & Permissions ---
         '/admin/roles/create' => [
             'controller' => 'admin/RoleController',
             'action'     => 'store',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['roles.create.all']]
+            ]
         ],
         '/admin/roles/{id}/update' => [
             'controller' => 'admin/RoleController',
             'action'     => 'update',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['roles.update.all']]
+            ]
         ],
         '/admin/roles/{id}/delete' => [
             'controller' => 'admin/RoleController',
             'action'     => 'delete',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['roles.delete.all']]
+            ]
         ],
         '/admin/roles/{id}/permissions' => [
             'controller' => 'admin/PermissionController',
             'action' => 'RolePermissionsEdit',
-            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', ['roles.update_permissions.all']]
+            ]
         ],
 
         // --- Task Management ---
@@ -444,7 +539,7 @@ return [
                 'AuthMiddleware',
                 'VerifyCsrfToken',
                 ['PermissionMiddleware', [
-                    'tasks.create.project',
+                    'tasks.project',
                     'tasks.create.all'
                 ]]
             ]
@@ -456,7 +551,7 @@ return [
                 'AuthMiddleware',
                 'VerifyCsrfToken',
                 ['PermissionMiddleware', [
-                    'tasks.update.project',
+                    'tasks.project',
                     'tasks.update.own',
                     'tasks.update.all'
                 ]]
@@ -469,7 +564,7 @@ return [
                 'AuthMiddleware',
                 'VerifyCsrfToken',
                 ['PermissionMiddleware', [
-                    'tasks.delete.project',
+                    'tasks.project',
                     'tasks.delete.all'
                 ]]
             ]
@@ -481,7 +576,7 @@ return [
                 'AuthMiddleware',
                 'VerifyCsrfToken',
                 ['PermissionMiddleware', [
-                    'tasks.update.project',
+                    'tasks.project',
                     'tasks.update.own',
                     'tasks.update.all'
                 ]]

@@ -13,6 +13,11 @@ $projects = $projects ?? [];
 $statuses = $statuses ?? [];
 $projectId = ($projectId ?? null) !== '' ? ($projectId ?? null) : null;
 $selectedProject = null;
+$canCreateTaskStatus = \App\helpers\AuthHelper::can('task_statuses.create.all');
+$canUpdateTaskStatus = \App\helpers\AuthHelper::can('task_statuses.update.all');
+$canDeleteTaskStatus = \App\helpers\AuthHelper::can('task_statuses.delete.all');
+$canReorderTaskStatus = \App\helpers\AuthHelper::can('task_statuses.reorder.all');
+$canManageTaskStatus = $canUpdateTaskStatus || $canDeleteTaskStatus;
 $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): string {
     $color = trim((string) $color);
     if (!preg_match('/^#(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/', $color)) {
@@ -110,14 +115,18 @@ if ($projectId !== null) {
     ?>
 
     <div class="d-flex align-items-center gap-2 flex-wrap">
+        <?php if ($canReorderTaskStatus): ?>
         <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sortModal" <?= empty($statuses) ? 'disabled' : '' ?>>
             <i data-lucide="arrow-up-down" size="18"></i>
             <span>Sắp xếp</span>
         </button>
+        <?php endif; ?>
+        <?php if ($canCreateTaskStatus): ?>
         <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#statusModal" onclick="resetStatusForm()">
             <i data-lucide="plus" size="18"></i>
             <span>Thêm mới</span>
         </button>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -133,7 +142,9 @@ if ($projectId !== null) {
                     <th scope="col" class="text-center">Hoàn tất</th>
                     <th scope="col" class="text-center">Mặc định</th>
                     <th scope="col" class="text-center">Kích hoạt</th>
+                    <?php if ($canManageTaskStatus): ?>
                     <th scope="col" class="text-center status-actions-col">Hành động</th>
+                    <?php endif; ?>
                 </tr>
             </thead>
             <tbody>
@@ -174,33 +185,43 @@ if ($projectId !== null) {
                                     <input class="form-check-input" type="checkbox" <?= ($status['is_active'] ?? false) ? 'checked' : '' ?> disabled>
                                 </div>
                             </td>
+                            <?php if ($canManageTaskStatus): ?>
                             <td class="text-center">
+                                <?php if (!($status['is_locked'] ?? false)): ?>
                                 <div class="dropdown position-static">
                                     <button class="btn btn-link btn-action shadow-none" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Mở hành động" <?= ($status['is_locked'] ?? false) ? 'disabled' : '' ?>>
                                         <i data-lucide="more-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
+                                        <?php if ($canUpdateTaskStatus): ?>
                                         <li>
                                             <button type="button" class="dropdown-item d-flex align-items-center gap-2" onclick='editStatus(<?= htmlspecialchars(json_encode($status, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)'>
                                                 <i data-lucide="edit-3" class="text-slate-600"></i> Chỉnh sửa
                                             </button>
                                         </li>
+                                        <?php endif; ?>
+                                        <?php if ($canUpdateTaskStatus && $canDeleteTaskStatus): ?>
                                         <li>
                                             <hr class="dropdown-divider">
                                         </li>
+                                        <?php endif; ?>
+                                        <?php if ($canDeleteTaskStatus): ?>
                                         <li>
                                             <button type="button" class="dropdown-item d-flex align-items-center gap-2 text-danger" onclick="deleteStatus(<?= (int) $status['id'] ?>, <?= htmlspecialchars(json_encode($status['name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
                                                 <i data-lucide="trash-2"></i> Xóa
                                             </button>
                                         </li>
+                                        <?php endif; ?>
                                     </ul>
                                 </div>
+                                <?php endif; ?>
                             </td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="8" class="table-empty">Chưa có dữ liệu trạng thái.</td>
+                        <td colspan="<?= $canManageTaskStatus ? 8 : 7 ?>" class="table-empty">Chưa có dữ liệu trạng thái.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>

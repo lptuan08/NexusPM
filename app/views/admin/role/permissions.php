@@ -51,9 +51,28 @@ $getModuleSortIndex = static function (string $module) use ($moduleOrder): int {
     $index = array_search($module, $moduleOrder, true);
     return $index === false ? 999 : $index;
 };
+$scopeLabels = [
+    'all' => 'Toàn hệ thống',
+    'project' => 'Theo dự án',
+    'personal' => 'Cá nhân',
+    'other' => 'Khác',
+];
 $getPermissionScope = static function (array $permission): string {
     $slug = (string)($permission['slug'] ?? '');
-    return preg_match('/\.(own|joined|project)$/', $slug) ? 'personal' : 'all';
+
+    if (preg_match('/\.all$/', $slug)) {
+        return 'all';
+    }
+
+    if ($slug === 'tasks.project' || preg_match('/\.(joined|project)$/', $slug)) {
+        return 'project';
+    }
+
+    if (preg_match('/\.(own|self)$/', $slug)) {
+        return 'personal';
+    }
+
+    return 'other';
 };
 uksort($permissionsByGroup, static function (string $a, string $b) use ($getModuleSortIndex): int {
     return $getModuleSortIndex($a) <=> $getModuleSortIndex($b);
@@ -404,12 +423,13 @@ uksort($permissionsByGroup, static function (string $a, string $b) use ($getModu
     <div class="row row-cols-1 row-cols-xl-2 g-3">
         <?php foreach ($permissionsByGroup as $groupName => $permissions): ?>
             <?php
-            $permissionsByScope = [
-                'all' => [],
-                'personal' => [],
-            ];
+            $permissionsByScope = array_fill_keys(array_keys($scopeLabels), []);
             foreach ($permissions as $permission) {
-                $permissionsByScope[$getPermissionScope($permission)][] = $permission;
+                $scope = $getPermissionScope($permission);
+                if (!isset($permissionsByScope[$scope])) {
+                    $scope = 'other';
+                }
+                $permissionsByScope[$scope][] = $permission;
             }
             $visibleScopes = array_filter($permissionsByScope, static fn(array $items): bool => !empty($items));
             $moduleLabel = $moduleNames[$groupName] ?? ucfirst(str_replace('_', ' ', $groupName));
@@ -439,7 +459,7 @@ uksort($permissionsByGroup, static function (string $a, string $b) use ($getModu
                         </div>
                     </div>
                     <div class="permission-module-body">
-                        <?php foreach (['all' => 'Tất cả', 'personal' => 'Cá nhân / dự án của mình'] as $scopeKey => $scopeLabel): ?>
+                        <?php foreach ($scopeLabels as $scopeKey => $scopeLabel): ?>
                             <?php if (empty($permissionsByScope[$scopeKey])): ?>
                                 <?php continue; ?>
                             <?php endif; ?>

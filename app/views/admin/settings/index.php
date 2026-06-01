@@ -2,6 +2,15 @@
 /**
  * Giao diện chính của trung tâm Thiết lập hệ thống
  */
+$canViewUsers = \App\helpers\AuthHelper::can('users.view.all');
+$canViewJobTitles = \App\helpers\AuthHelper::can('job_titles.view.all');
+$canViewProjectStatuses = \App\helpers\AuthHelper::can('project_statuses.view.all');
+$canViewTaskStatuses = \App\helpers\AuthHelper::can('task_statuses.view.all');
+$canViewRoles = \App\helpers\AuthHelper::canAny([
+    'roles.view.all',
+    'roles.update_permissions.all'
+]);
+$canViewSettingsHub = \App\helpers\AuthHelper::can('settings.view.all');
 ?>
 
 <style>
@@ -56,6 +65,7 @@
 
 <div class="row g-4">
     <!-- Chức năng: Nhân viên -->
+    <?php if ($canViewUsers): ?>
     <div class="col-md-6 col-lg-4 col-xl-3">
         <a href="<?= URLROOT ?>/users" class="setting-card-link">
             <div class="ui-card h-100 p-4 d-flex flex-column align-items-center text-center">
@@ -67,8 +77,10 @@
             </div>
         </a>
     </div>
+    <?php endif; ?>
 
     <!-- Chức năng: Chức danh -->
+    <?php if ($canViewJobTitles): ?>
     <div class="col-md-6 col-lg-4 col-xl-3">
         <a href="<?= URLROOT ?>/settings/job" class="setting-card-link">
             <div class="ui-card h-100 p-4 d-flex flex-column align-items-center text-center">
@@ -80,8 +92,10 @@
             </div>
         </a>
     </div>
+    <?php endif; ?>
 
     <!-- Chức năng: Trạng thái dự án -->
+    <?php if ($canViewProjectStatuses): ?>
     <div class="col-md-6 col-lg-4 col-xl-3">
         <a href="<?= URLROOT ?>/settings/project" class="setting-card-link">
             <div class="ui-card h-100 p-4 d-flex flex-column align-items-center text-center">
@@ -93,8 +107,10 @@
             </div>
         </a>
     </div>
+    <?php endif; ?>
 
     <!-- Chức năng: Trạng thái công việc -->
+    <?php if ($canViewTaskStatuses): ?>
     <div class="col-md-6 col-lg-4 col-xl-3">
         <a href="<?= URLROOT ?>/settings/task" class="setting-card-link">
             <div class="ui-card h-100 p-4 d-flex flex-column align-items-center text-center">
@@ -106,8 +122,10 @@
             </div>
         </a>
     </div>
+    <?php endif; ?>
 
     <!-- Chức năng: Vai trò & Phân quyền -->
+    <?php if ($canViewRoles): ?>
     <div class="col-md-6 col-lg-4 col-xl-3">
         <a href="<?= URLROOT ?>/admin/roles" class="setting-card-link">
             <div class="ui-card h-100 p-4 d-flex flex-column align-items-center text-center">
@@ -119,8 +137,10 @@
             </div>
         </a>
     </div>
+    <?php endif; ?>
 
     <!-- Chức năng: Nhật ký hệ thống -->
+    <?php if ($canViewSettingsHub): ?>
     <div class="col-md-6 col-lg-4 col-xl-3">
         <a href="#" class="setting-card-link opacity-75 cursor-not-allowed">
             <div class="ui-card h-100 p-4 d-flex flex-column align-items-center text-center">
@@ -132,4 +152,5 @@
             </div>
         </a>
     </div>
+    <?php endif; ?>
 </div>

@@ -7,6 +7,11 @@
  * @var array $old
  * @var array $errors
  */
+$canCreateProjectStatus = \App\helpers\AuthHelper::can('project_statuses.create.all');
+$canUpdateProjectStatus = \App\helpers\AuthHelper::can('project_statuses.update.all');
+$canDeleteProjectStatus = \App\helpers\AuthHelper::can('project_statuses.delete.all');
+$canReorderProjectStatus = \App\helpers\AuthHelper::can('project_statuses.reorder.all');
+$canManageProjectStatus = $canUpdateProjectStatus || $canDeleteProjectStatus;
 $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): string {
     $color = trim((string) $color);
     if (!preg_match('/^#(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/', $color)) {
@@ -75,15 +80,19 @@ $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): 
     </div>
     <div class="page-actions">
         <!-- Mở modal sắp xếp bằng data-attributes (Bootstrap tự xử lý) -->
+        <?php if ($canReorderProjectStatus): ?>
         <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sortModal">
             <i data-lucide="arrow-up-down"></i>
             <span>Sắp xếp</span>
         </button>
+        <?php endif; ?>
         <!-- Mở modal thêm mới bằng data-attributes và gọi resetStatusForm để làm trống form -->
+        <?php if ($canCreateProjectStatus): ?>
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#statusModal" onclick="resetStatusForm()">
             <i data-lucide="plus"></i>
             <span>Thêm mới</span>
         </button>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -98,7 +107,9 @@ $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): 
                     <th scope="col">Slug</th>
                     <th scope="col">Mã màu</th>
                     <th scope="col" class="text-center">Kích hoạt</th>
+                    <?php if ($canManageProjectStatus): ?>
                     <th scope="col" class="text-center status-actions-col">Hành động</th>
+                    <?php endif; ?>
                 </tr>
             </thead>
             <tbody>
@@ -128,33 +139,43 @@ $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): 
                                     <input class="form-check-input" type="checkbox" <?= ($status['is_active'] ?? false) ? 'checked' : '' ?> disabled>
                                 </div>
                             </td>
+                            <?php if ($canManageProjectStatus): ?>
                             <td class="text-center">
+                                <?php if (!($status['is_locked'] ?? false)): ?>
                                 <div class="dropdown position-static">
                                     <button class="btn btn-link btn-action shadow-none" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Mở hành động" <?= ($status['is_locked'] ?? false) ? 'disabled' : '' ?>>
                                         <i data-lucide="more-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
+                                        <?php if ($canUpdateProjectStatus): ?>
                                         <li>
                                             <button type="button" class="dropdown-item d-flex align-items-center gap-2" onclick='editStatus(<?= htmlspecialchars(json_encode($status, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)'>
                                                 <i data-lucide="edit-3" class="text-slate-600"></i> Chỉnh sửa
                                             </button>
                                         </li>
+                                        <?php endif; ?>
+                                        <?php if ($canUpdateProjectStatus && $canDeleteProjectStatus): ?>
                                         <li>
                                             <hr class="dropdown-divider">
                                         </li>
+                                        <?php endif; ?>
+                                        <?php if ($canDeleteProjectStatus): ?>
                                         <li>
                                             <button type="button" class="dropdown-item d-flex align-items-center gap-2 text-danger" onclick="deleteStatus(<?= (int) $status['id'] ?>, <?= htmlspecialchars(json_encode($status['name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
                                                 <i data-lucide="trash-2"></i> Xóa
                                             </button>
                                         </li>
+                                        <?php endif; ?>
                                     </ul>
                                 </div>
+                                <?php endif; ?>
                             </td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="6" class="table-empty">Chưa có dữ liệu trạng thái.</td>
+                        <td colspan="<?= $canManageProjectStatus ? 6 : 5 ?>" class="table-empty">Chưa có dữ liệu trạng thái.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>

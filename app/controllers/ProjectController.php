@@ -724,7 +724,7 @@ class ProjectController extends Controller
             return true;
         }
 
-        if (!AuthHelper::can('tasks.create.project')) {
+        if (!AuthHelper::can('tasks.project')) {
             return false;
         }
 

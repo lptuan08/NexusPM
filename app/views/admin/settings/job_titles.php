@@ -7,6 +7,10 @@
  * @var array $old
  * @var array $errors
  */
+$canCreateJobTitle = \App\helpers\AuthHelper::can('job_titles.create.all');
+$canUpdateJobTitle = \App\helpers\AuthHelper::can('job_titles.update.all');
+$canDeleteJobTitle = \App\helpers\AuthHelper::can('job_titles.delete.all');
+$canManageJobTitle = $canUpdateJobTitle || $canDeleteJobTitle;
 ?>
 
 <style>
@@ -35,10 +39,12 @@
         <span class="page-title">Chức danh nhân viên</span>
     </div>
     <div class="page-actions">
+        <?php if ($canCreateJobTitle): ?>
         <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#jobTitleModal" onclick="resetJobTitleForm()">
             <i data-lucide="plus" size="18"></i>
             <span>Thêm mới</span>
         </button>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -51,7 +57,9 @@
                     <th scope="col">Tên chức danh</th>
                     <th scope="col">Ngày tạo</th>
                     <th scope="col">Ngày cập nhật</th>
+                    <?php if ($canManageJobTitle): ?>
                     <th scope="col" class="text-center title-actions-col">Hành động</th>
+                    <?php endif; ?>
                 </tr>
             </thead>
             <tbody>
@@ -70,33 +78,41 @@
                             <td class="text-slate-500">
                                 <?= isset($title['updated_at']) ? date('H:i d/m/Y', strtotime($title['updated_at'])) : '---' ?>
                             </td>
+                            <?php if ($canManageJobTitle): ?>
                             <td class="text-center">
                                 <div class="dropdown position-static">
                                     <button class="btn btn-link btn-action shadow-none" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Mở hành động">
                                         <i data-lucide="more-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
+                                        <?php if ($canUpdateJobTitle): ?>
                                         <li>
                                             <button type="button" class="dropdown-item d-flex align-items-center gap-2" onclick='editJobTitle(<?= htmlspecialchars(json_encode($title, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)'>
                                                 <i data-lucide="edit-3" class="text-slate-600"></i> Chỉnh sửa
                                             </button>
                                         </li>
+                                        <?php endif; ?>
+                                        <?php if ($canUpdateJobTitle && $canDeleteJobTitle): ?>
                                         <li>
                                             <hr class="dropdown-divider">
                                         </li>
+                                        <?php endif; ?>
+                                        <?php if ($canDeleteJobTitle): ?>
                                         <li>
                                             <button type="button" class="dropdown-item d-flex align-items-center gap-2 text-danger" onclick="deleteJobTitle(<?= (int) $title['id'] ?>, <?= htmlspecialchars(json_encode($title['name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
                                                 <i data-lucide="trash-2"></i> Xóa
                                             </button>
                                         </li>
+                                        <?php endif; ?>
                                     </ul>
                                 </div>
                             </td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="5" class="table-empty">Chưa có dữ liệu chức danh.</td>
+                        <td colspan="<?= $canManageJobTitle ? 5 : 4 ?>" class="table-empty">Chưa có dữ liệu chức danh.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>

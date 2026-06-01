@@ -135,9 +135,47 @@ class AuthController extends Controller
         // Sử dụng SecurityHelper mà chúng ta đã build ở trên
         SecurityHelper::generateToken();
     
-        // 5. Điều hướng về trang chủ
-        Response::redirect(URLROOT . '/');
+        // 5. Điều hướng về trang đầu tiên user có quyền truy cập
+        Response::redirect(URLROOT . $this->resolveHomePath($permissions));
         return; // Đảm bảo không có code nào được thực thi sau khi chuyển hướng
+    }
+
+    /**
+     * Chọn trang mặc định sau đăng nhập theo quyền hiện có của user.
+     *
+     * @param array<int, string> $permissions
+     */
+    private function resolveHomePath(array $permissions): string
+    {
+        $canAny = static function (array $required) use ($permissions): bool {
+            return !empty(array_intersect($required, $permissions));
+        };
+
+        if ($canAny(['dashboard.view.all', 'dashboard.view.own'])) {
+            return '/';
+        }
+
+        if ($canAny(['projects.view.all', 'projects.view.joined'])) {
+            return '/projects';
+        }
+
+        if ($canAny(['tasks.project', 'tasks.view.all', 'tasks.view.own'])) {
+            return '/tasks';
+        }
+
+        if ($canAny([
+            'settings.view.all',
+            'users.view.all',
+            'job_titles.view.all',
+            'project_statuses.view.all',
+            'task_statuses.view.all',
+            'roles.view.all',
+            'roles.update_permissions.all'
+        ])) {
+            return '/settings';
+        }
+
+        return '/account/password';
     }
 
     /**
