@@ -73,9 +73,9 @@
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item rounded-3 d-flex align-items-center py-2" href="#">
-                            <i data-lucide="settings" class="me-2 text-slate-400" size="16"></i>
-                            <span>Cài đặt tài khoản</span>
+                        <a class="dropdown-item rounded-3 d-flex align-items-center py-2" href="<?= URLROOT ?>/account/password">
+                            <i data-lucide="key-round" class="me-2 text-slate-400" size="16"></i>
+                            <span>Đổi mật khẩu</span>
                         </a>
                     </li>
                     <li>

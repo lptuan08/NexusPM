@@ -21,6 +21,11 @@ return [
             'action'     => 'login',
             'middleware' => []
         ],
+        '/account/password' => [
+            'controller' => 'AccountController',
+            'action'     => 'password',
+            'middleware' => ['AuthMiddleware']
+        ],
 
         // --- User Management ---
         '/users' => [
@@ -258,6 +263,11 @@ return [
         '/logout' => [
             'controller' => 'auth/AuthController',
             'action'     => 'logout',
+            'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
+        ],
+        '/account/password' => [
+            'controller' => 'AccountController',
+            'action'     => 'updatePassword',
             'middleware' => ['AuthMiddleware', 'VerifyCsrfToken']
         ],
 

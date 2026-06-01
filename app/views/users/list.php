@@ -14,9 +14,17 @@
  */
 $listTableConfig = \App\helpers\ListTableHelper::config();
 $maxVisiblePages = max(1, (int) ($listTableConfig['max_visible_pages'] ?? 5));
+
+//permission
+$canViewUser = \App\helpers\AuthHelper::can('users.view.all');
+$canCreateUser = \App\helpers\AuthHelper::can('users.create.all');
+$canEditUser = \App\helpers\AuthHelper::can('users.update.all');
+$canDeleteUser = \App\helpers\AuthHelper::can('users.delete.all');
+
+
 ?>
 <style>
-        /* Tính toán chiều cao dựa trên màn hình (trừ header/toolbar/footer) */
+    /* Tính toán chiều cao dựa trên màn hình (trừ header/toolbar/footer) */
     /* Tùy chỉnh phân trang đồng bộ với dự án */
 </style>
 
@@ -33,11 +41,12 @@ $maxVisiblePages = max(1, (int) ($listTableConfig['max_visible_pages'] ?? 5));
             <i data-lucide="filter"></i>
             <span class="d-none d-md-inline">Bộ lọc</span>
         </button>
-
-        <a href="<?= URLROOT; ?>/users/create" class="btn btn-primary">
-            <i data-lucide="user-plus"></i>
-            <span>Thêm mới</span>
-        </a>
+        <?php if ($canCreateUser): ?>
+            <a href="<?= URLROOT; ?>/users/create" class="btn btn-primary">
+                <i data-lucide="user-plus"></i>
+                <span>Thêm mới</span>
+            </a>
+        <?php endif ?>
     </div>
 </div>
 
@@ -89,18 +98,24 @@ $maxVisiblePages = max(1, (int) ($listTableConfig['max_visible_pages'] ?? 5));
                                     <button class="btn btn-link btn-action shadow-none"
                                         data-bs-toggle="dropdown"><i data-lucide="more-vertical"></i></button>
                                     <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/users/<?= $user['id'] ?>"><i data-lucide="eye" class="text-slate-600"></i> Chi tiết</a></li>
-                                        <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/users/<?= $user['id'] ?>/edit"><i data-lucide="edit-3" class="text-slate-600"></i> Chỉnh sửa</a></li>
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item d-flex align-items-center gap-2 text-danger"
-                                                href="javascript:void(0)"
-                                                onclick="showDeleteModal('<?= URLROOT ?>/users/<?= (int) $user['id'] ?>/delete', <?= htmlspecialchars(json_encode('Bạn có chắc chắn muốn xóa nhân viên ' . $displayName . '?', JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
-                                                <i data-lucide="trash-2"></i> Xóa
-                                            </a>
-                                        </li>
+                                        <?php if ($canViewUser): ?>
+                                            <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/users/<?= $user['id'] ?>"><i data-lucide="eye" class="text-slate-600"></i> Chi tiết</a></li>
+                                        <?php endif; ?>
+                                        <?php if ($canEditUser): ?>
+                                            <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/users/<?= $user['id'] ?>/edit"><i data-lucide="edit-3" class="text-slate-600"></i> Chỉnh sửa</a></li>
+                                        <?php endif; ?>
+                                        <?php if ($canDeleteUser): ?>
+                                            <li>
+                                                <hr class="dropdown-divider">
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item d-flex align-items-center gap-2 text-danger"
+                                                    href="javascript:void(0)"
+                                                    onclick="showDeleteModal('<?= URLROOT ?>/users/<?= (int) $user['id'] ?>/delete', <?= htmlspecialchars(json_encode('Bạn có chắc chắn muốn xóa nhân viên ' . $displayName . '?', JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
+                                                    <i data-lucide="trash-2"></i> Xóa
+                                                </a>
+                                            </li>
+                                        <?php endif ?>
                                     </ul>
                                 </div>
                             </td>
@@ -314,6 +329,6 @@ $maxVisiblePages = max(1, (int) ($listTableConfig['max_visible_pages'] ?? 5));
                 </div>
             </form>
         </div>
-        </div>
     </div>
+</div>
 </div>

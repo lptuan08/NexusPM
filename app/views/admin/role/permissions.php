@@ -35,6 +35,17 @@ $moduleIcons = [
     'job_titles' => 'briefcase-business',
     'roles' => 'shield-check',
 ];
+$moduleTones = [
+    'dashboard' => 'blue',
+    'users' => 'green',
+    'projects' => 'blue',
+    'tasks' => 'amber',
+    'settings' => 'blue',
+    'project_statuses' => 'green',
+    'task_statuses' => 'amber',
+    'job_titles' => 'green',
+    'roles' => 'blue',
+];
 $moduleOrder = array_keys($moduleNames);
 $getModuleSortIndex = static function (string $module) use ($moduleOrder): int {
     $index = array_search($module, $moduleOrder, true);
@@ -49,6 +60,24 @@ uksort($permissionsByGroup, static function (string $a, string $b) use ($getModu
 });
 ?>
 <style>
+    .permissions-flat-page {
+        --permission-surface: #ffffff;
+        --permission-surface-soft: #f8fafd;
+        --permission-surface-blue: #f4f8ff;
+        --permission-blue: #0b57d0;
+        --permission-blue-bg: #e8f0fe;
+        --permission-green: #188038;
+        --permission-green-bg: #e6f4ea;
+        --permission-amber: #b06000;
+        --permission-amber-bg: #fef7e0;
+        --permission-radius: var(--radius-lg, 18px);
+        --permission-radius-inner: var(--radius-md, 14px);
+        --permission-radius-sm: var(--radius-sm, 10px);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
     .min-w-0 {
         min-width: 0;
     }
@@ -102,20 +131,60 @@ uksort($permissionsByGroup, static function (string $a, string $b) use ($getModu
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border-radius: 8px;
-        background: var(--primary-50);
-        color: var(--primary-700);
+        border-radius: var(--permission-radius-sm);
+        background: var(--permission-module-chip-bg, var(--permission-blue-bg));
+        color: var(--permission-module-fg, var(--permission-blue));
         flex: 0 0 auto;
     }
 
+    .permission-module-card {
+        --permission-module-bg: var(--permission-surface-blue);
+        --permission-module-chip-bg: var(--permission-blue-bg);
+        --permission-module-fg: var(--permission-blue);
+        --permission-row-hover: var(--permission-blue-bg);
+        background: var(--permission-surface);
+        border: 0 !important;
+        border-radius: var(--permission-radius) !important;
+        box-shadow: none !important;
+    }
+
+    .permission-tone-green {
+        --permission-module-bg: #f4fbf6;
+        --permission-module-chip-bg: var(--permission-green-bg);
+        --permission-module-fg: var(--permission-green);
+        --permission-row-hover: var(--permission-green-bg);
+    }
+
+    .permission-tone-amber {
+        --permission-module-bg: #fffaf0;
+        --permission-module-chip-bg: var(--permission-amber-bg);
+        --permission-module-fg: var(--permission-amber);
+        --permission-row-hover: var(--permission-amber-bg);
+    }
+
+    .permission-module-header {
+        background: var(--permission-module-bg);
+        border: 0;
+        padding: 1rem;
+    }
+
+    .permission-module-body {
+        background: var(--permission-surface);
+        padding: 0.85rem;
+    }
+
+    .permission-section {
+        background: var(--permission-surface-soft);
+        border-radius: var(--permission-radius-inner);
+        padding: 0.75rem;
+    }
+
     .permission-section + .permission-section {
-        border-top: 1px solid var(--slate-100);
         margin-top: 0.75rem;
-        padding-top: 0.75rem;
     }
 
     .permission-section-header {
-        padding: 0 0.5rem;
+        padding: 0 0.25rem;
         margin-bottom: 0.5rem;
     }
 
@@ -131,13 +200,14 @@ uksort($permissionsByGroup, static function (string $a, string $b) use ($getModu
     }
 
     .permission-row {
-        border-radius: 8px;
-        padding: 0.5rem;
+        background: var(--permission-surface);
+        border-radius: var(--permission-radius-sm);
+        padding: 0.6rem;
         transition: background-color 0.15s ease;
     }
 
     .permission-row:hover {
-        background: var(--slate-50);
+        background: var(--permission-row-hover);
     }
 
     .permission-slug {
@@ -146,7 +216,10 @@ uksort($permissionsByGroup, static function (string $a, string $b) use ($getModu
     }
 
     .permission-actions-bar {
-        margin-bottom: 1.5rem;
+        background: var(--permission-surface);
+        border-radius: var(--permission-radius);
+        margin-bottom: 0;
+        padding: 0.85rem 1rem;
     }
 
     .permission-form-actions {
@@ -158,6 +231,48 @@ uksort($permissionsByGroup, static function (string $a, string $b) use ($getModu
         display: inline-flex;
         align-items: center;
         gap: 0.375rem;
+    }
+
+    .permissions-flat-page .project-switcher-trigger {
+        background: var(--permission-surface-soft);
+        border-radius: var(--permission-radius);
+        padding: 0.45rem 0.7rem;
+    }
+
+    .permissions-flat-page .project-switcher-icon {
+        background: var(--permission-blue-bg);
+        color: var(--permission-blue);
+    }
+
+    .permissions-flat-page .project-context-meta {
+        background: var(--permission-surface-soft);
+        border-left: 0 !important;
+        border-radius: var(--permission-radius);
+        min-height: auto;
+        padding: 0.45rem 0.75rem;
+    }
+
+    .permissions-flat-page .dropdown-menu {
+        border: 0 !important;
+        border-radius: var(--permission-radius);
+        box-shadow: none;
+    }
+
+    .permissions-flat-page .project-switcher-item.active,
+    .permissions-flat-page .project-switcher-item.active:hover,
+    .permissions-flat-page .project-switcher-item.active:focus {
+        background: var(--permission-blue-bg);
+        color: var(--permission-blue);
+    }
+
+    .permission-note {
+        align-items: center;
+        background: var(--permission-amber-bg);
+        border-radius: var(--permission-radius);
+        color: #5f6368;
+        display: flex;
+        gap: 0.45rem;
+        padding: 0.85rem 1rem;
     }
 
     @media (max-width: 767.98px) {
@@ -187,6 +302,7 @@ uksort($permissionsByGroup, static function (string $a, string $b) use ($getModu
     </div>
 </div>
 
+<div class="permissions-flat-page">
 <div class="permission-actions-bar d-flex flex-wrap justify-content-between align-items-center gap-3 px-1">
     <div class="project-context d-flex align-items-center gap-3 min-w-0">
         <div class="dropdown tasks-project-dropdown project-switcher" data-project-switcher>
@@ -201,7 +317,7 @@ uksort($permissionsByGroup, static function (string $a, string $b) use ($getModu
                 <i data-lucide="chevron-down" class="project-switcher-chevron"></i>
             </button>
 
-            <ul class="dropdown-menu dropdown-menu-start shadow-xl border-0">
+            <ul class="dropdown-menu dropdown-menu-start">
                 <li class="project-switcher-search px-3 py-2">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-white text-slate-400">
@@ -258,7 +374,7 @@ uksort($permissionsByGroup, static function (string $a, string $b) use ($getModu
         </div>
 
         <?php if (!empty($role['slug'])): ?>
-            <div class="project-context-meta d-flex align-items-center gap-2 border-start border-slate-200">
+            <div class="project-context-meta d-flex align-items-center gap-2">
                 <span class="text-slate-500 small fw-medium"><?= htmlspecialchars($role['slug'], ENT_QUOTES, 'UTF-8') ?></span>
                 <?php if (!empty($role['is_system'])): ?>
                     <span class="ui-badge status-muted py-0 px-2" style="font-size: 11px;">Hệ thống</span>
@@ -298,10 +414,11 @@ uksort($permissionsByGroup, static function (string $a, string $b) use ($getModu
             $visibleScopes = array_filter($permissionsByScope, static fn(array $items): bool => !empty($items));
             $moduleLabel = $moduleNames[$groupName] ?? ucfirst(str_replace('_', ' ', $groupName));
             $moduleIcon = $moduleIcons[$groupName] ?? 'box';
+            $moduleTone = $moduleTones[$groupName] ?? 'blue';
             ?>
             <div class="col">
-                <div class="ui-card permission-module-card h-100 overflow-hidden">
-                    <div class="ui-card-header bg-slate-50 d-flex align-items-start gap-3 py-3">
+                <div class="permission-module-card permission-tone-<?= htmlspecialchars($moduleTone, ENT_QUOTES, 'UTF-8') ?> h-100 overflow-hidden">
+                    <div class="permission-module-header d-flex align-items-start gap-3">
                         <div class="d-flex align-items-center gap-3 permission-module-title">
                             <span class="permission-module-icon">
                                 <i data-lucide="<?= htmlspecialchars($moduleIcon, ENT_QUOTES, 'UTF-8') ?>"></i>
@@ -321,7 +438,7 @@ uksort($permissionsByGroup, static function (string $a, string $b) use ($getModu
                             </div>
                         </div>
                     </div>
-                    <div class="ui-card-body p-3">
+                    <div class="permission-module-body">
                         <?php foreach (['all' => 'Tất cả', 'personal' => 'Cá nhân / dự án của mình'] as $scopeKey => $scopeLabel): ?>
                             <?php if (empty($permissionsByScope[$scopeKey])): ?>
                                 <?php continue; ?>
@@ -378,11 +495,12 @@ uksort($permissionsByGroup, static function (string $a, string $b) use ($getModu
         <?php endforeach; ?>
     </div>
 
-    <div class="mt-4 text-slate-500 small">
+    <div class="permission-note small">
         <i data-lucide="info" class="size-4 me-1"></i>
         Lưu ý: Các thay đổi về quyền hạn sẽ có hiệu lực sau khi người dùng đăng nhập lại vào hệ thống.
     </div>
 </form>
+</div>
 
 <script>
     function setSwitchState(switcher, checkboxes) {

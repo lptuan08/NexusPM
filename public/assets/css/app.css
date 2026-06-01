@@ -541,35 +541,13 @@ body {
 }
 
 .table-container-paginated {
-    height: calc(100vh - var(--paginated-table-height-offset, 240px));
-    min-height: 320px;
-    overflow: auto;
-    position: relative;
-    scrollbar-gutter: stable;
-    scrollbar-color: var(--slate-300) transparent;
-    scrollbar-width: thin;
+    height: auto;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .table-container-paginated .table-responsive {
-    min-height: 100%;
-}
-
-.table-container-paginated::-webkit-scrollbar {
-    height: 6px;
-    width: 6px;
-}
-
-.table-container-paginated::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.table-container-paginated::-webkit-scrollbar-thumb {
-    background-color: rgba(154, 160, 166, 0.55);
-    border-radius: 999px;
-}
-
-.table-container-paginated::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(95, 99, 104, 0.68);
+    min-height: 0;
 }
 
 .table-container-paginated .table-custom thead th {
@@ -584,10 +562,8 @@ body {
 .table-footer-outside {
     background: var(--slate-100);
     border: none;
-    bottom: 0;
     padding: 1rem 0 0;
-    position: sticky;
-    z-index: 9;
+    position: static;
 }
 
 .table-custom {
@@ -1191,11 +1167,6 @@ header {
 }
 
 @media (max-width: 767.98px) {
-    .table-container-paginated {
-        height: calc(100vh - var(--paginated-table-mobile-height-offset, 220px));
-        min-height: 260px;
-    }
-
     .table-footer-outside {
         align-items: flex-start !important;
         background: var(--slate-100);

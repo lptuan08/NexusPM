@@ -145,6 +145,21 @@ class UserModel extends Model
         return (int)$this->db->query($sql, $params)->fetchColumn() > 0;
     }
 
+    /**
+     * Cap nhat mat khau cho tai khoan dang hoat dong.
+     *
+     * @param int|string $id ID user can cap nhat.
+     * @param string $passwordHash Mat khau da duoc hash.
+     * @return mixed Ket qua truy van update tu database layer.
+     */
+    public function updatePassword($id, string $passwordHash)
+    {
+        return $this->update($id, [
+            'password' => $passwordHash,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+    }
+
     // =========================================================================
     // 2. NHÓM DỮ LIỆU DANH MỤC (HỖ TRỢ FORM)
     // =========================================================================

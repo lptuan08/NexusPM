@@ -1,13 +1,16 @@
 <?php
+
 namespace App\controllers;
 
 use App\core\Controller;
 use App\core\View;
 use App\core\Response;
+use App\helpers\AuthHelper;
 use App\helpers\Helper;
 use App\helpers\ListTableHelper;
 use App\models\UserModel;
 use App\models\RoleModel;
+
 
 /**
  * @property \App\core\Request $request
@@ -17,6 +20,11 @@ class UserController extends Controller
 {
     private UserModel $modelUser;
     private RoleModel $modelRole;
+    private $canViewUser = false;
+    private $canCreateUser = false;
+    private $canDeleteUser = false;
+    private $canEditUser = false;
+
 
     /**
      * =============================================================
@@ -28,6 +36,11 @@ class UserController extends Controller
         parent::__construct();
         $this->modelUser = $this->model('UserModel');
         $this->modelRole = $this->model('RoleModel');
+        // permision
+        $this->canViewUser = AuthHelper::can('users.view.all');
+        $this->canCreateUser = AuthHelper::can('users.create.all');
+        $this->canDeleteUser = AuthHelper::can('users.delete.all');
+        $this->canEditUser = AuthHelper::can('users.update.all');
     }
 
     // =========================================================================
@@ -43,6 +56,10 @@ class UserController extends Controller
      */
     public function index()
     {
+        if ($this->canViewUser === false) {
+            throw new \Exception('Bạn không có quyền truy cập vào trang này', 403);
+        }
+
         $perPage = ListTableHelper::perPage();
         $query = $this->request->getQuery();
 
@@ -85,8 +102,11 @@ class UserController extends Controller
     /**
      * Hiển thị chi tiết hồ sơ nhân viên
      */
-    public function show($id)
+    public function show(int $id)
     {
+        if ($this->canViewUser === false) {
+            throw new \Exception('Bạn không có quyền truy cập vào trang này', 403);
+        }
         $user = $this->modelUser->getUserById($id);
         $projectUser = $this->modelUser->getUserProjects($id);
         $taskUser = $this->modelUser->getUserTasks($id);
@@ -116,6 +136,9 @@ class UserController extends Controller
      */
     public function create()
     {
+        if ($this->canCreateUser === false) {
+            throw new \Exception('Bạn không có quyền truy cập vào trang này', 403);
+        }
         $jobTitle = $this->modelUser->getJobTitle();
         $roles = $this->modelRole->getRoles();
 
@@ -131,6 +154,9 @@ class UserController extends Controller
     // Thực hiện thêm mới
     public function store() //->create - POST
     {
+        if ($this->canCreateUser === false) {
+            throw new \Exception('Bạn không có quyền truy cập vào trang này', 403);
+        }
         if ($this->request->isPost()) {
             $data = $this->getFormData();
 
@@ -175,8 +201,11 @@ class UserController extends Controller
      * NHOM CAP NHAT NHAN VIEN
      * =============================================================
      */
-    public function edit($id)
+    public function edit(int $id)
     {
+        if ($this->canEditUser === false) {
+            throw new \Exception('Bạn không có quyền truy cập vào trang này', 403);
+        }
         $user = $this->modelUser->getUserById($id);
         $job_titles = $this->modelUser->getJobTitle();
         $roles = $this->modelRole->getRoles();
@@ -195,8 +224,11 @@ class UserController extends Controller
 
 
     // Thực hiện cập nhật user
-    public function update($id) // Edit - POST
+    public function update(int $id) // Edit - POST
     {
+        if ($this->canEditUser === false) {
+            throw new \Exception('Bạn không có quyền truy cập vào trang này', 403);
+        }
         // 1. Kiểm tra sự tồn tại của nhân viên
         $user = $this->modelUser->getUserById($id);
         if (!$user) {
@@ -249,8 +281,11 @@ class UserController extends Controller
      * NHOM XOA NHAN VIEN
      * =============================================================
      */
-    public function delete($id)
+    public function delete(int $id)
     {
+        if ($this->canDeleteUser === false) {
+            throw new \Exception('Bạn không có quyền truy cập vào trang này', 403);
+        }
         $result = $this->modelUser->delete($id);
         Helper::setFlash('success', 'Xóa nhân viên thành công');
         Response::redirect(URLROOT . '/users');
