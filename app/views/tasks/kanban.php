@@ -4,12 +4,16 @@
  *
  * @var array $project Thông tin dự án
  * @var array $statuses Danh sách trạng thái công việc của dự án
+ * @var array $users Danh sách nhân viên cho bộ lọc
+ * @var array $filters Dữ liệu filter hiện tại từ request
  * @var array $groupedTasks Công việc đã được nhóm theo status_id
  */
 
 $project = $project ?? [];
 $projects = $projects ?? [];
 $statuses = $statuses ?? [];
+$users = $users ?? [];
+$filters = $filters ?? [];
 $groupedTasks = $groupedTasks ?? [];
 $selectedProject = $project;
 $canCreateTask = $canCreateTask ?? false;
@@ -24,6 +28,15 @@ $today = strtotime(date('Y-m-d'));
 
 foreach ($statuses as $status) {
     $totalTasks += count($groupedTasks[$status['id']] ?? []);
+}
+
+$kanbanProjectId = (int) ($selectedProject['id'] ?? 0);
+$kanbanFilterUrl = URLROOT . "/tasks/{$kanbanProjectId}/kanban";
+$activeFilterCount = 0;
+foreach (['search', 'assigned_to'] as $filterKey) {
+    if (!empty($filters[$filterKey])) {
+        $activeFilterCount++;
+    }
 }
 
 $buildAvatar = static function (array $task, int $size = 28): string {
@@ -74,15 +87,15 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         display: flex;
         flex: 1 1 0;
         flex-direction: column;
-        max-height: calc(100vh - 285px);
         min-height: 18rem;
         min-width: 220px;
-        overflow: hidden;
+        overflow: visible;
     }
 
     .kanban-column-header {
         background: #ffffff;
         border-bottom: 1px solid var(--slate-100);
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
         padding: 0.75rem 0.85rem;
     }
 
@@ -131,35 +144,20 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         text-align: center;
     }
 
-    .kanban-column-progress {
-        background: var(--slate-100);
-        border-radius: 999px;
-        height: 4px;
-        margin-top: 0.6rem;
-        overflow: hidden;
-    }
-
-    .kanban-column-progress span {
-        background: var(--status-color, var(--primary-600));
-        border-radius: inherit;
-        display: block;
-        height: 100%;
-        opacity: 0.85;
-    }
-
     .kanban-tasks {
         display: flex;
         flex: 1 1 auto;
         flex-direction: column;
         gap: 0.6rem;
         min-height: 11rem;
-        overflow-y: auto;
+        overflow-y: visible;
         padding: 0.65rem;
     }
 
     .kanban-empty {
         align-items: center;
-        border: 1px dashed var(--slate-200);
+        background: rgba(255, 255, 255, 0.56);
+        border: 0;
         border-radius: var(--radius-sm);
         color: var(--slate-400);
         display: flex;
@@ -175,23 +173,25 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
     }
 
     .task-card {
-        background: #ffffff;
-        border: 1px solid var(--slate-200);
+        background: color-mix(in srgb, var(--status-color, var(--slate-300)) 10%, #ffffff);
+        border: 1px solid color-mix(in srgb, var(--status-color, var(--slate-300)) 24%, #ffffff);
+        border-left: 3px solid var(--status-color, var(--slate-300));
         border-radius: var(--radius-sm);
         box-shadow: none;
         color: inherit;
         cursor: grab;
         display: flex;
         flex-direction: column;
-        gap: 0.65rem;
-        padding: 0.75rem;
+        gap: 0.8rem;
+        min-height: 9rem;
+        padding: 0.9rem 0.85rem;
         text-decoration: none;
         transition: background-color 0.18s ease, border-color 0.18s ease;
     }
 
     .task-card:hover {
-        border-color: var(--primary-200);
-        background-color: var(--slate-50);
+        border-color: color-mix(in srgb, var(--status-color, var(--primary-300)) 42%, #ffffff);
+        background-color: color-mix(in srgb, var(--status-color, var(--slate-300)) 15%, #ffffff);
         color: inherit;
     }
 
@@ -209,6 +209,7 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
     .task-card-title {
         color: var(--slate-900);
         display: -webkit-box;
+        flex: 1 1 auto;
         font-size: 0.875rem;
         font-weight: 600;
         line-height: 1.4;
@@ -216,7 +217,7 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         text-decoration: none;
         transition: color 0.18s ease;
         -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
+        -webkit-line-clamp: 3;
     }
 
     .task-card-title:hover,
@@ -228,17 +229,31 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         flex: 0 0 auto;
         margin-right: -0.35rem;
         margin-top: -0.35rem;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.16s ease, visibility 0.16s ease;
+        visibility: hidden;
+    }
+
+    .task-card:hover .task-card-menu,
+    .task-card:focus-within .task-card-menu {
+        opacity: 1;
+        pointer-events: auto;
+        visibility: visible;
     }
 
     .task-card-menu .btn-action {
+        background: transparent !important;
+        border-color: transparent !important;
         color: var(--slate-500);
-        height: 32px;
-        width: 32px;
+        height: 28px;
+        padding: 0;
+        width: 28px;
     }
 
     .task-card-menu .btn-action:hover,
     .task-card-menu .btn-action:focus {
-        background-color: var(--slate-100);
+        background: transparent !important;
         color: var(--slate-800);
     }
 
@@ -258,32 +273,43 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         width: 16px;
     }
 
-    .task-date-range,
+    .task-card-menu .task-card-delete-item,
+    .task-card-menu .task-card-delete-item svg {
+        color: var(--md-error, var(--red-600));
+    }
+
+    .task-deadline,
     .task-card-footer {
         align-items: center;
         display: flex;
         gap: 0.55rem;
-        justify-content: space-between;
         min-width: 0;
+    }
+
+    .task-deadline {
+        justify-content: flex-start;
+    }
+
+    .task-card-footer {
+        justify-content: space-between;
+        margin-top: auto;
     }
 
     .task-meta {
         align-items: center;
         color: var(--slate-500);
         display: inline-flex;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 500;
-        gap: 0.3rem;
+        gap: 0.25rem;
+        line-height: 1.3;
         min-width: 0;
     }
 
-    .task-date-range .task-meta {
-        flex: 1 1 0;
-    }
-
-    .task-date-separator {
-        color: var(--slate-300);
-        flex: 0 0 auto;
+    .task-meta svg {
+        flex: 0 0 12px;
+        height: 12px;
+        width: 12px;
     }
 
     .task-meta.is-overdue {
@@ -348,6 +374,31 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         color: var(--red-600) !important;
     }
 
+    .project-context-detail-link {
+        align-items: center;
+        border-radius: 999px;
+        color: var(--slate-500);
+        display: inline-flex;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        gap: 0.25rem;
+        line-height: 1;
+        padding: 0.2rem 0.35rem;
+        text-decoration: none;
+        transition: background-color 0.18s ease, color 0.18s ease;
+    }
+
+    .project-context-detail-link:hover,
+    .project-context-detail-link:focus {
+        background: var(--slate-100);
+        color: var(--primary-600);
+    }
+
+    .project-context-detail-link svg {
+        height: 12px;
+        width: 12px;
+    }
+
     .sortable-ghost {
         background: var(--primary-50) !important;
         border: 1px dashed var(--primary-600) !important;
@@ -369,19 +420,20 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
 
     .kanban-column,
     .kanban-state {
-        background: var(--md-surface);
-        border-color: var(--md-outline-variant);
+        background: var(--md-content-surface);
+        border: 0;
         border-radius: var(--radius-lg);
         box-shadow: none;
     }
 
     .kanban-column {
-        border-top-width: 3px;
+        border-top-width: 0;
     }
 
     .kanban-column-header {
-        background: var(--md-surface);
-        border-bottom-color: var(--md-outline-variant);
+        background: var(--md-content-surface-strong);
+        border-bottom-color: transparent;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     }
 
     .kanban-status-name {
@@ -391,20 +443,20 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
 
     .kanban-count {
         background: var(--md-surface);
-        border-color: var(--md-outline-variant);
+        border: 0;
         color: var(--md-on-surface-variant);
     }
 
     .task-card {
-        background: var(--md-surface);
-        border-color: var(--md-outline-variant);
+        background: color-mix(in srgb, var(--status-color, var(--md-outline-variant)) 10%, var(--md-surface));
+        border: 0;
+        border-left: 3px solid var(--status-color, var(--md-outline-variant));
         border-radius: var(--radius-md);
         box-shadow: none;
     }
 
     .task-card:hover {
-        border-color: var(--md-outline);
-        background-color: var(--md-surface-container-low);
+        background-color: color-mix(in srgb, var(--status-color, var(--md-outline-variant)) 15%, var(--md-surface-container-low));
         box-shadow: none;
     }
 
@@ -417,6 +469,14 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
     .task-assignee span,
     .kanban-save-state {
         color: var(--md-on-surface-variant);
+    }
+
+    @media (hover: none) {
+        .task-card-menu {
+            opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
+        }
     }
 
     @media (max-width: 767.98px) {
@@ -450,7 +510,8 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         }
 
         .task-card {
-            padding: 0.65rem;
+            min-height: 8.5rem;
+            padding: 0.75rem 0.7rem;
         }
     }
 
@@ -484,20 +545,62 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
         <?php
         $projectSwitcherAllowAll = false;
         $projectSwitcherMode = 'kanban';
-        $projectSwitcherAllUrl = URLROOT . '/tasks';
+        $projectSwitcherAllUrl = URLROOT . '/tasks?project_id=';
         $projectSwitcherTitle = !empty($selectedProject['name']) ? (string) $selectedProject['name'] : 'Chọn dự án';
         $projectSwitcherTaskCount = $totalTasks;
+        $projectSwitcherDetailUrl = !empty($selectedProject['id']) ? URLROOT . '/projects/' . (int) $selectedProject['id'] : null;
+        $projectSwitcherDetailLabel = 'Chi tiết dự án';
         require VIEW_PATH . '/partials/project_switcher.php';
         ?>
 
         <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="dropdown filter-dropdown">
+                <button id="filterButton" class="btn btn-outline-secondary" type="button" title="Lọc dữ liệu" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    <i data-lucide="filter" size="18"></i>
+                    <span class="d-none d-md-inline">Bộ lọc</span>
+                    <?php if ($activeFilterCount > 0): ?>
+                        <span class="filter-count"><?= $activeFilterCount ?></span>
+                    <?php endif; ?>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end filter-menu" aria-labelledby="filterButton">
+                    <form action="<?= htmlspecialchars($kanbanFilterUrl, ENT_QUOTES, 'UTF-8') ?>" method="GET" class="filter-form">
+                        <div class="filter-header">
+                            <span class="filter-title">Bộ lọc Kanban</span>
+                            <?php if ($activeFilterCount > 0): ?>
+                                <span class="ui-badge status-muted py-0 px-2" style="font-size: 11px;"><?= $activeFilterCount ?> đang bật</span>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-slate-600">Tìm kiếm tiêu đề</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white text-slate-400"><i data-lucide="search" size="16"></i></span>
+                                <input type="text" name="search" class="form-control border-start-0" placeholder="Nhập từ khóa..." value="<?= htmlspecialchars((string) ($filters['search'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-slate-600">Người thực hiện</label>
+                            <select name="assigned_to" class="form-select form-select-sm">
+                                <option value="">-- Tất cả nhân viên --</option>
+                                <?php foreach ($users as $u): ?>
+                                    <option value="<?= (int) $u['id'] ?>" <?= (isset($filters['assigned_to']) && (string) $filters['assigned_to'] === (string) $u['id']) ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars((string) ($u['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="filter-actions">
+                            <a href="<?= htmlspecialchars($kanbanFilterUrl, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-outline-secondary btn-sm w-100">Đặt lại</a>
+                            <button type="submit" class="btn btn-primary btn-sm w-100">Áp dụng</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
             <a href="<?= URLROOT ?>/tasks/<?= (int) ($selectedProject['id'] ?? 0) ?>/list" class="btn btn-outline-secondary">
                 <i data-lucide="list" size="18"></i>
                 <span>Dạng list</span>
-            </a>
-            <a href="<?= URLROOT ?>/projects/<?= (int) ($selectedProject['id'] ?? 0) ?>" class="btn btn-outline-secondary">
-                <i data-lucide="folder-kanban" size="18"></i>
-                <span>Dự án chi tiết</span>
             </a>
             <?php if ($canCreateTask): ?>
             <a href="<?= URLROOT ?>/tasks/create?project_id=<?= (int) ($selectedProject['id'] ?? 0) ?>" class="btn btn-primary">
@@ -525,7 +628,6 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
                     $statusColor = $status['color'] ?? '#9aa0a6';
                     $statusTasks = $groupedTasks[$statusId] ?? [];
                     $statusTaskCount = count($statusTasks);
-                    $columnPercent = $totalTasks > 0 ? round(($statusTaskCount / $totalTasks) * 100) : 0;
                     ?>
                     <section class="kanban-column" data-status-id="<?= $statusId ?>" style="--status-color: <?= htmlspecialchars($statusColor, ENT_QUOTES, 'UTF-8') ?>;">
                         <header class="kanban-column-header">
@@ -535,9 +637,6 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
                                     <span><?= htmlspecialchars((string) ($status['name'] ?? 'Chưa đặt tên'), ENT_QUOTES, 'UTF-8') ?></span>
                                 </div>
                                 <span class="kanban-count" data-kanban-count><?= $statusTaskCount ?></span>
-                            </div>
-                            <div class="kanban-column-progress" title="<?= $columnPercent ?>% công việc của dự án">
-                                <span style="width: <?= $columnPercent ?>%;"></span>
                             </div>
                         </header>
 
@@ -551,20 +650,15 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
                                 ?>
                                 <div class="task-card" data-task-id="<?= (int) $task['id'] ?>">
                                     <div class="task-card-top">
-                                        <a class="task-card-title" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>">
+                                        <a class="task-card-title" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>/edit">
                                             <?= htmlspecialchars((string) ($task['title'] ?? 'Không có tiêu đề'), ENT_QUOTES, 'UTF-8') ?>
                                         </a>
+                                        <?php if (!empty($task['can_update']) || !empty($task['can_delete'])): ?>
                                         <div class="dropdown task-card-menu">
-                                            <button class="btn btn-white btn-action border-0 shadow-none" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Mở hành động">
+                                            <button class="btn btn-action border-0 shadow-none" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Mở hành động">
                                                 <i data-lucide="more-vertical" size="18"></i>
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
-                                                <li>
-                                                    <a class="dropdown-item" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>">
-                                                        <i data-lucide="eye" class="text-slate-600"></i>
-                                                        <span>Chi tiết</span>
-                                                    </a>
-                                                </li>
                                                 <?php if (!empty($task['can_update'])): ?>
                                                 <li>
                                                     <a class="dropdown-item" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>/edit">
@@ -574,9 +668,11 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
                                                 </li>
                                                 <?php endif; ?>
                                                 <?php if (!empty($task['can_delete'])): ?>
+                                                <?php if (!empty($task['can_update'])): ?>
                                                 <li><hr class="dropdown-divider my-1"></li>
+                                                <?php endif; ?>
                                                 <li>
-                                                    <button type="button" class="dropdown-item text-danger" onclick="showDeleteModal('<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>/delete', <?= htmlspecialchars(json_encode('Xác nhận xóa công việc ' . ($task['title'] ?? '') . '?', JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
+                                                    <button type="button" class="dropdown-item task-card-delete-item" onclick="showDeleteModal('<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>/delete', <?= htmlspecialchars(json_encode('Xác nhận xóa công việc ' . ($task['title'] ?? '') . '?', JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
                                                         <i data-lucide="trash-2"></i>
                                                         <span>Xóa</span>
                                                     </button>
@@ -584,23 +680,19 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
                                                 <?php endif; ?>
                                             </ul>
                                         </div>
+                                        <?php endif; ?>
                                     </div>
 
-                                    <div class="task-date-range">
-                                        <div class="task-meta">
-                                            <i data-lucide="calendar-days" size="14"></i>
-                                            <span><?= $formatDate($task['start_date'] ?? null, 'd/m/Y') ?></span>
-                                        </div>
-                                        <span class="task-date-separator">-</span>
+                                    <div class="task-deadline">
                                         <div class="task-meta <?= $isOverdue ? 'is-overdue' : '' ?>">
-                                            <i data-lucide="flag" size="14"></i>
-                                            <span><?= $formatDate($task['due_date'] ?? null, 'd/m/Y') ?></span>
+                                            <i data-lucide="calendar-check" size="12"></i>
+                                            <span>Hạn hoàn thành: <?= $formatDate($task['due_date'] ?? null, 'd/m/Y') ?></span>
                                         </div>
                                     </div>
 
                                     <div class="task-card-footer">
                                         <div class="task-meta" title="Khối lượng công việc">
-                                            <i data-lucide="clock-3" size="14"></i>
+                                            <i data-lucide="clock-3" size="12"></i>
                                             <span><?= number_format((float) ($task['estimated_hours'] ?? 0), 1) ?> giờ</span>
                                         </div>
                                         <div class="task-assignee" title="<?= htmlspecialchars((string) ($task['assigned_name'] ?? 'Chưa giao'), ENT_QUOTES, 'UTF-8') ?>">
@@ -624,6 +716,27 @@ $formatDate = static function (?string $date, string $format = 'd/m/Y'): string 
             </div>
         </div>
     <?php endif; ?>
+</div>
+
+<div class="modal fade modal-confirm" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-confirm-dialog">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-body text-center">
+                <div class="icon-box">
+                    <i data-lucide="alert-triangle" size="32"></i>
+                </div>
+                <h5 class="fw-bold text-slate-800 mb-2">Xác nhận xóa</h5>
+                <p class="text-slate-500 small mb-4" id="deleteConfirmMessage">Hành động này không thể hoàn tác. Bạn có chắc chắn?</p>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary w-100" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <form id="deleteForm" method="POST" action="" class="w-100 m-0">
+                        <?php \App\helpers\SecurityHelper::csrfInput(); ?>
+                        <button type="submit" class="btn btn-danger w-100">Xác nhận xóa</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>

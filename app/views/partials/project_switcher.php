@@ -15,6 +15,8 @@
  * @var string|null $projectSwitcherAllIcon
  * @var string|null $projectSwitcherSideLinkLabel
  * @var string|null $projectSwitcherCountLabel
+ * @var string|null $projectSwitcherDetailUrl
+ * @var string|null $projectSwitcherDetailLabel
  */
 
 $projects = $projects ?? [];
@@ -29,6 +31,8 @@ $projectSwitcherAllMeta = $projectSwitcherAllMeta ?? 'Xem toàn bộ công việ
 $projectSwitcherAllIcon = $projectSwitcherAllIcon ?? 'layers-3';
 $projectSwitcherSideLinkLabel = $projectSwitcherSideLinkLabel ?? 'Xem tất cả công việc dạng list';
 $projectSwitcherCountLabel = $projectSwitcherCountLabel ?? 'công việc';
+$projectSwitcherDetailUrl = $projectSwitcherDetailUrl ?? null;
+$projectSwitcherDetailLabel = $projectSwitcherDetailLabel ?? 'Chi tiết dự án';
 $projectSwitcherTitle = $projectSwitcherTitle
     ?? (!empty($selectedProject['name']) ? (string) $selectedProject['name'] : 'Tất cả công việc');
 
@@ -146,14 +150,24 @@ $projectHref = static function (array $project) use ($projectSwitcherMode): stri
     <?php if (!empty($selectedProject)): ?>
         <?php $projectStatusColor = $selectedProject['status_color'] ?? '#64748b'; ?>
         <div class="project-context-meta d-flex align-items-center gap-2 border-start border-slate-200">
-            <?php if (!empty($selectedProject['project_code'])): ?>
-                <span class="text-slate-500 small fw-medium"><?= htmlspecialchars((string) $selectedProject['project_code'], ENT_QUOTES, 'UTF-8') ?></span>
+            <?php if (!empty($selectedProject['status_name'])): ?>
+                <span class="status-chip project-context-status" style="--status-color: <?= htmlspecialchars((string) $projectStatusColor, ENT_QUOTES, 'UTF-8') ?>;">
+                    <span class="status-chip-dot"></span>
+                    <span class="status-chip-label"><?= htmlspecialchars((string) $selectedProject['status_name'], ENT_QUOTES, 'UTF-8') ?></span>
+                </span>
             <?php endif; ?>
 
-            <?php if (!empty($selectedProject['status_name'])): ?>
-                <span class="status-pill py-0 px-2" style="font-size: 11px; background-color: <?= htmlspecialchars((string) $projectStatusColor, ENT_QUOTES, 'UTF-8') ?>20; color: <?= htmlspecialchars((string) $projectStatusColor, ENT_QUOTES, 'UTF-8') ?>;">
-                    <?= htmlspecialchars((string) $selectedProject['status_name'], ENT_QUOTES, 'UTF-8') ?>
+            <?php if (!empty($selectedProject['project_code'])): ?>
+                <span class="ui-badge status-muted project-context-code">
+                    <?= htmlspecialchars((string) $selectedProject['project_code'], ENT_QUOTES, 'UTF-8') ?>
                 </span>
+            <?php endif; ?>
+
+            <?php if (!empty($projectSwitcherDetailUrl)): ?>
+                <a class="project-context-detail-link" href="<?= htmlspecialchars($projectSwitcherDetailUrl, ENT_QUOTES, 'UTF-8') ?>">
+                    <i data-lucide="external-link" size="12"></i>
+                    <span><?= htmlspecialchars($projectSwitcherDetailLabel, ENT_QUOTES, 'UTF-8') ?></span>
+                </a>
             <?php endif; ?>
 
             <?php if ($projectSwitcherTaskCount !== null): ?>

@@ -7,9 +7,12 @@
  * @var int $totalItem
  * @var int $totalPage
  * @var array $statusOptions
+ * @var array $ownerOptions
  * @var array $currentFilters
  */
 $canCreateProject = \App\helpers\AuthHelper::can('projects.create.all');
+$ownerOptions = $ownerOptions ?? [];
+$currentFilters = $currentFilters ?? [];
 
 $listTableConfig = \App\helpers\ListTableHelper::config();
 $maxVisiblePages = max(1, (int) ($listTableConfig['max_visible_pages'] ?? 5));
@@ -30,6 +33,23 @@ $formatDate = static function ($date, string $format = 'd/m/Y'): string {
 
     return $timestamp !== false ? date($format, $timestamp) : '-';
 };
+
+$activeFilterCount = 0;
+if (!empty($currentFilters['search'])) {
+    $activeFilterCount++;
+}
+if (!empty($currentFilters['owner_id'])) {
+    $activeFilterCount++;
+}
+if (!empty($currentFilters['status_id'])) {
+    $activeFilterCount++;
+}
+if (!empty($currentFilters['start_date'])) {
+    $activeFilterCount++;
+}
+if (!empty($currentFilters['end_date'])) {
+    $activeFilterCount++;
+}
 ?>
 <style>
     .project-list-name {
@@ -46,11 +66,88 @@ $formatDate = static function ($date, string $format = 'd/m/Y'): string {
     </div>
 
     <div class="page-actions">
-        <button id="filterButton" class="btn btn-outline-secondary" title="Lọc dữ liệu" data-bs-toggle="modal"
-            data-bs-target="#filterModal">
-            <i data-lucide="filter"></i>
-            <span class="d-none d-md-inline">Bộ lọc</span>
-        </button>
+        <div class="dropdown filter-dropdown">
+            <button id="filterButton" class="btn btn-outline-secondary" type="button" title="Lọc dữ liệu" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                <i data-lucide="filter"></i>
+                <span class="d-none d-md-inline">Bộ lọc</span>
+                <?php if ($activeFilterCount > 0): ?>
+                    <span class="filter-count"><?= $activeFilterCount ?></span>
+                <?php endif; ?>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end filter-menu" aria-labelledby="filterButton">
+                <form action="<?= URLROOT ?>/projects" method="GET" class="filter-form">
+                    <input type="hidden" name="page" value="1">
+                    <div class="filter-header">
+                        <span class="filter-title">Bộ lọc dự án</span>
+                        <?php if ($activeFilterCount > 0): ?>
+                            <span class="ui-badge status-muted py-0 px-2" style="font-size: 11px;"><?= $activeFilterCount ?> đang bật</span>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="projectSearchFilter" class="form-label fw-semibold small">Tên hoặc mã dự án</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white text-slate-400">
+                                <i data-lucide="search" size="16"></i>
+                            </span>
+                            <input type="search" class="form-control border-start-0" id="projectSearchFilter" name="search" placeholder="Nhập tên hoặc mã..." value="<?= htmlspecialchars((string) ($currentFilters['search'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="projectOwnerFilter" class="form-label fw-semibold small">Project Sponsor</label>
+                        <select name="owner_id" id="projectOwnerFilter" class="form-select form-select-sm">
+                            <option value="">-- Tất cả Project Sponsor --</option>
+                            <?php foreach ($ownerOptions as $owner): ?>
+                                <option value="<?= (int) $owner['id'] ?>" <?= !empty($currentFilters['owner_id']) && (int) $currentFilters['owner_id'] === (int) $owner['id'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars((string) ($owner['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Trạng thái dự án</label>
+                        <?php if (!empty($statusOptions)): ?>
+                            <div class="filter-scroll-list">
+                                <?php foreach ($statusOptions as $status): ?>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="status_id[]"
+                                            value="<?= htmlspecialchars($status['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                            id="projectStatusFilter<?= htmlspecialchars($status['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                            <?= in_array((int) $status['id'], array_map('intval', $currentFilters['status_id'] ?? []), true) ? 'checked' : '' ?>>
+                                        <label class="form-check-label"
+                                            for="projectStatusFilter<?= htmlspecialchars($status['id'], ENT_QUOTES, 'UTF-8') ?>">
+                                            <?= htmlspecialchars($status['name'], ENT_QUOTES, 'UTF-8') ?>
+                                        </label>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <p class="small text-muted mb-0">Không có trạng thái nào.</p>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-12 col-sm-6">
+                            <label for="projectStartDateFilter" class="form-label fw-semibold small">Ngày bắt đầu</label>
+                            <input type="date" class="form-control form-control-sm" id="projectStartDateFilter" name="start_date"
+                                value="<?= htmlspecialchars($currentFilters['start_date'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label for="projectEndDateFilter" class="form-label fw-semibold small">Ngày kết thúc</label>
+                            <input type="date" class="form-control form-control-sm" id="projectEndDateFilter" name="end_date"
+                                value="<?= htmlspecialchars($currentFilters['end_date'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+                    </div>
+
+                    <div class="filter-actions">
+                        <a href="<?= URLROOT ?>/projects" class="btn btn-outline-secondary btn-sm w-100">Đặt lại</a>
+                        <button type="submit" class="btn btn-primary btn-sm w-100">Áp dụng</button>
+                    </div>
+                </form>
+            </div>
+        </div>
         <?php if ($canCreateProject): ?>
         <a href="<?= URLROOT; ?>/projects/createWizard" class="btn btn-primary">
             <i data-lucide="plus"></i>
@@ -68,7 +165,7 @@ $formatDate = static function ($date, string $format = 'd/m/Y'): string {
                     <th scope="col" class="text-center col-stt">STT</th>
                     <th scope="col">Dự án</th>
                     <th scope="col">Mã dự án</th>
-                    <th scope="col">Phụ trách</th>
+                    <th scope="col">Project Sponsor</th>
                     <th scope="col">Trạng thái</th>
                     <th scope="col">Thời hạn</th>
                     <th scope="col" class="text-center col-actions"></th>
@@ -98,7 +195,7 @@ $formatDate = static function ($date, string $format = 'd/m/Y'): string {
                                     <div class="bg-slate-100 text-slate-500 rounded-circle d-flex align-items-center justify-content-center" style="width: 24px; height: 24px; font-size: 10px; border: 1px solid #e2e8f0;">
                                         <i data-lucide="user" style="width: 12px; height: 12px;"></i>
                                     </div>
-                                    <span class="small text-slate-600"><?= htmlspecialchars((string) ($project['manager_name'] ?? 'Chưa gán'), ENT_QUOTES, 'UTF-8') ?></span>
+                                    <span class="small text-slate-600"><?= htmlspecialchars((string) ($project['owner_name'] ?? $project['manager_name'] ?? 'Chưa gán'), ENT_QUOTES, 'UTF-8') ?></span>
                                 </div>
                             </td>
                             <td>
@@ -166,6 +263,12 @@ $formatDate = static function ($date, string $format = 'd/m/Y'): string {
     // Hàm hỗ trợ tạo URL phân trang giữ lại các tham số filter hiện tại (search, status, v.v.)
     $buildPageUrl = function ($page) use ($currentFilters) {
         $queryParams = [];
+        if (!empty($currentFilters['search'])) {
+            $queryParams['search'] = $currentFilters['search'];
+        }
+        if (!empty($currentFilters['owner_id'])) {
+            $queryParams['owner_id'] = (int) $currentFilters['owner_id'];
+        }
         if (!empty($currentFilters['status_id'])) {
             $queryParams['status_id'] = array_map('intval', $currentFilters['status_id']);
         }
@@ -255,59 +358,6 @@ $formatDate = static function ($date, string $format = 'd/m/Y'): string {
         </nav>
     </div>
 
-</div>
-
-<!-- Filter Modal -->
-<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-confirm-dialog">
-        <div class="modal-content shadow-lg border-0">
-            <div class="modal-header">
-                <h5 class="modal-title" id="filterModalLabel">Bộ lọc dự án</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form action="" method="GET">
-                    <input type="hidden" name="page" value="1"> <!-- Reset to page 1 on filter -->
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small">Trạng thái dự án</label>
-                        <?php if (!empty($statusOptions)): ?>
-                            <?php foreach ($statusOptions as $status): ?>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="status_id[]"
-                                        value="<?= htmlspecialchars($status['id'], ENT_QUOTES, 'UTF-8') ?>"
-                                        id="statusCheck<?= htmlspecialchars($status['id'], ENT_QUOTES, 'UTF-8') ?>"
-                                        <?= in_array((int) $status['id'], array_map('intval', $currentFilters['status_id'] ?? []), true) ? 'checked' : '' ?>>
-                                    <label class="form-check-label"
-                                        for="statusCheck<?= htmlspecialchars($status['id'], ENT_QUOTES, 'UTF-8') ?>">
-                                        <?= htmlspecialchars($status['name'], ENT_QUOTES, 'UTF-8') ?>
-                                    </label>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <p class="small text-muted">Không có trạng thái nào.</p>
-                        <?php endif; ?>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="startDateFilter" class="form-label fw-semibold small">Ngày bắt đầu</label>
-                        <input type="date" class="form-control form-control-sm" id="startDateFilter" name="start_date"
-                            value="<?= htmlspecialchars($currentFilters['start_date'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="endDateFilter" class="form-label fw-semibold small">Ngày kết thúc</label>
-                        <input type="date" class="form-control form-control-sm" id="endDateFilter" name="end_date"
-                            value="<?= htmlspecialchars($currentFilters['end_date'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                    </div>
-
-                    <div class="d-flex gap-2 pt-3 border-top mt-4">
-                        <button type="submit" class="btn btn-primary btn-sm w-100">Áp dụng</button>
-                        <a href="<?= URLROOT ?>/projects" class="btn btn-outline-secondary btn-sm w-100">Đặt lại</a>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 </div>
 
 <div class="modal fade modal-confirm" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">

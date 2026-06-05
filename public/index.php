@@ -42,7 +42,7 @@ try {
     $url = Request::uri();
     $app->dispatch($url);
     // if (APP_DEBUG) Helper::debug_mvc_widget(); // Chỉ hiển thị widget debug khi APP_DEBUG là true
-    if (APP_DEBUG) Helper::viewPermission();
+    // if (APP_DEBUG) Helper::viewPermission();
 } catch (Exception $e) {
     ErrorHandler::handle($e);
 }

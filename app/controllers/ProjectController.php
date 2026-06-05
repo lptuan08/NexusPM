@@ -43,7 +43,6 @@ class ProjectController extends Controller
         $this->modelTaskStatus = $this->model('TaskStatusModel');
     }
 
-
     /**
      * Hiển thị danh sách dự án có phân trang
      *
@@ -62,9 +61,10 @@ class ProjectController extends Controller
         $perPage = ListTableHelper::perPage();
         // lấy danh sách trạng thái nạp cho bộ lọc
         $statusOptions = $this->modelProjectStatus->getList();
+        $ownerOptions = $this->modelUser->getProjectOwnerOptions();
 
         // Normalize filter input once, then pass only safe values to the model.
-        $filters = $this->getProjectFilters($query, $statusOptions);
+        $filters = $this->getProjectFilters($query, $statusOptions, $ownerOptions);
 
         if (AuthHelper::can('projects.view.all')) {
             $totalItem = $this->modelProject->countAll($filters);
@@ -93,6 +93,7 @@ class ProjectController extends Controller
             'totalItem' => $totalItem,
             'totalPage' => $totalPage,
             'statusOptions' => $statusOptions,
+            'ownerOptions' => $ownerOptions,
             'currentFilters' => $filters,
             'pageTitle' => 'Danh sách dự án',
         ]);
@@ -121,6 +122,7 @@ class ProjectController extends Controller
         // Kiểm tra quyền xóa dự án (Lấy quyền golbal)
         $canDeleteProject = AuthHelper::can('projects.delete.all');
         $canCreateTask = $this->canCreateTaskInProject($projectId, $projectRole);
+        $canViewTaskStatuses = AuthHelper::can('task_statuses.view.all');
 
         // Chỉ manager/người có quyền sửa mới cần danh sách user để thêm thành viên
         $allUsers = $canUpdateProject ? $this->modelUser->getAllUsers() : [];
@@ -167,6 +169,7 @@ class ProjectController extends Controller
             'canUpdateProject' => $canUpdateProject,
             'canDeleteProject' => $canDeleteProject,
             'canCreateTask' => $canCreateTask,
+            'canViewTaskStatuses' => $canViewTaskStatuses,
             'pageTitle' => 'Chi tiết dự án: ' . $project['name'],
         ]);
     }
@@ -244,7 +247,122 @@ class ProjectController extends Controller
     }
 
     /**
-     * Xử lý lưu dự án mới vào cơ sở dữ liệu
+     * Hiển thị trang thêm một thành viên vào dự án.
+     */
+    public function createMember($id)
+    {
+        $project = $this->findProjectOrRedirect($id);
+        $this->requireCanUpdateProject($project);
+
+        View::render('projects/member_form', $this->getProjectMemberFormViewData($project, null, [
+            'pageTitle' => 'Thêm thành viên dự án',
+        ]));
+    }
+
+    public function storeMember($id)
+    {
+        $project = $this->findProjectOrRedirect($id);
+        $projectId = (int) $project['id'];
+
+        if (!$this->request->isPost()) {
+            Response::redirect(URLROOT . "/projects/$projectId/members/create");
+            return null;
+        }
+
+        $this->requireCanUpdateProject($project);
+
+        $body = $this->request->post();
+        $data = $this->getProjectMemberFormData($body);
+        $this->validateProjectMemberData($data, $projectId);
+
+        if ($data['user_id'] > 0 && $this->modelProject->isMemberExists($projectId, $data['user_id'])) {
+            $this->validator->addError('user_id', 'Nhân viên này đã tham gia dự án. Vui lòng dùng chức năng chỉnh sửa.');
+        }
+
+        if (!$this->validator->passes()) {
+            return View::render('projects/member_form', $this->getProjectMemberFormViewData($project, null, [
+                'errors' => $this->validator->getErrors(),
+                'old' => $body,
+                'pageTitle' => 'Thêm thành viên dự án',
+            ]));
+        }
+
+        $memberData = $this->mapProjectMemberPersistenceData($data);
+        $this->modelProject->addMember(
+            $projectId,
+            $data['user_id'],
+            $memberData['role'],
+            $memberData['joined_at'],
+            $memberData['is_active'],
+            $memberData['left_at']
+        );
+
+        Helper::setFlash('success', 'Đã thêm thành viên vào dự án.');
+        Response::redirect(URLROOT . "/projects/$projectId");
+        return null;
+    }
+
+    public function editMember($id, $userId)
+    {
+        $project = $this->findProjectOrRedirect($id);
+        $projectId = (int) $project['id'];
+        $memberUserId = $this->positiveInt($userId);
+
+        $this->requireCanUpdateProject($project);
+
+        $member = $this->modelProject->getProjectMember($projectId, $memberUserId);
+        if (!$member) {
+            Helper::setFlash('warning', 'Không tìm thấy thành viên trong dự án.');
+            Response::redirect(URLROOT . "/projects/$projectId");
+            return;
+        }
+
+        View::render('projects/member_form', $this->getProjectMemberFormViewData($project, $member, [
+            'pageTitle' => 'Chỉnh sửa thành viên dự án',
+        ]));
+    }
+
+    public function updateMember($id, $userId)
+    {
+        $project = $this->findProjectOrRedirect($id);
+        $projectId = (int) $project['id'];
+        $memberUserId = $this->positiveInt($userId);
+
+        if (!$this->request->isPost()) {
+            Response::redirect(URLROOT . "/projects/$projectId/members/$memberUserId/edit");
+            return null;
+        }
+
+        $this->requireCanUpdateProject($project);
+
+        $member = $this->modelProject->getProjectMember($projectId, $memberUserId);
+        if (!$member) {
+            Helper::setFlash('warning', 'Không tìm thấy thành viên trong dự án.');
+            Response::redirect(URLROOT . "/projects/$projectId");
+            return null;
+        }
+
+        $body = $this->request->post();
+        $data = $this->getProjectMemberFormData(array_merge($body, ['user_id' => $memberUserId]));
+        $this->validateProjectMemberData($data, $projectId, true);
+
+        if (!$this->validator->passes()) {
+            return View::render('projects/member_form', $this->getProjectMemberFormViewData($project, $member, [
+                'errors' => $this->validator->getErrors(),
+                'old' => $body,
+                'pageTitle' => 'Chỉnh sửa thành viên dự án',
+            ]));
+        }
+
+        $this->modelProject->updateProjectMember($projectId, $memberUserId, $this->mapProjectMemberPersistenceData($data));
+
+        Helper::setFlash('success', 'Đã cập nhật thành viên dự án.');
+        Response::redirect(URLROOT . "/projects/$projectId");
+        return null;
+    }
+
+    /**
+     * Xử lý lưu dự án mới vào cơ sở dữ liệu.
      *
      * @return void|null Render lại form khi validate lỗi, redirect khi thành công.
      */
@@ -270,6 +388,8 @@ class ProjectController extends Controller
         }
 
         // Gọi Model xử lý lưu trữ
+        $data['created_by'] = AuthHelper::id();
+        $data['updated_by'] = $data['created_by'];
         $this->modelProject->createWithProjectCode($data);
         Helper::setFlash('success', 'Tạo dự án mới thành công!');
         Response::redirect(URLROOT . '/projects');
@@ -333,6 +453,7 @@ class ProjectController extends Controller
         }
 
         // Lưu thay đổi
+        $data['updated_by'] = AuthHelper::id();
         $this->modelProject->update($projectId, $data);
         Helper::setFlash('success', 'Cập nhật dự án thành công');
         Response::redirect(URLROOT . '/projects');
@@ -412,6 +533,152 @@ class ProjectController extends Controller
      * @param array<string, mixed> $data Dữ liệu dự án đã chuẩn hóa.
      * @return void
      */
+    private function getProjectMemberFormViewData(array $project, ?array $member = null, array $extra = []): array
+    {
+        $projectId = (int) ($project['id'] ?? 0);
+        $isEditing = is_array($member) && !empty($member['user_id']);
+        $existingMembers = $this->modelProject->getProjectMembers($projectId);
+        $existingUserIds = array_flip(array_map(static function (array $row): int {
+            return (int) ($row['id'] ?? $row['user_id'] ?? 0);
+        }, $existingMembers));
+
+        $employeeOptions = array_values(array_filter($this->modelUser->getAllUsers(), static function (array $user) use ($existingUserIds, $member, $isEditing): bool {
+            $userId = (int) ($user['id'] ?? 0);
+            if ($userId <= 0) {
+                return false;
+            }
+
+            if ($isEditing && $member && $userId === (int) ($member['user_id'] ?? $member['id'] ?? 0)) {
+                return true;
+            }
+
+            return !isset($existingUserIds[$userId]);
+        }));
+
+        $base = [
+            'project' => $project,
+            'member' => $member,
+            'employeeOptions' => $employeeOptions,
+            'memberRoles' => [
+                'manager' => [
+                    'label' => 'Quản lý',
+                    'hint' => 'Điều phối dự án và có quyền thao tác cấu hình trong phạm vi dự án.',
+                    'icon' => 'shield-check',
+                ],
+                'member' => [
+                    'label' => 'Thành viên',
+                    'hint' => 'Tham gia xử lý công việc và cập nhật tiến độ được giao.',
+                    'icon' => 'user-check',
+                ],
+                'viewer' => [
+                    'label' => 'Theo dõi',
+                    'hint' => 'Theo dõi thông tin dự án, phù hợp với người chỉ cần quan sát.',
+                    'icon' => 'eye',
+                ],
+            ],
+            'memberStatuses' => [
+                'active' => [
+                    'label' => 'Đang tham gia',
+                    'hint' => 'Thành viên có quyền truy cập dự án theo vai trò được chọn.',
+                    'icon' => 'circle-check',
+                ],
+                'paused' => [
+                    'label' => 'Tạm dừng',
+                    'hint' => 'Giữ thông tin trong dự án nhưng tạm ngưng quyền truy cập theo vai trò.',
+                    'icon' => 'pause-circle',
+                ],
+                'left' => [
+                    'label' => 'Đã rời dự án',
+                    'hint' => 'Đánh dấu thành viên đã kết thúc tham gia và ghi nhận ngày rời.',
+                    'icon' => 'log-out',
+                ],
+            ],
+            'action_url' => $isEditing
+                ? URLROOT . '/projects/' . $projectId . '/members/' . (int) ($member['user_id'] ?? $member['id']) . '/edit'
+                : URLROOT . '/projects/' . $projectId . '/members/create',
+            'detail_url' => URLROOT . '/projects/' . $projectId,
+            'reload_url' => $isEditing
+                ? URLROOT . '/projects/' . $projectId . '/members/' . (int) ($member['user_id'] ?? $member['id']) . '/edit'
+                : URLROOT . '/projects/' . $projectId . '/members/create',
+        ];
+
+        return array_merge($base, $extra);
+    }
+
+    private function getProjectMemberFormData(?array $body = null): array
+    {
+        $body = $body ?? $this->request->post();
+        $participationStatus = strtolower(trim((string) ($body['participation_status'] ?? 'active')));
+        if (!in_array($participationStatus, ['active', 'paused', 'left'], true)) {
+            $participationStatus = 'active';
+        }
+
+        return [
+            'user_id' => $this->positiveInt($body['user_id'] ?? 0),
+            'role' => $this->normalizeMemberRole($body['role'] ?? 'member'),
+            'participation_status' => $participationStatus,
+            'joined_at' => $this->normalizeDate($body['joined_at'] ?? null),
+            'left_at' => $this->normalizeDate($body['left_at'] ?? null),
+        ];
+    }
+
+    private function validateProjectMemberData(array $data, int $projectId, bool $isEditing = false): void
+    {
+        if (!$this->validator->selected('user_id', $data['user_id'], 'Nhân viên')) {
+            return;
+        }
+
+        if (!isset($this->validUserIdMap()[$data['user_id']])) {
+            $this->validator->addError('user_id', 'Nhân viên không hợp lệ hoặc đã bị xóa.');
+        }
+
+        if (!in_array($data['role'], self::MEMBER_ROLES, true)) {
+            $this->validator->addError('role', 'Vai trò thành viên không hợp lệ.');
+        }
+
+        if (!$isEditing && $projectId <= 0) {
+            $this->validator->addError('user_id', 'Dự án không hợp lệ.');
+        }
+
+        if (empty($data['joined_at'])) {
+            $this->validator->addError('joined_at', 'Ngày tham gia không được để trống.');
+        } elseif (!$this->isValidDateOrNull($data['joined_at'])) {
+            $this->validator->addError('joined_at', 'Ngày tham gia không hợp lệ.');
+        }
+
+        if ($data['participation_status'] === 'left') {
+            if (empty($data['left_at'])) {
+                $this->validator->addError('left_at', 'Vui lòng chọn ngày rời dự án.');
+            } elseif (!$this->isValidDateOrNull($data['left_at'])) {
+                $this->validator->addError('left_at', 'Ngày rời dự án không hợp lệ.');
+            }
+        } elseif (!empty($data['left_at']) && !$this->isValidDateOrNull($data['left_at'])) {
+            $this->validator->addError('left_at', 'Ngày rời dự án không hợp lệ.');
+        }
+
+        if (
+            !empty($data['joined_at'])
+            && !empty($data['left_at'])
+            && $this->isValidDateOrNull($data['joined_at'])
+            && $this->isValidDateOrNull($data['left_at'])
+            && strtotime($data['left_at']) < strtotime($data['joined_at'])
+        ) {
+            $this->validator->addError('left_at', 'Ngày rời dự án phải lớn hơn hoặc bằng ngày tham gia.');
+        }
+    }
+
+    private function mapProjectMemberPersistenceData(array $data): array
+    {
+        $status = $data['participation_status'] ?? 'active';
+
+        return [
+            'role' => $this->normalizeMemberRole($data['role'] ?? 'member'),
+            'joined_at' => $data['joined_at'] ?: date('Y-m-d'),
+            'is_active' => $status === 'active' ? 1 : 0,
+            'left_at' => $status === 'left' ? ($data['left_at'] ?: date('Y-m-d')) : null,
+        ];
+    }
+
     private function validateProjectData(array $data)
     {
         $this->validator->required('name', $data['name'], 'Tên dự án');
@@ -435,11 +702,11 @@ class ProjectController extends Controller
             $this->validator->addError('due_date', 'Hạn xử lý không hợp lệ');
         }
 
-        // Kiểm tra chủ dự án
-        if ($this->validator->selected('owner_id', $data['owner_id'], 'Chủ dự án')) {
+        // Kiểm tra Project Sponsor
+        if ($this->validator->selected('owner_id', $data['owner_id'], 'Project Sponsor')) {
             $ownerIds = array_map('intval', array_column($this->modelUser->getProjectOwnerOptions(), 'id'));
             if (!in_array($data['owner_id'], $ownerIds, true)) {
-                $this->validator->addError('owner_id', 'Chủ dự án không hợp lệ');
+                $this->validator->addError('owner_id', 'Project Sponsor không hợp lệ');
             }
         }
 
@@ -524,24 +791,21 @@ class ProjectController extends Controller
     }
 
     /**
-     * Thành viên bổ sung (bước 3): user hợp lệ, không trùng owner, role thuộc whitelist.
+     * Thành viên dự án (bước 3): user hợp lệ, role thuộc whitelist, bắt buộc có ít nhất một manager.
      *
      * @param array<int, array<string, mixed>> $members
-     * @param int $ownerId ID trưởng dự án đã chọn ở bước thông tin chung.
      * @return void
      */
-    private function validateWizardMembers(array $members, int $ownerId): void
+    private function validateWizardMembers(array $members): void
     {
         $validUserIds = $this->validUserIdMap();
+        $hasManager = false;
+
         foreach ($members as $m) {
             $uid = (int) ($m['user_id'] ?? 0);
-            $role = trim((string) ($m['role'] ?? 'member'));
+            $role = strtolower(trim((string) ($m['role'] ?? 'member')));
             if ($uid <= 0) {
                 continue;
-            }
-            if ($uid === $ownerId) {
-                $this->validator->addError('wizard_members', 'Không thêm trưởng dự án vào danh sách thành viên phụ (đã có vai trò quản lý).');
-                return;
             }
             if (!isset($validUserIds[$uid])) {
                 $this->validator->addError('wizard_members', 'Có thành viên không tồn tại hoặc không hợp lệ.');
@@ -551,6 +815,13 @@ class ProjectController extends Controller
                 $this->validator->addError('wizard_members', 'Vai trò thành viên không hợp lệ.');
                 return;
             }
+            if ($role === 'manager') {
+                $hasManager = true;
+            }
+        }
+
+        if (!$hasManager) {
+            $this->validator->addError('wizard_members', 'Vui lòng chọn ít nhất một Project Manager.');
         }
     }
 
@@ -582,7 +853,7 @@ class ProjectController extends Controller
 
     /**
      * Lưu dự án từ wizard: POST form (CSRF + Auth) — cùng payload với hidden JSON bước 2–3.
-     * Luồng DB: tạo bản ghi projects → task_statuses (tùy chỉnh hoặc clone mẫu hệ thống) → project_members (owner + danh sách).
+     * Luồng DB: tạo bản ghi projects → task_statuses (tùy chỉnh hoặc clone mẫu hệ thống) → project_members (danh sách đã chọn).
      *
      * @return void|null Render lại wizard khi validate lỗi, redirect khi tạo thành công.
      */
@@ -607,7 +878,7 @@ class ProjectController extends Controller
 
         $this->validateProjectData($data);
         $this->validateWizardTaskStatuses($taskRows);
-        $this->validateWizardMembers($memberRows, (int) $data['owner_id']);
+        $this->validateWizardMembers($memberRows);
 
         if (!$this->validator->passes()) {
             return View::render('projects/createWizard', $this->wizardCreateViewData([
@@ -617,6 +888,8 @@ class ProjectController extends Controller
         }
 
         try {
+            $data['created_by'] = AuthHelper::id();
+            $data['updated_by'] = $data['created_by'];
             $projectId = $this->modelProject->createWithProjectCode($data);
 
             // Nếu trạng thái rỗng sẽ thêm trạng thái mặc đinh (của project_id is null); 
@@ -637,18 +910,21 @@ class ProjectController extends Controller
                 }
             }
 
-            $ownerId = (int) $data['owner_id'];
-            if (!$this->modelProject->isMemberExists($projectId, $ownerId)) {
-                $this->modelProject->addMember($projectId, $ownerId, 'manager');
-            }
+            $memberRoleByUserId = [];
             foreach ($memberRows as $m) {
                 $uid = (int) ($m['user_id'] ?? 0);
                 $role = $this->normalizeMemberRole($m['role'] ?? 'member');
-                if ($uid <= 0 || $uid === $ownerId) {
+                if ($uid <= 0) {
                     continue;
                 }
+                if ($role === 'manager' || !isset($memberRoleByUserId[$uid])) {
+                    $memberRoleByUserId[$uid] = $role;
+                }
+            }
+
+            foreach ($memberRoleByUserId as $uid => $role) {
                 if (!$this->modelProject->isMemberExists($projectId, $uid)) {
-                    $this->modelProject->addMember($projectId, $uid, $role);
+                    $this->modelProject->addMember($projectId, (int) $uid, $role);
                 }
             }
         } catch (\Throwable $e) {
@@ -681,7 +957,7 @@ class ProjectController extends Controller
      * Kiểm tra user hiện tại có thuộc dự án hay không.
      *
      * @param array<string, mixed> $project Dữ liệu dự án cần kiểm tra.
-     * @return bool True nếu user là owner hoặc thành viên active.
+     * @return bool True nếu user là thành viên active.
      */
     private function isJoinedProject(array $project): bool
     {
@@ -761,9 +1037,10 @@ class ProjectController extends Controller
      *
      * @param array<string, mixed> $query Query string hiện tại.
      * @param array<int, array<string, mixed>> $statusOptions Danh sách trạng thái hợp lệ.
+     * @param array<int, array<string, mixed>> $ownerOptions Danh sách Project Sponsor hợp lệ.
      * @return array<string, mixed> Bộ lọc dự án đã chuẩn hóa.
      */
-    private function getProjectFilters(array $query, array $statusOptions): array
+    private function getProjectFilters(array $query, array $statusOptions, array $ownerOptions): array
     {
         $validStatusIds = array_flip(array_map('intval', array_column($statusOptions, 'id')));
         $requestedStatusIds = $this->normalizeIdList($query['status_id'] ?? []);
@@ -771,10 +1048,19 @@ class ProjectController extends Controller
             return isset($validStatusIds[$id]);
         }));
 
+        $search = trim((string) ($query['search'] ?? ''));
+        $validOwnerIds = array_flip(array_map('intval', array_column($ownerOptions, 'id')));
+        $ownerId = $this->positiveInt($query['owner_id'] ?? 0);
+        if ($ownerId > 0 && !isset($validOwnerIds[$ownerId])) {
+            $ownerId = 0;
+        }
+
         $startDate = $this->normalizeDate($query['start_date'] ?? null);
         $endDate = $this->normalizeDate($query['end_date'] ?? null);
 
         return [
+            'search' => $search !== '' ? $search : null,
+            'owner_id' => $ownerId > 0 ? $ownerId : null,
             'status_id' => $statusIds,
             'start_date' => $this->isValidDateOrNull($startDate) ? $startDate : null,
             'end_date' => $this->isValidDateOrNull($endDate) ? $endDate : null,
@@ -854,7 +1140,7 @@ class ProjectController extends Controller
      */
     private function normalizeMemberRole($role): string
     {
-        $role = trim((string) $role);
+        $role = strtolower(trim((string) $role));
 
         return in_array($role, self::MEMBER_ROLES, true) ? $role : 'member';
     }
@@ -874,7 +1160,7 @@ class ProjectController extends Controller
      *
      * Logic:
      * - Có projects.view.all: được xem mọi project.
-     * - Có projects.view.joined: chỉ xem được project mình sở hữu hoặc là thành viên active.
+     * - Có projects.view.joined: chỉ xem được project mình bảo trợ hoặc là thành viên active.
      * - Không có quyền phù hợp: chặn 403.
      *
      * @param array<string, mixed> $project Dữ liệu dự án cần kiểm tra.
@@ -897,7 +1183,7 @@ class ProjectController extends Controller
         $projectId = (int) ($project['id'] ?? 0);
         $ownerId = (int) ($project['owner_id'] ?? 0);
 
-        // Owner của dự án được xem dự án của mình.
+        // Project Sponsor được xem dự án mình bảo trợ.
         if ($ownerId === $userId) {
             return;
         }

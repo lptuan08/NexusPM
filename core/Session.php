@@ -1,4 +1,5 @@
 <?php
+
 namespace App\core;
 
 class Session
@@ -68,13 +69,29 @@ class Session
     /**
      * Xóa sạch dữ liệu và hủy phiên làm việc (Dùng khi Logout)
      */
+
     public static function destroy()
     {
         if (session_status() === PHP_SESSION_ACTIVE) {
-            session_unset();
+            $_SESSION = [];
+
+            if (ini_get('session.use_cookies')) {
+                $params = session_get_cookie_params();
+
+                setcookie(session_name(), '', [
+                    'expires' => time() - 42000,
+                    'path' => $params['path'] ?? '/',
+                    'domain' => $params['domain'] ?? '',
+                    'secure' => $params['secure'] ?? false,
+                    'httponly' => $params['httponly'] ?? true,
+                    'samesite' => $params['samesite'] ?? 'Lax',
+                ]);
+            }
+
             session_destroy();
         }
     }
+
 
     public static function regenerate()
     {

@@ -36,6 +36,17 @@ if (!empty($filters['project_id']) && empty($currentListQuery['project_id'])) {
     $currentListQuery['project_id'] = (int) $filters['project_id'];
 }
 $currentTaskListUrl = URLROOT . '/tasks' . ($currentListQuery ? '?' . http_build_query($currentListQuery) : '');
+$resetFilterQuery = [];
+if (!empty($filters['project_id'])) {
+    $resetFilterQuery['project_id'] = (int) $filters['project_id'];
+}
+$resetFilterUrl = URLROOT . '/tasks' . ($resetFilterQuery ? '?' . http_build_query($resetFilterQuery) : '');
+$activeFilterCount = 0;
+foreach (['search', 'assigned_to', 'status_id'] as $filterKey) {
+    if (!empty($filters[$filterKey])) {
+        $activeFilterCount++;
+    }
+}
 
 /**
  * Hàm closure để tạo URL ảnh đại diện hoặc UI Avatars nếu trống.
@@ -69,6 +80,31 @@ $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): 
         max-width: 360px;
     }
 
+    .project-context-detail-link {
+        align-items: center;
+        border-radius: 999px;
+        color: var(--slate-500);
+        display: inline-flex;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        gap: 0.25rem;
+        line-height: 1;
+        padding: 0.2rem 0.35rem;
+        text-decoration: none;
+        transition: background-color 0.18s ease, color 0.18s ease;
+    }
+
+    .project-context-detail-link:hover,
+    .project-context-detail-link:focus {
+        background: var(--slate-100);
+        color: var(--primary-600);
+    }
+
+    .project-context-detail-link svg {
+        height: 12px;
+        width: 12px;
+    }
+
     /* Tùy chỉnh phân trang */
     /* Thiết lập chiều cao cố định và thanh cuộn cho container bảng */
     /* Cố định tiêu đề bảng (Sticky Header) */
@@ -82,27 +118,83 @@ $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): 
     </div>
 
 </div>
-
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 px-1">
     <?php
     $projectSwitcherAllowAll = true;
     $projectSwitcherMode = 'list';
-    $projectSwitcherAllUrl = URLROOT . '/tasks';
+    $projectSwitcherAllUrl = URLROOT . '/tasks?project_id=';
     $projectSwitcherTitle = $selectedProject ? (string) $selectedProject['name'] : 'Tất cả công việc';
     $projectSwitcherTaskCount = $selectedProject ? $totalItem : null;
+    $projectSwitcherDetailUrl = !empty($selectedProject['id']) ? URLROOT . '/projects/' . (int) $selectedProject['id'] : null;
+    $projectSwitcherDetailLabel = 'Chi tiết dự án';
     require VIEW_PATH . '/partials/project_switcher.php';
     ?>
 
     <div class="d-flex align-items-center gap-2 flex-wrap">
-        <button id="filterButton" class="btn btn-outline-secondary" title="Lọc dữ liệu" data-bs-toggle="modal"
-            data-bs-target="#filterModal">
-            <i data-lucide="filter"></i>
-            <span class="d-none d-md-inline">Bộ lọc</span>
-        </button>
+        <div class="dropdown filter-dropdown">
+            <button id="filterButton" class="btn btn-outline-secondary" type="button" title="Lọc dữ liệu" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                <i data-lucide="filter"></i>
+                <span class="d-none d-md-inline">Bộ lọc</span>
+                <?php if ($activeFilterCount > 0): ?>
+                    <span class="filter-count"><?= $activeFilterCount ?></span>
+                <?php endif; ?>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end filter-menu" aria-labelledby="filterButton">
+                <form action="<?= URLROOT ?>/tasks" method="GET" class="filter-form">
+                    <input type="hidden" name="page" value="1">
+                    <?php if (!empty($filters['project_id'])): ?>
+                        <input type="hidden" name="project_id" value="<?= (int) $filters['project_id'] ?>">
+                    <?php endif; ?>
+                    <div class="filter-header">
+                        <span class="filter-title">Bộ lọc công việc</span>
+                        <?php if ($activeFilterCount > 0): ?>
+                            <span class="ui-badge status-muted py-0 px-2" style="font-size: 11px;"><?= $activeFilterCount ?> đang bật</span>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-slate-600">Tìm kiếm tiêu đề</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white text-slate-400"><i data-lucide="search" size="16"></i></span>
+                            <input type="text" name="search" class="form-control border-start-0" placeholder="Nhập từ khóa..." value="<?= htmlspecialchars($filters['search'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-slate-600">Người thực hiện</label>
+                        <select name="assigned_to" class="form-select form-select-sm">
+                            <option value="">-- Tất cả nhân viên --</option>
+                            <?php foreach($users as $u): ?>
+                                <option value="<?= $u['id'] ?>" <?= (isset($filters['assigned_to']) && $filters['assigned_to'] == $u['id']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($u['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-slate-600">Trạng thái</label>
+                        <select name="status_id" class="form-select form-select-sm">
+                            <option value="">-- Tất cả trạng thái --</option>
+                            <?php foreach($statuses as $s): ?>
+                                <option value="<?= $s['id'] ?>" <?= (isset($filters['status_id']) && $filters['status_id'] == $s['id']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($s['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="filter-actions">
+                        <a href="<?= htmlspecialchars($resetFilterUrl, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-outline-secondary btn-sm w-100">Đặt lại</a>
+                        <button type="submit" class="btn btn-primary btn-sm w-100">Áp dụng</button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         <?php if ($selectedProject): ?>
             <a href="<?= URLROOT ?>/tasks/<?= (int) $selectedProject['id'] ?>/kanban" class="btn btn-outline-secondary">
-                <i data-lucide="layout-kanban"></i>
+                <i data-lucide="columns-3"></i>
                 <span class="d-none d-md-inline">Bảng Kanban</span>
             </a>
         <?php endif; ?>
@@ -157,7 +249,7 @@ $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): 
                         <tr>
                             <td class="text-center text-stt"><?= ($currentPage - 1) * $perPage + $index + 1 ?></td>
                             <td>
-                                <a href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>" class="text-decoration-none text-name d-inline-block text-truncate task-list-title">
+                                <a href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>/edit" class="text-decoration-none text-name d-inline-block text-truncate task-list-title">
                                     <?= htmlspecialchars($task['title']) ?>
                                 </a>
                             </td>
@@ -180,16 +272,18 @@ $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): 
                                 <?= !empty($task['due_date']) ? date('d/m/Y', strtotime($task['due_date'])) : '-' ?>
                             </td>
                             <td>
+                                <?php if (!empty($task['can_update']) || !empty($task['can_delete'])): ?>
                                 <div class="dropdown position-static">
                                     <button class="btn btn-link btn-action shadow-none"
                                         data-bs-toggle="dropdown"><i data-lucide="more-vertical"></i></button>
                                     <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>"><i data-lucide="eye" class="text-slate-600"></i> Chi tiết</a></li>
                                         <?php if (!empty($task['can_update'])): ?>
                                         <li><a class="dropdown-item d-flex align-items-center gap-2" href="<?= URLROOT ?>/tasks/<?= (int) $task['id'] ?>/edit"><i data-lucide="edit-3" class="text-slate-600"></i> Chỉnh sửa</a></li>
                                         <?php endif; ?>
                                         <?php if (!empty($task['can_delete'])): ?>
+                                        <?php if (!empty($task['can_update'])): ?>
                                         <li><hr class="dropdown-divider"></li>
+                                        <?php endif; ?>
                                         <li>
                                             <a class="dropdown-item d-flex align-items-center gap-2 text-danger"
                                                 href="javascript:void(0)"
@@ -200,6 +294,7 @@ $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): 
                                         <?php endif; ?>
                                     </ul>
                                 </div>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -311,74 +406,6 @@ $safeHexColor = static function (?string $color, string $fallback = '#94a3b8'): 
                         <button type="submit" class="btn btn-danger w-100">Xác nhận xóa</button>
                     </form>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Filter Modal -->
-<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-        <div class="modal-content shadow-lg border-0">
-            <div class="modal-header border-bottom">
-                <h5 class="modal-title fw-bold text-slate-800" id="filterModalLabel">Bộ lọc công việc</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                <form action="<?= URLROOT ?>/tasks" method="GET" class="m-0">
-                    <input type="hidden" name="page" value="1">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small text-slate-600">Tìm kiếm tiêu đề</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white text-slate-400"><i data-lucide="search" size="18"></i></span>
-                            <input type="text" name="search" class="form-control border-start-0" placeholder="Nhập từ khóa..." value="<?= htmlspecialchars($filters['search'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small text-slate-600">Dự án</label>
-                        <select name="project_id" class="form-select">
-                            <option value="">-- Tất cả dự án --</option>
-                            <?php foreach($projects as $p): ?>
-                                <option value="<?= $p['id'] ?>" <?= (isset($filters['project_id']) && $filters['project_id'] == $p['id']) ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($p['name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small text-slate-600">Người thực hiện</label>
-                        <select name="assigned_to" class="form-select">
-                            <option value="">-- Tất cả nhân viên --</option>
-                            <?php foreach($users as $u): ?>
-                                <option value="<?= $u['id'] ?>" <?= (isset($filters['assigned_to']) && $filters['assigned_to'] == $u['id']) ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($u['name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small text-slate-600">Trạng thái</label>
-                        <select name="status_id" class="form-select">
-                            <option value="">-- Tất cả trạng thái --</option>
-                            <?php foreach($statuses as $s): ?>
-                                <option value="<?= $s['id'] ?>" <?= (isset($filters['status_id']) && $filters['status_id'] == $s['id']) ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($s['name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div class="modal-footer border-top bg-light px-0 pb-0 mt-4">
-                        <a href="<?= URLROOT ?>/tasks" class="btn btn-outline-secondary px-4">Đặt lại bộ lọc</a>
-                        <button type="submit" class="btn btn-primary px-5">
-                            <i data-lucide="filter"></i>
-                            <span>Áp dụng</span>
-                        </button>
-                    </div>
-                </form>
             </div>
         </div>
     </div>

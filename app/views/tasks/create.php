@@ -13,6 +13,12 @@ $statuses = $statuses ?? [];
 $statusesByProject = $statusesByProject ?? [];
 $task = $task ?? null;
 $isEditingTask = is_array($task) && !empty($task['id']);
+$canDeleteTask = $canDeleteTask ?? false;
+$taskId = $isEditingTask ? (int) ($task['id'] ?? 0) : 0;
+$taskTitle = (string) ($old['title'] ?? ($task['title'] ?? ''));
+$showTaskDeleteAction = $isEditingTask && $taskId > 0 && $canDeleteTask;
+$taskDeleteUrl = URLROOT . '/tasks/' . $taskId . '/delete';
+$taskDeleteMessage = 'Bạn có chắc chắn muốn xóa công việc ' . ($taskTitle !== '' ? $taskTitle : 'này') . '?';
 
 $selectedProjectId = (string) ($old['project_id'] ?? ($_GET['project_id'] ?? ''));
 $selectedStatusId = (string) ($old['status_id'] ?? '');
@@ -78,6 +84,37 @@ $normalizeSearchText = static function (string $text): string {
         color: var(--slate-300);
     }
 
+    .task-create-layout {
+        align-items: stretch;
+    }
+
+    .task-create-layout > [class*="col-"] {
+        display: flex;
+    }
+
+    .task-create-card {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        min-height: 100%;
+        margin-bottom: 0;
+        padding: 1.5rem;
+        border: 0;
+        border-radius: var(--radius-lg);
+        background: var(--md-content-surface, #ffffff);
+        box-shadow: none;
+    }
+
+    .task-create-main-card .form-body-stack,
+    .task-create-main-card .editor-wrapper {
+        flex: 1;
+    }
+
+    .task-create-side-card .form-group-stack:last-child {
+        margin-bottom: 0;
+    }
+
     .ql-toolbar.ql-snow {
         border-top-left-radius: var(--radius-lg);
         border-top-right-radius: var(--radius-lg);
@@ -94,12 +131,18 @@ $normalizeSearchText = static function (string $text): string {
         font-size: 0.95rem;
     }
 
-    /* Điều chỉnh thẻ thuộc tính công việc để sticky đúng vị trí */
-    .sticky-sidebar-card {
-        position: sticky;
-        top: 1.5rem;
-        /* Đảm bảo thẻ không bị che bởi các phần tử khác khi sticky */
-        z-index: 10; 
+    @media (max-width: 991.98px) {
+        .task-create-layout > [class*="col-"] {
+            display: block;
+        }
+
+        .task-create-card {
+            min-height: auto;
+        }
+
+        .editor-container {
+            min-height: 320px;
+        }
     }
 </style>
 
@@ -210,6 +253,15 @@ $normalizeSearchText = static function (string $text): string {
                     <i data-lucide="refresh-ccw" size="18"></i>
                     <span>Làm mới</span>
                 </button>
+                <?php if ($showTaskDeleteAction): ?>
+                <button
+                    type="button"
+                    class="btn btn-outline-danger"
+                    onclick="showDeleteModal('<?= htmlspecialchars($taskDeleteUrl, ENT_QUOTES, 'UTF-8') ?>', <?= htmlspecialchars((string) json_encode($taskDeleteMessage, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>)">
+                    <i data-lucide="trash-2" size="18"></i>
+                    <span>Xóa</span>
+                </button>
+                <?php endif; ?>
                 <button type="submit" form="taskForm" class="btn btn-primary shadow-sm">
                     <i data-lucide="check-circle" size="18"></i>
                     <span>Lưu lại</span>
@@ -217,10 +269,10 @@ $normalizeSearchText = static function (string $text): string {
             </div>
         </div>
 
-        <div class="row g-4">
+        <div class="row g-4 task-create-layout">
             <!-- Cột trái: Nội dung chính -->
             <div class="col-lg-8">
-                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 h-100">
+                <div class="card task-create-card task-create-main-card">
                     <div class="form-body-stack h-100">
                         <div class="form-group-stack mb-0">
                             <label class="form-label fw-bold">Tiêu đề công việc <span class="text-danger">*</span></label>
@@ -243,83 +295,104 @@ $normalizeSearchText = static function (string $text): string {
 
             <!-- Cột phải: Thông tin bổ sung & Hành động -->
             <div class="col-lg-4">
-                <!-- Bỏ h-100 để sticky-sidebar-card hoạt động chính xác -->
-                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 sticky-sidebar-card">
-                        <div class="d-flex align-items-center gap-2 mb-4">
-                            <i data-lucide="sliders-horizontal" size="18" class="text-slate-500"></i>
-                            <h6 class="fw-bold text-slate-800 mb-0">Thuộc tính công việc</h6>
-                        </div>
+                <div class="card task-create-card task-create-side-card">
+                    <div class="d-flex align-items-center gap-2 mb-4">
+                        <i data-lucide="sliders-horizontal" size="18" class="text-slate-500"></i>
+                        <h6 class="fw-bold text-slate-800 mb-0">Thuộc tính công việc</h6>
+                    </div>
 
-                        <div class="form-group-stack mb-4">
-                            <label class="form-label">Người thực hiện</label>
-                            <select name="assigned_to" class="form-select select2">
-                                <option value="">-- Chưa giao --</option>
-                                <?php foreach ($users as $user): ?>
-                                    <option value="<?= $user['id'] ?>" <?= (isset($old['assigned_to']) && (string) $old['assigned_to'] === (string) $user['id']) ? 'selected' : '' ?>><?= htmlspecialchars($user['name']) ?> (<?= htmlspecialchars($user['employee_code'] ?? 'N/A') ?>)</option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                    <div class="form-group-stack mb-4">
+                        <label class="form-label">Người thực hiện</label>
+                        <select name="assigned_to" class="form-select select2">
+                            <option value="">-- Chưa giao --</option>
+                            <?php foreach ($users as $user): ?>
+                                <option value="<?= $user['id'] ?>" <?= (isset($old['assigned_to']) && (string) $old['assigned_to'] === (string) $user['id']) ? 'selected' : '' ?>><?= htmlspecialchars($user['name']) ?> (<?= htmlspecialchars($user['employee_code'] ?? 'N/A') ?>)</option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
 
-                        <div class="row g-2 mb-4">
-                            <div class="col-6">
-                                <div class="form-group-stack">
-                                    <label class="form-label">Trạng thái <span class="text-danger">*</span></label>
-                                    <select name="status_id" id="task_status_id" class="form-select" required>
-                                        <?php if (empty($statuses)): ?>
-                                            <option value="">-- Chọn dự án trước --</option>
-                                        <?php else: ?>
-                                            <?php foreach ($statuses as $status): ?>
-                                                <option value="<?= $status['id'] ?>" <?= ($selectedStatusId !== '' && $selectedStatusId === (string) $status['id']) ? 'selected' : '' ?>><?= htmlspecialchars($status['name']) ?></option>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </select>
-                                    <?php if (isset($errors['status_id'])): ?>
-                                        <div class="text-danger small mt-1"><?= $errors['status_id'] ?></div>
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <div class="form-group-stack">
+                                <label class="form-label">Trạng thái <span class="text-danger">*</span></label>
+                                <select name="status_id" id="task_status_id" class="form-select" required>
+                                    <?php if (empty($statuses)): ?>
+                                        <option value="">-- Chọn dự án trước --</option>
+                                    <?php else: ?>
+                                        <?php foreach ($statuses as $status): ?>
+                                            <option value="<?= $status['id'] ?>" <?= ($selectedStatusId !== '' && $selectedStatusId === (string) $status['id']) ? 'selected' : '' ?>><?= htmlspecialchars($status['name']) ?></option>
+                                        <?php endforeach; ?>
                                     <?php endif; ?>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="form-group-stack">
-                                    <label class="form-label">Ưu tiên</label>
-                                    <select name="priority" class="form-select">
-                                        <option value="low" <?= (($old['priority'] ?? 'medium') === 'low') ? 'selected' : '' ?>>Thấp</option>
-                                        <option value="medium" <?= (($old['priority'] ?? 'medium') === 'medium') ? 'selected' : '' ?>>Trung bình</option>
-                                        <option value="high" <?= (($old['priority'] ?? 'medium') === 'high') ? 'selected' : '' ?>>Cao</option>
-                                        <option value="urgent" <?= (($old['priority'] ?? 'medium') === 'urgent') ? 'selected' : '' ?>>Khẩn cấp</option>
-                                    </select>
-                                </div>
+                                </select>
+                                <?php if (isset($errors['status_id'])): ?>
+                                    <div class="text-danger small mt-1"><?= $errors['status_id'] ?></div>
+                                <?php endif; ?>
                             </div>
                         </div>
-
-                        <div class="form-group-stack mb-4">
-                            <label class="form-label">Thời gian bắt đầu</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i data-lucide="calendar" size="16"></i></span>
-                                <input type="date" name="start_date" class="form-control" value="<?= $old['start_date'] ?? '' ?>">
-                            </div>
-                        </div>
-
-                        <div class="form-group-stack mb-4">
-                            <label class="form-label">Thời gian kết thúc</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i data-lucide="calendar" size="16"></i></span>
-                                <input type="date" name="due_date" class="form-control" value="<?= $old['due_date'] ?? '' ?>">
-                            </div>
-                        </div>
-
-
-                        <div class="form-group-stack">
-                            <label class="form-label">Ước tính (giờ)</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i data-lucide="clock" size="16"></i></span>
-                                <input type="number" name="estimated_hours" class="form-control" placeholder="0" min="0" step="0.5" value="<?= $old['estimated_hours'] ?? '' ?>">
+                        <div class="col-6">
+                            <div class="form-group-stack">
+                                <label class="form-label">Ưu tiên</label>
+                                <select name="priority" class="form-select">
+                                    <option value="low" <?= (($old['priority'] ?? 'medium') === 'low') ? 'selected' : '' ?>>Thấp</option>
+                                    <option value="medium" <?= (($old['priority'] ?? 'medium') === 'medium') ? 'selected' : '' ?>>Trung bình</option>
+                                    <option value="high" <?= (($old['priority'] ?? 'medium') === 'high') ? 'selected' : '' ?>>Cao</option>
+                                    <option value="urgent" <?= (($old['priority'] ?? 'medium') === 'urgent') ? 'selected' : '' ?>>Khẩn cấp</option>
+                                </select>
                             </div>
                         </div>
                     </div>
+
+                    <div class="form-group-stack mb-4">
+                        <label class="form-label">Thời gian bắt đầu</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i data-lucide="calendar" size="16"></i></span>
+                            <input type="date" name="start_date" class="form-control" value="<?= $old['start_date'] ?? '' ?>">
+                        </div>
+                    </div>
+
+                    <div class="form-group-stack mb-4">
+                        <label class="form-label">Thời gian kết thúc</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i data-lucide="calendar" size="16"></i></span>
+                            <input type="date" name="due_date" class="form-control" value="<?= $old['due_date'] ?? '' ?>">
+                        </div>
+                    </div>
+
+                    <div class="form-group-stack">
+                        <label class="form-label">Ước tính (giờ)</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i data-lucide="clock" size="16"></i></span>
+                            <input type="number" name="estimated_hours" class="form-control" placeholder="0" min="0" step="0.5" value="<?= $old['estimated_hours'] ?? '' ?>">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </form>
 </div>
+
+<?php if ($showTaskDeleteAction): ?>
+<div class="modal fade modal-confirm" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-confirm-dialog">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-body text-center">
+                <div class="icon-box">
+                    <i data-lucide="alert-triangle" size="32"></i>
+                </div>
+                <h5 class="fw-bold text-slate-800 mb-2">Xác nhận xóa</h5>
+                <p class="text-slate-500 small mb-4" id="deleteConfirmMessage">Hành động này không thể hoàn tác. Bạn có chắc chắn?</p>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary w-100" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <form id="deleteForm" method="POST" action="" class="w-100 m-0">
+                        <?php \App\helpers\SecurityHelper::csrfInput(); ?>
+                        <button type="submit" class="btn btn-danger w-100">Xác nhận xóa</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Scripts cho Editor -->
 <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>

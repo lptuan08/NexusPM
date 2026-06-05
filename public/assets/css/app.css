@@ -533,11 +533,11 @@ body {
 
 /* Table Styles */
 .table-container {
-    background: #ffffff;
+    background: var(--md-content-surface, #ffffff);
     border-radius: var(--radius-lg);
-    box-shadow: var(--google-shadow-soft);
+    box-shadow: none;
     overflow: hidden;
-    border: 1px solid rgba(218, 220, 224, 0.7);
+    border: 0;
 }
 
 .table-container-paginated {
@@ -917,6 +917,87 @@ header {
     color: var(--slate-900);
 }
 
+.filter-dropdown {
+    position: relative;
+}
+
+.filter-menu {
+    border: 0;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 22px 54px rgba(15, 23, 42, 0.22), 0 6px 18px rgba(15, 23, 42, 0.12);
+    min-width: min(24rem, calc(100vw - 2rem));
+    overflow: hidden;
+    padding: 0;
+}
+
+.filter-menu-lg {
+    min-width: min(42rem, calc(100vw - 2rem));
+}
+
+.filter-form {
+    color: var(--slate-700);
+    padding: 1rem;
+}
+
+.filter-header {
+    align-items: center;
+    border-bottom: 1px solid var(--slate-100);
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+    margin: -1rem -1rem 1rem;
+    padding: 0.85rem 1rem;
+}
+
+.filter-title {
+    color: var(--slate-900);
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+.filter-count {
+    align-items: center;
+    background: var(--primary-600);
+    border-radius: 999px;
+    color: #ffffff;
+    display: inline-flex;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    height: 1.15rem;
+    justify-content: center;
+    line-height: 1;
+    min-width: 1.15rem;
+    padding: 0 0.35rem;
+}
+
+.filter-scroll-list {
+    display: grid;
+    gap: 0.45rem;
+    height: 10rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+.filter-actions {
+    border-top: 1px solid var(--slate-100);
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem -1rem -1rem;
+    padding: 0.85rem 1rem;
+}
+
+@media (max-width: 575.98px) {
+    .filter-dropdown,
+    .filter-dropdown > .btn {
+        width: 100%;
+    }
+
+    .filter-menu,
+    .filter-menu-lg {
+        width: calc(100vw - 2rem);
+    }
+}
+
 .project-context {
     max-width: 100%;
 }
@@ -1198,10 +1279,10 @@ header {
 }
 
 .ui-card {
-    background: #ffffff;
-    border: 1px solid rgba(218, 220, 224, 0.7);
+    background: var(--md-content-surface, #ffffff);
+    border: 0;
     border-radius: var(--radius-lg);
-    box-shadow: var(--google-shadow-soft);
+    box-shadow: none;
 }
 
 .ui-card-header {
@@ -1340,10 +1421,10 @@ header {
 
 /* Card liền khối, không đường kẻ */
 .form-card-seamless {
-    background: #ffffff;
+    background: var(--md-content-surface, #ffffff);
     border-radius: 12px;
     border: none;
-    box-shadow: var(--google-shadow-soft);
+    box-shadow: none;
     padding: 32px;
 }
 
@@ -1419,8 +1500,8 @@ textarea.form-control {
 }
 
 .form-section {
-    background: var(--slate-50);
-    border: 1px solid var(--slate-200);
+    background: var(--md-content-surface-strong, #ffffff);
+    border: 0;
     border-radius: var(--radius-md);
     padding: 1rem;
 }
@@ -1479,10 +1560,13 @@ textarea.form-control {
    ========================================= */
 :root {
     --md-surface: #ffffff;
-    --md-surface-dim: #f8fafd;
+    --md-surface-dim: #eef3f8;
     --md-surface-container-lowest: #ffffff;
     --md-surface-container-low: #f6f8fc;
     --md-surface-container: #f1f4f9;
+    --md-content-surface: #ffffff;
+    --md-content-surface-strong: #ffffff;
+    --md-content-surface-hover: #f6f8fc;
     --md-outline: #d8dde8;
     --md-outline-variant: #e8ecf3;
     --md-separator: rgba(60, 64, 67, 0.10);
@@ -1514,8 +1598,7 @@ body {
     letter-spacing: 0;
 }
 
-body > .flex-grow-1,
-.bg-slate-100 {
+body > .flex-grow-1 {
     background-color: var(--md-surface-dim) !important;
 }
 
@@ -1551,7 +1634,7 @@ header {
 }
 
 .sidebar-wrapper {
-    border-right: 1px solid var(--md-outline-variant);
+    border-right: 0;
 }
 
 .nav-link-custom {
@@ -1644,21 +1727,37 @@ header {
 .ui-card,
 .form-card-seamless,
 .card {
-    background: var(--md-surface);
-    border: 1px solid var(--md-outline-variant) !important;
+    background: var(--md-content-surface);
+    border: 0 !important;
     border-radius: var(--radius-lg) !important;
-    box-shadow: var(--md-shadow-1) !important;
+    box-shadow: none !important;
 }
 
 .table-container {
-    border-color: var(--md-separator) !important;
     box-shadow: none !important;
     overflow: hidden;
 }
 
+.ui-card-header {
+    background: var(--md-content-surface);
+    border-bottom: 0;
+}
+
+.ui-card-header.bg-white {
+    background: var(--md-content-surface) !important;
+}
+
+.ui-card-header.border-bottom {
+    border-bottom: 0 !important;
+}
+
+.ui-card-body {
+    background: transparent;
+}
+
 .table-container-paginated .table-custom thead th,
 .table-custom th {
-    background-color: var(--md-surface-container-low);
+    background-color: var(--md-content-surface-strong);
     border-bottom: 1px solid var(--md-separator);
     box-shadow: none;
     color: var(--md-on-surface-variant);
@@ -1667,13 +1766,19 @@ header {
     text-transform: none;
 }
 
+.table-custom {
+    --bs-table-bg: transparent;
+    --bs-table-hover-bg: var(--md-content-surface-hover);
+}
+
 .table-custom td {
     border-bottom-color: var(--md-separator-subtle);
     color: var(--md-on-surface);
 }
 
-.table-custom tbody tr:hover {
-    background-color: var(--md-surface-container-low);
+.table-custom tbody tr:hover,
+.table-custom tbody tr:hover > * {
+    background-color: var(--md-content-surface-hover);
 }
 
 .table-footer-outside {
@@ -1737,6 +1842,19 @@ header {
     color: var(--md-on-surface);
 }
 
+.dropdown-menu.filter-menu {
+    border: 0;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 22px 54px rgba(15, 23, 42, 0.22), 0 6px 18px rgba(15, 23, 42, 0.12);
+    min-width: min(24rem, calc(100vw - 2rem));
+    overflow: hidden;
+    padding: 0;
+}
+
+.dropdown-menu.filter-menu-lg {
+    min-width: min(42rem, calc(100vw - 2rem));
+}
+
 .form-control,
 .form-select,
 .input-group-text {
@@ -1766,8 +1884,8 @@ header {
 }
 
 .form-section {
-    background: var(--md-surface-container-low);
-    border-color: var(--md-outline-variant);
+    background: var(--md-content-surface-strong);
+    border-color: transparent;
     border-radius: var(--radius-md);
 }
 

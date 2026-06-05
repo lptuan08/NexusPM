@@ -33,7 +33,11 @@ class Database
 
             foreach ($params as $key => $value) {
                 // Kiểm tra nếu là số nguyên thì dùng PARAM_INT, còn lại dùng PARAM_STR
-                $type = is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR;
+                if ($value === null) {
+                    $type = \PDO::PARAM_NULL;
+                } else {
+                    $type = is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR;
+                }
 
                 // Hỗ trợ cả mảng không key (?) và mảng có key (:name)
                 $paramKey = is_int($key) ? $key + 1 : $key;

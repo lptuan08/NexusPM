@@ -58,9 +58,11 @@ class ProjectApiController extends Controller
         $memberUserOptions = [];
         foreach ($this->userModel->getAllUsers() as $u) {
             $memberUserOptions[] = [
-                'id'    => (int) ($u['id'] ?? 0),
-                'name'  => (string) ($u['name'] ?? ''),
-                'email' => (string) ($u['email'] ?? ''),
+                'id'            => (int) ($u['id'] ?? 0),
+                'employee_code' => (string) ($u['employee_code'] ?? ''),
+                'name'          => (string) ($u['name'] ?? ''),
+                'email'         => (string) ($u['email'] ?? ''),
+                'job_title'     => (string) ($u['job_title'] ?? ''),
             ];
         }
 

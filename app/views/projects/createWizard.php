@@ -18,6 +18,12 @@ $currentDueDate = $old['due_date'] ?? '';
 
 $oldWizardStatusesJson = $old['wizard_task_statuses'] ?? '';
 $oldWizardMembersJson = $old['wizard_members'] ?? '';
+$serverInitialStep = 1;
+if (!empty($errors['wizard_members'])) {
+    $serverInitialStep = 3;
+} elseif (!empty($errors['wizard_task_statuses'])) {
+    $serverInitialStep = 2;
+}
 
 $serverOldBasicJson = json_encode(
     [
@@ -43,12 +49,14 @@ $serverOldBasicJson = json_encode(
         flex-direction: column;
         border-radius: 1.25rem; /* Bo góc thẻ */
         overflow: hidden; /* Đảm bảo nội dung không tràn khỏi góc bo */
-        border: 1px solid var(--slate-200);
+        background: var(--md-content-surface);
+        border: 0;
+        box-shadow: none;
     }
 
     .project-create-card .ui-card-header {
         flex-shrink: 0;
-        background: #fff;
+        background: var(--md-content-surface);
         padding: 1.25rem 2rem 0; /* Thêm padding đồng bộ với nội dung */
     }
 
@@ -102,14 +110,18 @@ $serverOldBasicJson = json_encode(
         background: var(--slate-50);
         color: var(--slate-500);
         border: 2px solid var(--slate-200);
+        box-sizing: border-box;
         position: relative;
         z-index: 1;
+        transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
     }
 
     .wizard-stepper-item.is-active .wizard-step-circle {
         background: var(--primary-50);
-        color: var(--primary-600);
-        border-color: var(--primary-200);
+        color: var(--primary-700);
+        border-color: var(--primary-600);
+        box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.18);
+        z-index: 2;
     }
 
     .wizard-stepper-item.is-done .wizard-step-circle {
@@ -124,6 +136,11 @@ $serverOldBasicJson = json_encode(
         color: var(--slate-600);
         margin-top: 0.35rem;
         line-height: 1.25;
+    }
+
+    .wizard-stepper-item.is-active .wizard-step-label {
+        color: var(--primary-700);
+        font-weight: 700;
     }
 
     @media (min-width: 576px) {
@@ -186,26 +203,58 @@ $serverOldBasicJson = json_encode(
     }
 
     /* —— Bước 2: thẻ trạng thái (card + kéo thả) —— */
+    .task-status-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: var(--radius-md);
+        background: var(--md-content-surface-strong);
+    }
+
+    .task-status-board {
+        padding: 0.75rem;
+        border-radius: var(--radius-md);
+        background: var(--md-content-surface-strong);
+    }
+
+    .task-status-board-header,
+    .task-status-row {
+        display: grid;
+        grid-template-columns: 2.25rem 3rem minmax(220px, 1fr) 10rem 7rem 10rem 2.5rem;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .task-status-board-header {
+        padding: 0 0.75rem 0.5rem;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--slate-400);
+    }
+
     .task-status-cards {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.625rem;
     }
 
     .task-status-card {
-        border: 1px solid var(--slate-200);
+        border: 0;
         border-radius: var(--radius-md, 0.5rem);
         background: #fff;
-        padding: 0.625rem 1rem;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+        padding: 0.65rem 0.75rem;
+        box-shadow: none;
         transition:
-            box-shadow 0.22s ease,
-            border-color 0.2s ease,
+            background-color 0.2s ease,
             opacity 0.2s ease;
     }
 
     .task-status-card:hover {
-        border-color: var(--slate-300);
+        background: var(--slate-50);
     }
 
     .task-status-card .form-label {
@@ -226,8 +275,8 @@ $serverOldBasicJson = json_encode(
         font-weight: 600;
         font-variant-numeric: tabular-nums;
         color: var(--slate-600);
-        background: var(--slate-100);
-        border: 1px solid var(--slate-200);
+        background: var(--md-content-surface-strong);
+        border: 0;
         border-radius: 999px;
     }
 
@@ -249,6 +298,7 @@ $serverOldBasicJson = json_encode(
 
     .task-status-card .ts-color-trigger {
         min-height: calc(1.5em + 0.75rem + 2px);
+        border: 1px solid var(--slate-200);
         border-color: var(--slate-200) !important;
         transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
@@ -262,32 +312,58 @@ $serverOldBasicJson = json_encode(
         margin-right: 0;
     }
 
+    .task-status-name-field,
+    .task-status-slug-field {
+        min-width: 0;
+    }
+
+    .task-status-toggle-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        justify-items: center;
+        gap: 0.5rem;
+    }
+
+    .task-status-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin: 0;
+    }
+
+    .task-status-toggle .form-check-input {
+        margin: 0;
+    }
+
+    .task-status-remove {
+        justify-self: center;
+    }
+
+    .task-status-add-btn {
+        border: 0;
+        border-radius: var(--radius-md);
+        background: #fff;
+        color: var(--primary-600);
+    }
+
+    .task-status-add-btn:hover {
+        background: var(--slate-50);
+        color: var(--primary-700);
+    }
+
     .task-status-card.is-dragging {
         opacity: 1;
         transform: scale(1.02);
-        box-shadow:
-            0 16px 48px rgba(15, 23, 42, 0.12),
-            0 0 0 1px rgba(59, 130, 246, 0.15);
-        border-color: #93c5fd;
+        background: #fff;
+        box-shadow: none;
         z-index: 6;
     }
 
     .task-status-card.is-drag-over {
-        border-color: var(--primary-500);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
+        background: var(--md-primary-container);
+        box-shadow: none;
         transform: translateY(-3px);
-    }
-
-    .member-picker-row {
-        border: 1px solid var(--slate-200);
-        border-radius: var(--radius-md);
-        padding: 0.65rem 1.25rem;
-        background: #fff;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        gap: 1rem;
-        transition: all 0.2s ease;
     }
 
     .status-drag-handle {
@@ -324,27 +400,192 @@ $serverOldBasicJson = json_encode(
         cursor: grabbing;
     }
 
-    .member-picker-row:hover {
-        background: var(--slate-50);
-        border-color: var(--primary-200);
+    .member-transfer-layout {
+        display: flex;
+        flex: 1;
+        min-height: 0;
     }
 
-    .member-picker-row .member-info-primary {
+    .member-transfer-pane {
         flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        background: var(--md-content-surface-strong);
+    }
+
+    .member-transfer-header {
+        flex-shrink: 0;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .member-transfer-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.625rem;
+    }
+
+    .member-transfer-search {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 0.75rem;
+        border-radius: var(--radius-md);
+        color: var(--slate-400);
+        background: #fff;
+    }
+
+    .member-transfer-search .form-control {
+        border: 0;
+        box-shadow: none;
+        padding-left: 0;
+    }
+
+    .member-transfer-list {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding-right: 0.125rem;
+    }
+
+    .member-transfer-row {
+        border: 0;
+        border-radius: var(--radius-md);
+        background: #fff;
+        padding: 0.75rem;
+        display: grid;
+        grid-template-columns: 2.25rem minmax(0, 1fr) 9rem;
+        align-items: center;
+        gap: 0.75rem;
+        transition: background-color 0.16s ease;
+    }
+
+    .member-transfer-row.is-selected {
+        background: var(--primary-50);
+    }
+
+    .member-transfer-check {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .member-transfer-info {
         min-width: 0;
     }
 
-    .member-picker-row .member-meta-field {
-        flex-shrink: 0;
-        font-size: 0.8125rem;
+    .member-transfer-name {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-width: 0;
+        font-weight: 700;
+        color: var(--slate-800);
+    }
+
+    .member-transfer-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.75rem;
+        margin-top: 0.15rem;
+        font-size: 0.75rem;
         color: var(--slate-500);
+    }
+
+    .member-selected-count {
+        min-width: 2rem;
+        height: 2rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8125rem;
+        font-weight: 700;
+        color: var(--primary-700);
+        background: var(--primary-50);
+    }
+
+    .selected-empty {
+        padding: 0.75rem;
+        border-radius: var(--radius-md);
+        color: var(--slate-500);
+        background: rgba(255, 255, 255, 0.64);
+        font-size: 0.8125rem;
+    }
+
+    @media (max-width: 991.98px) {
+        .task-status-toolbar {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .task-status-board {
+            padding: 0.625rem;
+        }
+
+        .task-status-row {
+            grid-template-columns: 2.25rem 2.75rem minmax(0, 1fr) 2.5rem;
+            grid-template-areas:
+                "drag index name remove"
+                ". . color color"
+                ". . toggles toggles";
+            gap: 0.625rem;
+        }
+
+        .task-status-row__drag {
+            grid-area: drag;
+        }
+
+        .task-status-card__index {
+            grid-area: index;
+        }
+
+        .task-status-name-field {
+            grid-area: name;
+            min-width: 0;
+        }
+
+        .task-status-color-field {
+            grid-area: color;
+            width: 100% !important;
+        }
+
+        .task-status-toggle-group {
+            grid-area: toggles;
+            justify-items: start;
+        }
+
+        .task-status-remove {
+            grid-area: remove;
+        }
+
+        .member-transfer-row {
+            grid-template-columns: 2.25rem minmax(0, 1fr);
+        }
+
+        .member-transfer-check {
+            justify-content: flex-start;
+        }
+
+        .member-source-role {
+            grid-column: 1 / -1;
+            width: 100%;
+        }
     }
 
     .wizard-panel-footer {
         flex-shrink: 0;
         margin-top: auto;
         padding: 1rem 2rem 0; /* Padding ngang khớp với nội dung */
-        border-top: 1px solid var(--slate-100);
+        border-top: 0;
     }
 </style>
 
@@ -410,9 +651,9 @@ $serverOldBasicJson = json_encode(
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label">Trưởng dự án <span class="text-danger">*</span></label>
+                                    <label class="form-label">Project Sponsor <span class="text-danger">*</span></label>
                                     <select name="owner_id" id="fld_owner_id" class="form-select <?= isset($errors['owner_id']) ? 'is-invalid' : '' ?>">
-                                        <option value="">Chọn người phụ trách chính</option>
+                                        <option value="">Chọn người bảo trợ dự án</option>
                                     </select>
                                     <?php if (isset($errors['owner_id'])): ?>
                                         <div class="invalid-feedback d-block"><?= htmlspecialchars($errors['owner_id'], ENT_QUOTES, 'UTF-8') ?></div>
@@ -462,7 +703,7 @@ $serverOldBasicJson = json_encode(
                 <!-- Bước 2 -->
                 <div class="wizard-panel" data-step="2">
                     <div class="wizard-panel-content">
-                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                        <div class="task-status-toolbar mb-3">
                             <p class="text-slate-600 small mb-0">Để trống khi lưu sẽ dùng mẫu hệ thống. Kéo thanh bên trái mỗi thẻ để sắp xếp thứ tự.</p>
                             <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0" id="btnLoadGlobalStatuses">
                                 <i data-lucide="copy" size="16"></i>
@@ -470,26 +711,25 @@ $serverOldBasicJson = json_encode(
                             </button>
                         </div>
 
-                        <!-- Header cho danh sách trạng thái -->
-                        <div class="d-none d-md-flex align-items-center gap-3 px-3 mb-2 text-slate-400 fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.05em;">
-                            <div style="width: 80px;" class="text-center">Thứ tự</div>
-                            <div class="flex-grow-1">Tên hiển thị</div>
-                            <div style="width: 160px;" class="d-none d-lg-block text-center">Mã định danh (Slug)</div>
-                            <div style="width: 100px;" class="text-center">Màu sắc</div>
-                            <div style="width: 180px;" class="d-flex text-center">
-                                <div class="flex-fill">Mặc định</div>
-                                <div class="flex-fill">Hoàn tất</div>
+                        <div class="task-status-board mb-4">
+                            <div class="task-status-board-header d-none d-lg-grid" aria-hidden="true">
+                                <div></div>
+                                <div class="text-center">Thứ tự</div>
+                                <div>Tên hiển thị</div>
+                                <div>Mã định danh</div>
+                                <div class="text-center">Màu sắc</div>
+                                <div class="text-center">Luồng</div>
+                                <div></div>
                             </div>
-                            <div style="width: 32px;"></div>
-                        </div>
 
-                        <div id="taskStatusList" class="task-status-cards mb-3" role="list" aria-label="Trạng thái công việc">
-                        </div>
+                            <div id="taskStatusList" class="task-status-cards mb-3" role="list" aria-label="Trạng thái công việc">
+                            </div>
 
-                        <button type="button" class="btn btn-white w-100 py-2 border-dashed mb-4" id="btnAddTaskStatusRow" style="border-width: 2px; color: var(--primary-600); border-radius: 0.75rem;">
-                            <i data-lucide="plus" size="18"></i>
-                            <span class="fw-bold">Thêm trạng thái</span>
-                        </button>
+                            <button type="button" class="btn task-status-add-btn w-100 py-2" id="btnAddTaskStatusRow">
+                                <i data-lucide="plus" size="18"></i>
+                                <span class="fw-bold">Thêm trạng thái</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 wizard-panel-footer">
@@ -498,10 +738,6 @@ $serverOldBasicJson = json_encode(
                             Quay lại
                         </button>
                         <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-link text-decoration-none text-slate-500 fw-semibold px-3" data-wizard-skip>
-                                <span>Sử dụng mẫu hệ thống</span>
-                                <i data-lucide="skip-forward" class="ms-1" size="16"></i>
-                            </button>
                             <button type="button" class="btn btn-primary px-4" data-wizard-next>
                                 Tiếp theo
                                 <i data-lucide="chevron-right" class="ms-1" size="18"></i>
@@ -513,7 +749,26 @@ $serverOldBasicJson = json_encode(
                 <!-- Bước 3 -->
                 <div class="wizard-panel" data-step="3">
                     <div class="wizard-panel-content d-flex flex-column">
-                        <div id="memberPicker" class="mb-4"></div>
+                        <div class="member-transfer-layout">
+                            <section class="member-transfer-pane">
+                                <div class="member-transfer-header">
+                                    <div>
+                                        <div class="fw-semibold text-slate-800">Danh sách nhân viên</div>
+                                        <div class="text-slate-500 small">Tick nhân viên tham gia dự án và chọn role tương ứng.</div>
+                                    </div>
+                                    <span class="member-selected-count" id="selectedMemberCount">0</span>
+                                </div>
+                                <div class="member-transfer-search">
+                                    <i data-lucide="search" size="16"></i>
+                                    <input type="search" id="memberSearchInput" class="form-control form-control-sm" placeholder="Tìm theo tên, mã, email hoặc chức danh">
+                                </div>
+                                <div id="memberSourceList" class="member-transfer-list" aria-label="Danh sách tất cả nhân viên"></div>
+                            </section>
+                        </div>
+
+                        <div id="wizard_members_error" class="text-danger small d-none">
+                            Vui lòng chọn ít nhất một Project Manager.
+                        </div>
                     </div>
 
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 wizard-panel-footer">
@@ -521,16 +776,10 @@ $serverOldBasicJson = json_encode(
                             <i data-lucide="chevron-left" class="me-1" size="18"></i>
                             Quay lại
                         </button>
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-link text-decoration-none text-slate-500 fw-semibold px-3" data-wizard-skip>
-                                <span>Bỏ qua & Hoàn tất</span>
-                                <i data-lucide="check" class="ms-1" size="16"></i>
-                            </button>
-                            <button type="submit" class="btn btn-primary px-4" id="wizardSubmitBtn">
-                                <i data-lucide="save"></i>
-                                Hoàn tất &amp; lưu dự án
-                            </button>
-                        </div>
+                        <button type="submit" class="btn btn-primary px-4" id="wizardSubmitBtn">
+                            <i data-lucide="save"></i>
+                            Hoàn tất &amp; lưu dự án
+                        </button>
                     </div>
                 </div>
             </form>
@@ -542,15 +791,13 @@ $serverOldBasicJson = json_encode(
 /**
  * Logic wizard tạo dự án (phía trình duyệt):
  * - Gọi API `/api/projects/wizard-data` để nạp select + mẫu task + danh sách user.
- * - Lưu nháp (bước, form, bảng trạng thái, thành viên) vào localStorage khi thao tác.
- * - Trước submit: ghi JSON vào hidden để PHP xử lý; sau submit xóa nháp.
+ * - Trước submit: ghi JSON vào hidden để PHP xử lý.
  * IIFE: tránh biến toàn cục trùng tên với các script khác.
  */
 (function () {
-    /** Khóa localStorage — dùng chung một phiên bản để có thể đổi key khi đổi cấu trúc dữ liệu. */
-    var STORAGE_KEY = 'nexuspm_project_create_wizard_v1';
-    /** Giá trị owner/status từ server khi form POST lỗi (PHP render lại) — ưu tiên hơn draft. */
+    /** Giá trị owner/status từ server khi form POST lỗi (PHP render lại). */
     var SERVER_OLD_BASIC = <?= $serverOldBasicJson !== false ? $serverOldBasicJson : '{}' ?>;
+    var SERVER_INITIAL_STEP = <?= (int) $serverInitialStep ?>;
     /** Bản sao mẫu task status toàn hệ thống (API) — dùng khi seed bảng hoặc bấm "Tải mẫu hệ thống". */
     var globalTemplate = [];
     /** Danh sách vai trò thành viên dự án (slug + label) — API trả về, dùng ở bước 3. */
@@ -565,53 +812,7 @@ $serverOldBasicJson = json_encode(
         return s || 'status';
     }
 
-    /** Đọc object trạng thái wizard đã lưu; lỗi parse → null. */
-    function loadState() {
-        try {
-            var raw = localStorage.getItem(STORAGE_KEY);
-            return raw ? JSON.parse(raw) : null;
-        } catch (e) {
-            return null;
-        }
-    }
-
-    /** Ghi nháp wizard vào localStorage (hết quota hoặc lỗi ghi thì bỏ qua, không throw). */
-    function saveState(state) {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        } catch (e) {}
-    }
-
-    /** Thu thập bước 1 (thông tin cơ bản) từ DOM — dùng khi persist vào localStorage. */
-    function gatherBasicFromDom() {
-        return {
-            name: document.getElementById('fld_name').value,
-            description: document.getElementById('fld_description').value,
-            owner_id: document.getElementById('fld_owner_id').value,
-            status_id: document.getElementById('fld_status_id').value,
-            start_date: document.getElementById('fld_start_date').value,
-            due_date: document.getElementById('fld_due_date').value
-        };
-    }
-
-    /** Ghi object basic vào các input tương ứng (khôi phục từ localStorage). */
-    function applyBasicToDom(b) {
-        if (!b) return;
-        var map = {
-            fld_name: 'name',
-            fld_description: 'description',
-            fld_owner_id: 'owner_id',
-            fld_status_id: 'status_id',
-            fld_start_date: 'start_date',
-            fld_due_date: 'due_date'
-        };
-        Object.keys(map).forEach(function (id) {
-            var el = document.getElementById(id);
-            if (el && b[map[id]] !== undefined) el.value = b[map[id]];
-        });
-    }
-
-    /** Mảng trạng thái công việc (bước 2) — nguồn sự thật trước khi sync vào hidden / localStorage. */
+    /** Mảng trạng thái công việc (bước 2) — nguồn sự thật trước khi sync vào hidden. */
     var taskRows = [];
 
     /** Di chuyển phần tử trong mảng (from / to là chỉ số trước khi kéo, theo thứ tự hiển thị). */
@@ -621,7 +822,7 @@ $serverOldBasicJson = json_encode(
         arr.splice(to, 0, item);
     }
 
-    /** Vẽ lại danh sách thẻ trạng thái từ taskRows; gắn listener + persist (không re-render khi đổi radio để giữ focus). */
+    /** Vẽ lại danh sách thẻ trạng thái từ taskRows; gắn listener và giữ focus khi đổi radio. */
     function renderTaskRows() {
         var container = document.getElementById('taskStatusList');
         container.innerHTML = '';
@@ -630,36 +831,38 @@ $serverOldBasicJson = json_encode(
             rowDiv.className = 'task-status-card status-picker-row';
             rowDiv.setAttribute('role', 'listitem');
             rowDiv.innerHTML =
-                '<div class="d-flex align-items-center gap-3">' +
-                    '<span class="status-drag-handle" role="button" tabindex="0">' +
+                '<div class="task-status-row">' +
+                    '<span class="status-drag-handle task-status-row__drag" role="button" tabindex="0">' +
                         '<i data-lucide="more-vertical" size="18"></i>' +
                     '</span>' +
                     '<span class="task-status-card__index ts-position">#' + (idx + 1) + '</span>' +
                     
-                    '<div class="flex-grow-1">' +
+                    '<div class="task-status-name-field">' +
                         '<input type="text" class="form-control form-control-sm ts-name' + (row.name === '' && taskRows.length > 0 ? '' : '') + '" placeholder="Tên trạng thái" value="' + escapeAttr(row.name) + '">' +
                     '</div>' +
                     
-                    '<div style="width: 160px;" class="d-none d-lg-block">' +
+                    '<div class="task-status-slug-field d-none d-lg-block">' +
                         '<input type="text" class="form-control form-control-sm ts-slug font-monospace" placeholder="slug" value="' + escapeAttr(row.slug) + '">' +
                     '</div>' +
                     
-                    '<div class="ts-color-trigger d-flex align-items-center gap-2 px-2 border rounded bg-white cursor-pointer" style="width: 100px; height: 33px;">' +
+                    '<div class="ts-color-trigger task-status-color-field d-flex align-items-center gap-2 px-2 rounded bg-white cursor-pointer" style="height: 33px;">' +
                         '<span class="color-box ts-color-display mb-0 flex-shrink-0" style="background-color: ' + escapeAttr(row.color) + '; width: 14px; height: 14px; margin-right: 0;"></span>' +
                         '<code class="small text-slate-500 fw-mono ts-color-hex flex-grow-1 text-truncate" style="font-size: 0.7rem;">' + escapeAttr(row.color).toUpperCase() + '</code>' +
                         '<input type="color" class="ts-color" style="visibility: hidden; width: 0; height: 0; position: absolute;" value="' + escapeAttr(row.color) + '">' +
                     '</div>' +
                     
-                    '<div class="d-flex flex-shrink-0 text-center" style="width: 180px;">' +
-                        '<div class="flex-fill d-flex justify-content-center">' +
+                    '<div class="task-status-toggle-group">' +
+                        '<label class="task-status-toggle">' +
                             '<input type="radio" name="ts_default" class="form-check-input ts-def" id="ts_def_' + idx + '"' + (row.is_default ? ' checked' : '') + '>' +
-                        '</div>' +
-                        '<div class="flex-fill d-flex justify-content-center">' +
+                            '<span class="d-lg-none small text-slate-500">Mặc định</span>' +
+                        '</label>' +
+                        '<label class="task-status-toggle">' +
                             '<input type="radio" name="ts_done" class="form-check-input ts-done" id="ts_done_' + idx + '"' + (row.is_done ? ' checked' : '') + '>' +
-                        '</div>' +
+                            '<span class="d-lg-none small text-slate-500">Hoàn tất</span>' +
+                        '</label>' +
                     '</div>' +
                     
-                    '<button type="button" class="btn btn-link p-0 border-0 btn-remove-ts">' +
+                    '<button type="button" class="btn btn-link p-0 border-0 btn-remove-ts task-status-remove">' +
                         '<i data-lucide="trash-2" size="18"></i>' +
                     '</button>' +
                 '</div>';
@@ -675,14 +878,12 @@ $serverOldBasicJson = json_encode(
                     slugInp.value = slugify(nameInp.value);
                     row.slug = slugInp.value;
                 }
-                persistWizard();
             });
             // User sửa slug trực tiếp → đánh dấu touched, không ghi đè từ tên nữa.
             slugInp.addEventListener('input', function (e) {
                 row.isSlugTouched = true;
                 slugInp.classList.remove('is-invalid');
                 row.slug = slugInp.value;
-                persistWizard();
             });
             
             var colorInp = rowDiv.querySelector('.ts-color');
@@ -699,20 +900,16 @@ $serverOldBasicJson = json_encode(
                 row.color = e.target.value;
                 hexText.textContent = e.target.value.toUpperCase();
                 colorDisplay.style.backgroundColor = e.target.value; // Cập nhật màu cho thẻ span
-                persistWizard();
             });
             rowDiv.querySelector('.ts-def').addEventListener('change', function () {
                 taskRows.forEach(function (r, i) { r.is_default = i === idx; });
-                persistWizard();
             });
             rowDiv.querySelector('.ts-done').addEventListener('change', function () {
                 taskRows.forEach(function (r, i) { r.is_done = i === idx; });
-                persistWizard();
             });
             rowDiv.querySelector('.btn-remove-ts').addEventListener('click', function () {
                 taskRows.splice(idx, 1);
                 renderTaskRows();
-                persistWizard();
             });
         });
         refreshIcons();
@@ -737,51 +934,138 @@ $serverOldBasicJson = json_encode(
         });
     }
 
-    /** Bước 3: render danh sách user + checkbox + select vai trò (role disable khi chưa tick). */
-    function populateMemberPicker(users, roles) {
-        var container = document.getElementById('memberPicker');
-        if (!container) { console.error('Member picker container not found.'); return; }
-        // Sử dụng g-2 để các hàng sát nhau hơn trong bảng danh sách
-        container.className = 'row g-2 pt-2 mb-4'; 
-        container.innerHTML = '';
-        
-        var rolesHtml = (roles || []).map(function(r) {
-            return '<option value="' + escapeAttr(r.slug) + '">' + escapeAttr(r.name) + '</option>';
-        }).join('');
+    var allMemberUsers = [];
+    var selectedMembers = {};
+    var sourceRoleDrafts = {};
+    var memberSearchQuery = '';
+    var defaultMemberRoles = [
+        { slug: 'manager', name: 'Manager' },
+        { slug: 'member', name: 'Member' },
+        { slug: 'viewer', name: 'Viewer' }
+    ];
 
-        (users || []).forEach(function(u) {
-            var colDiv = document.createElement('div');
-            colDiv.className = 'col-12'; // Luôn chiếm 100% chiều ngang
-
-            var row = document.createElement('div'); // Thẻ thành viên thực tế
-            row.className = 'member-picker-row';
-            row.dataset.userId = u.id;
-            
-            row.innerHTML = 
-                '<div class="form-check mb-0 flex-shrink-0" style="width: 20px;">' +
-                    '<input class="form-check-input member-cb" type="checkbox" id="member_cb_' + u.id + '">' +
-                '</div>' +
-                '<div class="member-info-primary min-w-0">' +
-                    '<div class="d-flex align-items-center gap-2">' +
-                        '<label class="form-check-label fw-bold text-slate-800 text-truncate mb-0" for="member_cb_' + u.id + '" title="' + escapeAttr(u.name) + '">' +
-                            escapeAttr(u.name) +
-                        '</label>' +
-                        '<span class="text-slate-400 small fw-normal flex-shrink-0">#' + escapeAttr(u.employee_code || '---') + '</span>' +
-                    '</div>' +
-                    (u.email ? '<div class="text-slate-500 small text-truncate" style="font-size: 0.75rem;" title="' + escapeAttr(u.email) + '">' + escapeAttr(u.email) + '</div>' : '') +
-                '</div>' +
-                '<div class="member-meta-field text-truncate d-none d-md-block" style="width: 200px;" title="' + escapeAttr(u.job_title || 'N/A') + '">' + 
-                    escapeAttr(u.job_title || 'Chưa cập nhật') + 
-                '</div>' +
-                '<select class="form-select form-select-sm member-role" style="width: 130px; flex-shrink: 0;" disabled>' +
-                    rolesHtml +
-                '</select>';
-            
-            colDiv.appendChild(row); // Gắn thẻ thành viên vào cột
-            container.appendChild(colDiv); // Gắn cột vào container chính (đã là row Bootstrap)
+    function projectRoleOrder() {
+        var known = {};
+        var roles = [];
+        (memberRoles && memberRoles.length ? memberRoles : defaultMemberRoles).forEach(function (role) {
+            var slug = normalizeProjectRole(role.slug);
+            if (!known[slug]) {
+                roles.push({ slug: slug, name: role.name || role.slug });
+                known[slug] = true;
+            }
         });
-        
-        bindMemberPickers();
+        defaultMemberRoles.forEach(function (role) {
+            if (!known[role.slug]) {
+                roles.push(role);
+            }
+        });
+        return roles;
+    }
+
+    function normalizeProjectRole(role) {
+        return ['manager', 'member', 'viewer'].indexOf(role) >= 0 ? role : 'member';
+    }
+
+    function getUserById(userId) {
+        var id = Number(userId);
+        for (var i = 0; i < allMemberUsers.length; i++) {
+            if (Number(allMemberUsers[i].id) === id) return allMemberUsers[i];
+        }
+        return null;
+    }
+
+    function roleOptionsHtml(selectedRole) {
+        var activeRole = normalizeProjectRole(selectedRole);
+        return projectRoleOrder().map(function (role) {
+            return '<option value="' + escapeAttr(role.slug) + '"' + (role.slug === activeRole ? ' selected' : '') + '>' +
+                escapeAttr(role.name) +
+            '</option>';
+        }).join('');
+    }
+
+    function memberMetaHtml(user) {
+        var parts = [
+            '<span>#' + escapeAttr(user.employee_code || '---') + '</span>',
+            '<span>' + escapeAttr(user.email || 'Chưa có email') + '</span>',
+            '<span>' + escapeAttr(user.job_title || 'Chưa cập nhật chức danh') + '</span>'
+        ];
+        return parts.join('');
+    }
+
+    function renderMemberSourceList() {
+        var container = document.getElementById('memberSourceList');
+        var countEl = document.getElementById('selectedMemberCount');
+        if (!container) return;
+
+        container.innerHTML = '';
+        if (countEl) countEl.textContent = String(collectMembersFromDom().length);
+        if (!allMemberUsers.length) {
+            container.innerHTML = '<div class="selected-empty">Không có nhân viên để chọn.</div>';
+            return;
+        }
+
+        var query = memberSearchQuery.trim().toLowerCase();
+        var filteredUsers = allMemberUsers.filter(function (user) {
+            if (!query) return true;
+            return [
+                user.name,
+                user.employee_code,
+                user.email,
+                user.job_title
+            ].join(' ').toLowerCase().indexOf(query) >= 0;
+        });
+
+        if (!filteredUsers.length) {
+            container.innerHTML = '<div class="selected-empty">Không tìm thấy nhân viên phù hợp.</div>';
+            return;
+        }
+
+        filteredUsers.forEach(function (user) {
+            var userId = Number(user.id);
+            var selected = selectedMembers[userId];
+            var currentRole = selected ? selected.role : (sourceRoleDrafts[userId] || 'member');
+            var row = document.createElement('div');
+            row.className = 'member-transfer-row' + (selected ? ' is-selected' : '');
+            row.setAttribute('data-user-id', String(userId));
+            row.innerHTML =
+                '<label class="member-transfer-check" title="' + (selected ? 'Bỏ chọn nhân viên' : 'Chọn nhân viên') + '">' +
+                    '<input class="form-check-input member-source-cb" type="checkbox" data-user-id="' + userId + '"' + (selected ? ' checked' : '') + '>' +
+                '</label>' +
+                '<div class="member-transfer-info">' +
+                    '<div class="member-transfer-name">' +
+                        '<span class="text-truncate" title="' + escapeAttr(user.name) + '">' + escapeAttr(user.name || 'Không tên') + '</span>' +
+                        (selected ? '<span class="badge bg-primary-subtle text-primary-emphasis flex-shrink-0">Đã chọn</span>' : '') +
+                    '</div>' +
+                    '<div class="member-transfer-meta">' + memberMetaHtml(user) + '</div>' +
+                '</div>' +
+                '<select class="form-select form-select-sm member-source-role" data-user-id="' + userId + '">' + roleOptionsHtml(currentRole) + '</select>';
+            container.appendChild(row);
+        });
+
+        bindMemberSourceEvents();
+        refreshIcons();
+    }
+
+    function renderMemberTransfer() {
+        renderMemberSourceList();
+    }
+
+    /** Bước 3: render danh sách nhân viên kèm checkbox và role dự án. */
+    function populateMemberPicker(users, roles) {
+        memberRoles = roles && roles.length ? roles : defaultMemberRoles;
+        allMemberUsers = (users || []).map(function (user) {
+            return {
+                id: Number(user.id || 0),
+                name: user.name || '',
+                employee_code: user.employee_code || '',
+                email: user.email || '',
+                job_title: user.job_title || ''
+            };
+        }).filter(function (user) {
+            return user.id > 0;
+        });
+        bindMemberSearch();
+        renderMemberTransfer();
     }
 
     /** Đọc từng dòng bảng bước 2 → mảng object gửi server (hidden JSON). */
@@ -854,7 +1138,7 @@ $serverOldBasicJson = json_encode(
     /** Bước wizard hiện tại (1–3), đồng bộ panel + stepper header. */
     var currentStep = 1;
 
-    /** Chuyển bước có clamp; cập nhật class is-active / is-done và lưu nháp. */
+    /** Chuyển bước có clamp; cập nhật class is-active / is-done. */
     function setStep(step) {
         currentStep = Math.min(3, Math.max(1, step));
         document.querySelectorAll('.wizard-panel').forEach(function (el) {
@@ -865,68 +1149,93 @@ $serverOldBasicJson = json_encode(
             el.classList.toggle('is-active', n === currentStep);
             el.classList.toggle('is-done', n < currentStep);
         });
-        persistWizard();
         refreshIcons();
     }
 
-    /** Gom toàn bộ trạng thái UI vào localStorage (bước, basic, task rows, members). */
-    function persistWizard() {
-        var members = collectMembersFromDom();
-        saveState({
-            step: currentStep,
-            basic: gatherBasicFromDom(),
-            taskStatuses: collectTaskStatusesFromTable(),
-            members: members
+    function hasSelectedManager() {
+        return collectMembersFromDom().some(function (member) {
+            return member.role === 'manager';
         });
     }
 
-    /** Chỉ user được tick + role đã chọn — không gồm trưởng dự án (backend tự thêm owner). */
+    function setMemberErrorVisible(visible) {
+        var err = document.getElementById('wizard_members_error');
+        if (err) {
+            err.classList.toggle('d-none', !visible);
+        }
+    }
+
+    /** Chỉ user đã được tick chọn trong danh sách nhân viên. */
     function collectMembersFromDom() {
-        var list = [];
-        document.querySelectorAll('.member-picker-row').forEach(function (row) {
-            var cb = row.querySelector('.member-cb');
-            var roleSel = row.querySelector('.member-role');
-            if (cb && cb.checked) {
-                list.push({
-                    user_id: Number(row.getAttribute('data-user-id')),
-                    role: roleSel ? roleSel.value : 'member'
-                });
-            }
+        return Object.keys(selectedMembers).map(function (key) {
+            var id = Number(key);
+            return {
+                user_id: id,
+                role: normalizeProjectRole(selectedMembers[id].role)
+            };
+        }).filter(function (member) {
+            return member.user_id > 0;
         });
-        return list;
     }
 
-    /** Khôi phục checkbox + role từ mảng { user_id, role } (server lỗi validate hoặc localStorage). */
+    /** Khôi phục checkbox + role từ mảng { user_id, role } khi server render lại form lỗi validate. */
     function applyMembersToDom(members) {
-        var map = {};
+        selectedMembers = {};
         (members || []).forEach(function (m) {
-            map[Number(m.user_id)] = m.role || 'member';
-        });
-        document.querySelectorAll('.member-picker-row').forEach(function (row) {
-            var id = Number(row.getAttribute('data-user-id'));
-            var cb = row.querySelector('.member-cb');
-            var roleSel = row.querySelector('.member-role');
-            if (map[id] !== undefined) {
-                cb.checked = true;
-                roleSel.disabled = false;
-                roleSel.value = map[id];
-            } else {
-                cb.checked = false;
-                roleSel.disabled = true;
+            var id = Number(m.user_id);
+            if (id > 0 && getUserById(id)) {
+                selectedMembers[id] = {
+                    user_id: id,
+                    role: normalizeProjectRole(m.role || 'member')
+                };
+                sourceRoleDrafts[id] = selectedMembers[id].role;
             }
+        });
+        renderMemberTransfer();
+    }
+
+    function bindMemberSourceEvents() {
+        document.querySelectorAll('.member-source-role').forEach(function (select) {
+            select.addEventListener('change', function () {
+                var id = Number(select.getAttribute('data-user-id'));
+                var role = normalizeProjectRole(select.value);
+                sourceRoleDrafts[id] = role;
+                if (selectedMembers[id]) {
+                    selectedMembers[id].role = role;
+                    setMemberErrorVisible(!hasSelectedManager());
+                    renderMemberSourceList();
+                }
+            });
+        });
+
+        document.querySelectorAll('.member-source-cb').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                var id = Number(cb.getAttribute('data-user-id'));
+                if (!id) return;
+                if (cb.checked) {
+                    selectedMembers[id] = {
+                        user_id: id,
+                        role: normalizeProjectRole(sourceRoleDrafts[id] || 'member')
+                    };
+                } else {
+                    delete selectedMembers[id];
+                }
+                setMemberErrorVisible(!hasSelectedManager());
+                renderMemberTransfer();
+            });
         });
     }
 
-    /** Gắn sự kiện: tick mới bật chọn role; mọi thay đổi đều persist. */
-    function bindMemberPickers() {
-        document.querySelectorAll('.member-picker-row').forEach(function (row) {
-            var cb = row.querySelector('.member-cb');
-            var roleSel = row.querySelector('.member-role');
-            cb.addEventListener('change', function () {
-                roleSel.disabled = !cb.checked;
-                persistWizard();
-            });
-            roleSel.addEventListener('change', persistWizard);
+    function bindMemberSearch() {
+        var input = document.getElementById('memberSearchInput');
+        if (!input) return;
+        input.addEventListener('input', function () {
+            memberSearchQuery = input.value || '';
+            renderMemberSourceList();
+            var nextInput = document.getElementById('memberSearchInput');
+            if (nextInput) {
+                nextInput.value = memberSearchQuery;
+            }
         });
     }
 
@@ -936,7 +1245,7 @@ $serverOldBasicJson = json_encode(
         if (currentStep === 1) {
             var fields = [
                 { id: 'fld_name', label: 'Tên dự án' },
-                { id: 'fld_owner_id', label: 'Trưởng dự án' },
+                { id: 'fld_owner_id', label: 'Project Sponsor' },
                 { id: 'fld_status_id', label: 'Trạng thái dự án' }
             ];
             fields.forEach(function(f) {
@@ -963,6 +1272,10 @@ $serverOldBasicJson = json_encode(
                     isValid = false;
                 }
             });
+        } else if (currentStep === 3) {
+            var hasManager = hasSelectedManager();
+            setMemberErrorVisible(!hasManager);
+            isValid = hasManager;
         }
         return isValid;
     }
@@ -976,27 +1289,6 @@ $serverOldBasicJson = json_encode(
         });
     });
 
-    document.querySelectorAll('[data-wizard-skip]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            if (currentStep === 2) {
-                // Bỏ qua bước 2: xóa sạch taskRows để backend dùng mẫu hệ thống
-                if (confirm('Bạn có chắc chắn muốn bỏ qua tùy chỉnh và sử dụng mẫu trạng thái mặc định của hệ thống?')) {
-                    taskRows = [];
-                    document.getElementById('taskStatusList').innerHTML = '';
-                    persistWizard();
-                    setStep(3);
-                }
-            } else if (currentStep === 3) {
-                // Bỏ qua bước 3: bỏ chọn toàn bộ thành viên và submit
-                document.querySelectorAll('.member-cb').forEach(function(cb) {
-                    cb.checked = false;
-                });
-                persistWizard();
-                document.getElementById('projectWizardForm').requestSubmit();
-            }
-        });
-    });
-
     document.querySelectorAll('[data-wizard-prev]').forEach(function (btn) {
         btn.addEventListener('click', function () {
             setStep(currentStep - 1);
@@ -1006,47 +1298,34 @@ $serverOldBasicJson = json_encode(
     // --- Bước 2: nút tải mẫu / thêm dòng ---
     document.getElementById('btnLoadGlobalStatuses').addEventListener('click', function () {
         seedFromGlobal();
-        persistWizard();
     });
     document.getElementById('btnAddTaskStatusRow').addEventListener('click', function () {
         addEmptyRow();
-        persistWizard();
     });
 
-    // Mỗi thay đổi form bước 1 → cập nhật nháp localStorage.
-    ['fld_name', 'fld_description', 'fld_owner_id', 'fld_status_id', 'fld_start_date', 'fld_due_date'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el) el.addEventListener('change', persistWizard);
-        if (el) el.addEventListener('input', persistWizard);
-    });
-
-    /** Submit: đổ dữ liệu bước 2–3 vào hidden input để PHP đọc; xóa nháp vì coi như đã gửi. */
+    /** Submit: đổ dữ liệu bước 2–3 vào hidden input để PHP đọc. */
     document.getElementById('projectWizardForm').addEventListener('submit', function (e) {
+        if (currentStep !== 3) {
+            e.preventDefault();
+            if (validateCurrentStep()) {
+                setStep(currentStep + 1);
+            }
+            return;
+        }
+        if (!validateCurrentStep()) {
+            e.preventDefault();
+            return;
+        }
+        if (!hasSelectedManager()) {
+            e.preventDefault();
+            setStep(3);
+            setMemberErrorVisible(true);
+            return;
+        }
         var ts = collectTaskStatusesFromTable();
         document.getElementById('wizard_task_statuses').value = JSON.stringify(ts);
         document.getElementById('wizard_members').value = JSON.stringify(collectMembersFromDom());
-        try {
-            localStorage.removeItem(STORAGE_KEY);
-        } catch (e) {}
     });
-
-    /**
-     * Trưởng dự án không được tick thêm ở bước 3 (tránh trùng vai trò).
-     * Đổi owner → bỏ tick user đó nếu trước đó được chọn làm member.
-     */
-    function syncOwnerMemberLock() {
-        var ownerId = document.getElementById('fld_owner_id').value;
-        document.querySelectorAll('.member-picker-row').forEach(function (row) {
-            var uid = String(row.getAttribute('data-user-id'));
-            var isOwner = ownerId && uid === String(ownerId);
-            row.style.opacity = isOwner ? '0.55' : '';
-            row.querySelector('.member-cb').disabled = !!isOwner;
-            row.querySelector('.member-role').disabled = !!isOwner || !row.querySelector('.member-cb').checked;
-            if (isOwner) {
-                row.querySelector('.member-cb').checked = false;
-            }
-        });
-    }
 
     /**
      * Sau khi DOM sẵn sàng: gọi API wizard (kèm cookie phiên — cần AuthMiddleware).
@@ -1064,14 +1343,13 @@ $serverOldBasicJson = json_encode(
     });
 
     /**
-     * Ghép dữ liệu API + hidden (POST lỗi) + localStorage theo thứ ưu tiên hợp lý:
-     * 1) Task rows: hidden wizard_task_statuses nếu có → else draft → else seed từ globalTemplate.
-     * 2) Members: hidden wizard_members nếu có → else draft.
-     * 3) Basic: draft rồi ghi đè owner/status bằng SERVER_OLD_BASIC nếu server trả lỗi validate.
+     * Ghép dữ liệu API + hidden (POST lỗi):
+     * 1) Task rows: hidden wizard_task_statuses nếu có → else seed từ globalTemplate.
+     * 2) Members: hidden wizard_members nếu có.
+     * 3) Owner/status lấy lại từ SERVER_OLD_BASIC nếu server trả lỗi validate.
      */
     function initWizardData(data) {
-        var saved = loadState();
-        // Hidden input do PHP render khi POST lỗi validate — ưu tiên khôi phục trước draft.
+        // Hidden input do PHP render khi POST lỗi validate.
         var srvStatuses = document.getElementById('wizard_task_statuses').value;
         var srvMembers = document.getElementById('wizard_members').value;
 
@@ -1100,27 +1378,9 @@ $serverOldBasicJson = json_encode(
         // Dữ liệu danh mục từ API (đồng bộ key với ProjectApiController::getWizardData).
         globalTemplate = data.globalTaskStatuses || [];
         memberRoles = data.memberRoles || [];
-        populateSelect('fld_owner_id', data.ownerOptions, 'Chọn người phụ trách chính');
+        populateSelect('fld_owner_id', data.ownerOptions, 'Chọn người bảo trợ dự án');
         populateSelect('fld_status_id', data.statusOptions, 'Chọn trạng thái');
         populateMemberPicker(data.memberUserOptions, memberRoles);
-
-        // Nếu chưa có từ hidden và bảng vẫn trống → thử draft localStorage.
-        if (!taskRows.length && saved && saved.taskStatuses && saved.taskStatuses.length) {
-            var st = saved.taskStatuses.slice();
-            if (st.every(function (r) { return typeof r.position === 'number' && !isNaN(r.position); })) {
-                st.sort(function (a, b) { return a.position - b.position; });
-            }
-            taskRows = st.map(function (r) {
-                return {
-                    name: r.name || '',
-                    slug: r.slug || slugify(r.name || ''),
-                    color: r.color || '#64748b',
-                    isSlugTouched: !!r.isSlugTouched,
-                    is_default: !!r.is_default,
-                    is_done: !!r.is_done
-                };
-            });
-        }
 
         if (!taskRows.length) {
             seedFromGlobal();
@@ -1129,22 +1389,15 @@ $serverOldBasicJson = json_encode(
             renderTaskRows();
         }
 
-        // Thành viên: ưu tiên hidden (lỗi validate), không thì draft.
+        // Thành viên: ưu tiên hidden (lỗi validate).
         if (srvMembers) {
             try {
                 var pm = JSON.parse(srvMembers);
                 if (Array.isArray(pm)) applyMembersToDom(pm);
             } catch (e) {}
-        } else if (saved && saved.members) {
-            applyMembersToDom(saved.members);
         }
 
-        // Form bước 1: khôi phục từ draft (sau đó có thể bị ghi đè bởi giá trị server).
-        if (saved && saved.basic) {
-            applyBasicToDom(saved.basic);
-        }
-
-        // POST lỗi: ép lại owner/status đúng với dữ liệu PHP (ưu tiên hơn draft).
+        // POST lỗi: ép lại owner/status đúng với dữ liệu PHP.
         if (SERVER_OLD_BASIC && SERVER_OLD_BASIC.owner_id) {
             document.getElementById('fld_owner_id').value = SERVER_OLD_BASIC.owner_id;
         }
@@ -1152,17 +1405,7 @@ $serverOldBasicJson = json_encode(
             document.getElementById('fld_status_id').value = SERVER_OLD_BASIC.status_id;
         }
 
-        // Đổi trưởng dự án → khóa dòng member tương ứng ở bước 3; mỗi lần đổi cũng persist.
-        var ownSel = document.getElementById('fld_owner_id');
-        syncOwnerMemberLock();
-        ownSel.addEventListener('change', function () {
-            syncOwnerMemberLock();
-            persistWizard();
-        });
-
-        // Bước hiện tại: từ draft nếu có (setStep sẽ cập nhật UI + lưu lại).
-        var initialStep = (saved && saved.step) ? saved.step : 1;
-        setStep(initialStep);
+        setStep(SERVER_INITIAL_STEP || 1);
         refreshIcons();
 
         // Khởi tạo SortableJS cho danh sách trạng thái
@@ -1177,7 +1420,6 @@ $serverOldBasicJson = json_encode(
                 onEnd: function() {
                     taskRows = collectTaskStatusesFromTable();
                     renderTaskRows();
-                    persistWizard();
                 }
             });
         }

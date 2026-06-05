@@ -107,6 +107,26 @@ class TaskModel extends Model
      * @param array<string, mixed> $filters Bo loc danh sach cong viec.
      * @return array{0:array<int, string>, 1:array<string, mixed>} WHERE clauses va params bind.
      */
+    /**
+     * Lay ID nguoi thuc hien active moi nhat cua task.
+     *
+     * @param int $taskId ID cong viec can lay nguoi thuc hien.
+     * @return int|null ID nguoi thuc hien hoac null neu task chua duoc giao.
+     */
+    public function getActiveAssigneeId(int $taskId): ?int
+    {
+        $sql = "SELECT user_id
+                FROM task_assignments
+                WHERE task_id = :task_id
+                  AND deleted_at IS NULL
+                ORDER BY assigned_at DESC, user_id DESC
+                LIMIT 1";
+
+        $assigneeId = $this->db->query($sql, ['task_id' => $taskId])->fetchColumn();
+
+        return $assigneeId !== false ? (int) $assigneeId : null;
+    }
+
     private function buildFilterWhere(array $filters): array
     {
         $where = ["t.deleted_at IS NULL"];
@@ -260,6 +280,247 @@ class TaskModel extends Model
 
         $params[':offset'] = $offset;
         $params[':perPage'] = $perPage;
+
+        return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Cập nhật task và ghi lịch sử nếu trạng thái thay đổi.
+     *
+     * @param int $taskId ID công việc cần cập nhật.
+     * @param array<string, mixed> $data Dữ liệu cập nhật.
+     * @param int $changedBy ID người thực hiện thay đổi.
+     * @return bool True nếu cập nhật thành công.
+     */
+    public function updateWithStatusHistory(int $taskId, array $data, int $changedBy): bool
+    {
+        $hasStatusChange = array_key_exists('status_id', $data);
+        $oldStatusId = null;
+
+        if ($hasStatusChange) {
+            $oldStatusId = $this->db->query(
+                "SELECT status_id FROM {$this->table} WHERE id = :id AND deleted_at IS NULL FOR UPDATE",
+                ['id' => $taskId]
+            )->fetchColumn();
+            $oldStatusId = $oldStatusId !== false ? (int) $oldStatusId : null;
+        }
+
+        $result = $this->update($taskId, $data);
+
+        if ($hasStatusChange && $oldStatusId !== null) {
+            $newStatusId = (int) $data['status_id'];
+            if ($newStatusId > 0 && $newStatusId !== $oldStatusId) {
+                $this->recordStatusHistory($taskId, $oldStatusId, $newStatusId, $changedBy);
+            }
+        }
+
+        return (bool) $result;
+    }
+
+    /**
+     * Ghi một dòng lịch sử trạng thái cho task.
+     *
+     * @param int $taskId ID công việc.
+     * @param int|null $fromStatusId Trạng thái cũ, null nếu là trạng thái khởi tạo.
+     * @param int $toStatusId Trạng thái mới.
+     * @param int $changedBy ID người thao tác, null trên DB nếu không xác định.
+     * @return bool True nếu ghi thành công.
+     */
+    public function recordStatusHistory(int $taskId, ?int $fromStatusId, int $toStatusId, int $changedBy): bool
+    {
+        if ($taskId <= 0 || $toStatusId <= 0 || ($fromStatusId !== null && $fromStatusId === $toStatusId)) {
+            return false;
+        }
+
+        $sql = "INSERT INTO task_status_histories
+                    (task_id, from_status_id, to_status_id, changed_by, changed_at)
+                VALUES
+                    (:task_id, :from_status_id, :to_status_id, :changed_by, NOW())";
+
+        return (bool) $this->db->query($sql, [
+            'task_id' => $taskId,
+            'from_status_id' => $fromStatusId,
+            'to_status_id' => $toStatusId,
+            'changed_by' => $changedBy > 0 ? $changedBy : null,
+        ]);
+    }
+
+    /**
+     * Lấy dữ liệu biểu đồ nhịp công việc theo ngày.
+     *
+     * =============================================================
+     * NHOM DASHBOARD
+     * =============================================================
+     *
+     * Dataset "created" đếm task được tạo mới theo created_at.
+     * Dataset "completed" đếm các lần task chuyển từ trạng thái chưa hoàn thành
+     * sang trạng thái có task_statuses.is_done = 1.
+     *
+     * @param array<string, mixed> $filters Bộ lọc quyền xem task.
+     * @param \DateTimeInterface $startAt Mốc bắt đầu.
+     * @param \DateTimeInterface $endAt Mốc kết thúc.
+     * @return array{created:array<string, int>, completed:array<string, int>}
+     */
+    public function getTaskTrendByDate(array $filters, \DateTimeInterface $startAt, \DateTimeInterface $endAt): array
+    {
+        [$where, $params] = $this->buildFilterWhere($filters);
+        $whereSql = implode(' AND ', $where);
+
+        $createdParams = $params;
+        $createdParams[':trend_start'] = $startAt->format('Y-m-d H:i:s');
+        $createdParams[':trend_end'] = $endAt->format('Y-m-d H:i:s');
+
+        $createdSql = "SELECT DATE(t.created_at) AS trend_day, COUNT(*) AS total
+                FROM {$this->table} t
+                LEFT JOIN projects p ON t.project_id = p.id
+                WHERE {$whereSql}
+                  AND t.created_at BETWEEN :trend_start AND :trend_end
+                GROUP BY DATE(t.created_at)";
+
+        $completedParams = $params;
+        $completedParams[':trend_start'] = $startAt->format('Y-m-d H:i:s');
+        $completedParams[':trend_end'] = $endAt->format('Y-m-d H:i:s');
+
+        $completedSql = "SELECT DATE(h.changed_at) AS trend_day, COUNT(DISTINCT h.task_id) AS total
+                FROM task_status_histories h
+                INNER JOIN {$this->table} t ON t.id = h.task_id
+                LEFT JOIN projects p ON t.project_id = p.id
+                INNER JOIN task_statuses to_status ON to_status.id = h.to_status_id
+                LEFT JOIN task_statuses from_status ON from_status.id = h.from_status_id
+                WHERE {$whereSql}
+                  AND h.from_status_id IS NOT NULL
+                  AND to_status.is_done = 1
+                  AND COALESCE(from_status.is_done, 0) = 0
+                  AND h.changed_at BETWEEN :trend_start AND :trend_end
+                GROUP BY DATE(h.changed_at)";
+
+        return [
+            'created' => $this->fetchTrendMap($createdSql, $createdParams),
+            'completed' => $this->fetchTrendMap($completedSql, $completedParams),
+        ];
+    }
+
+    /**
+     * Chuyển kết quả trend SQL thành map YYYY-mm-dd => total.
+     *
+     * @param string $sql Câu truy vấn trend.
+     * @param array<string, mixed> $params Tham số bind.
+     * @return array<string, int>
+     */
+    private function fetchTrendMap(string $sql, array $params): array
+    {
+        $rows = $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
+        $map = [];
+
+        foreach ($rows as $row) {
+            $day = (string) ($row['trend_day'] ?? '');
+            if ($day !== '') {
+                $map[$day] = (int) ($row['total'] ?? 0);
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * Lấy số liệu tổng hợp cho các thẻ thống kê trên Dashboard.
+     *
+     * =============================================================
+     * NHOM DASHBOARD
+     * =============================================================
+     *
+     * Hàm này chỉ phục vụ Dashboard: đếm task mở, task quá hạn, task hoàn thành,
+     * task đến hạn hôm nay và task mới trong 7 ngày gần nhất theo đúng phạm vi
+     * quyền xem task của user hiện tại.
+     *
+     * @param array<string, mixed> $filters Bộ lọc quyền xem task.
+     * @param \DateTimeInterface $today Ngày hiện tại theo timezone Dashboard.
+     * @return array<string, int> Số liệu tổng hợp cho các thẻ thống kê.
+     */
+    public function getDashboardTaskSummary(array $filters, \DateTimeInterface $today): array
+    {
+        [$where, $params] = $this->buildFilterWhere($filters);
+        $whereSql = implode(' AND ', $where);
+
+        $params[':today'] = $today->format('Y-m-d');
+        $params[':recent_start'] = $today->modify('-6 days')->format('Y-m-d 00:00:00');
+        $params[':recent_end'] = $today->format('Y-m-d 23:59:59');
+
+        $sql = 'SELECT
+                    COUNT(*) AS total_tasks,
+                    SUM(CASE WHEN COALESCE(ts.is_done, 0) = 0 THEN 1 ELSE 0 END) AS open_tasks,
+                    SUM(CASE WHEN COALESCE(ts.is_done, 0) = 1 THEN 1 ELSE 0 END) AS completed_tasks,
+                    SUM(CASE
+                        WHEN t.due_date IS NOT NULL
+                         AND t.due_date < :today
+                         AND COALESCE(ts.is_done, 0) = 0
+                        THEN 1 ELSE 0
+                    END) AS overdue_tasks,
+                    SUM(CASE
+                        WHEN t.due_date = :today
+                         AND COALESCE(ts.is_done, 0) = 0
+                        THEN 1 ELSE 0
+                    END) AS due_today_tasks,
+                    SUM(CASE
+                        WHEN t.created_at BETWEEN :recent_start AND :recent_end
+                        THEN 1 ELSE 0
+                    END) AS created_recent_tasks
+                ' . $this->fromListJoins() . "
+                WHERE {$whereSql}";
+
+        $row = $this->db->query($sql, $params)->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        return [
+            'total_tasks' => (int) ($row['total_tasks'] ?? 0),
+            'open_tasks' => (int) ($row['open_tasks'] ?? 0),
+            'completed_tasks' => (int) ($row['completed_tasks'] ?? 0),
+            'overdue_tasks' => (int) ($row['overdue_tasks'] ?? 0),
+            'due_today_tasks' => (int) ($row['due_today_tasks'] ?? 0),
+            'created_recent_tasks' => (int) ($row['created_recent_tasks'] ?? 0),
+        ];
+    }
+
+    /**
+     * Lấy danh sách công việc ưu tiên hiển thị trên Dashboard.
+     *
+     * Hàm này chỉ phục vụ Dashboard: ưu tiên task chưa hoàn thành, quá hạn/đến hạn
+     * gần, priority cao và vẫn tôn trọng phạm vi quyền xem task của user hiện tại.
+     *
+     * @param array<string, mixed> $filters Bộ lọc quyền xem task.
+     * @param \DateTimeInterface $today Ngày hiện tại theo timezone Dashboard.
+     * @param int $limit Số công việc tối đa cần lấy.
+     * @return array<int, array<string, mixed>> Danh sách công việc ưu tiên.
+     */
+    public function getDashboardPriorityTasks(array $filters, \DateTimeInterface $today, int $limit = 4): array
+    {
+        [$where, $params] = $this->buildFilterWhere($filters);
+        $where[] = 'COALESCE(ts.is_done, 0) = 0';
+        $whereSql = implode(' AND ', $where);
+
+        $params[':today'] = $today->format('Y-m-d');
+        $params[':limit'] = max(1, $limit);
+
+        $sql = 'SELECT ' . $this->selectListColumns() . ',
+                       CASE t.priority
+                           WHEN \'urgent\' THEN 1
+                           WHEN \'high\' THEN 2
+                           WHEN \'medium\' THEN 3
+                           ELSE 4
+                       END AS priority_rank
+                ' . $this->fromListJoins() . "
+                WHERE {$whereSql}
+                ORDER BY
+                    CASE
+                        WHEN t.due_date IS NOT NULL AND t.due_date < :today THEN 0
+                        WHEN t.due_date = :today THEN 1
+                        WHEN t.due_date IS NOT NULL THEN 2
+                        ELSE 3
+                    END ASC,
+                    priority_rank ASC,
+                    CASE WHEN t.due_date IS NULL THEN 1 ELSE 0 END ASC,
+                    t.due_date ASC,
+                    t.updated_at DESC
+                LIMIT :limit";
 
         return $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
     }

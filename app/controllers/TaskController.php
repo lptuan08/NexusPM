@@ -23,6 +23,8 @@ class TaskController extends Controller
     private ProjectModel $projectModel;
     private UserModel $userModel;
     private TaskStatusModel $statusModel;
+    // Lưu project đang chọn trong dropdown của module Task.
+    private const SELECTED_PROJECT_SESSION_KEY = 'selected_project_id';
 
     private const PROJECT_TASK_ABILITIES = [
         'manager' => ['view', 'create', 'update', 'delete', 'assign'],
@@ -74,8 +76,7 @@ class TaskController extends Controller
     /**
      * Lấy vai trò của user hiện tại trong một dự án.
      *
-     * Owner của dự án được ProjectModel quy về vai trò manager; thành viên thường
-     * lấy theo bảng project_members. Trả về null nếu user không thuộc dự án.
+     * Vai trò được lấy theo bảng project_members. Trả về null nếu user không thuộc dự án.
      *
      * @param int $projectId ID dự án cần kiểm tra.
      * @return string|null Vai trò manager/member/viewer hoặc null nếu không tham gia.
@@ -385,6 +386,39 @@ class TaskController extends Controller
      * =============================================================
      */
 
+    private function rememberSelectedProject(int $projectId): void
+    {
+        if ($projectId > 0) {
+            Session::set(self::SELECTED_PROJECT_SESSION_KEY, $projectId);
+        }
+    }
+
+    private function getSelectedProjectId(): ?int
+    {
+        $projectId = (int) Session::get(self::SELECTED_PROJECT_SESSION_KEY, 0);
+
+        if ($projectId <= 0) {
+            return null;
+        }
+
+        if (!$this->projectModel->find($projectId)) {
+            $this->forgetSelectedProject();
+            return null;
+        }
+
+        if (!$this->canViewProjectTasks($projectId)) {
+            $this->forgetSelectedProject();
+            return null;
+        }
+
+        return $projectId;
+    }
+
+    private function forgetSelectedProject(): void
+    {
+        Session::remove(self::SELECTED_PROJECT_SESSION_KEY);
+    }
+
 
 
     /**
@@ -396,6 +430,28 @@ class TaskController extends Controller
     public function index()
     {
         $query = $this->request->getQuery();
+
+        if (array_key_exists('project_id', $query)) {
+            if ($query['project_id'] === '' || $query['project_id'] === null) {
+                $this->forgetSelectedProject();
+                unset($query['project_id']);
+            } else {
+                if (!$this->validateProjectId($query['project_id'])) {
+                    throw new \Exception("ID dự án không hợp lệ.", 400);
+                }
+
+                $projectId = (int) $query['project_id'];
+                $this->requireCanViewProjectTasks($projectId);
+                $this->rememberSelectedProject($projectId);
+                $query['project_id'] = $projectId;
+            }
+        } else {
+            $selectedProjectId = $this->getSelectedProjectId();
+            if ($selectedProjectId !== null) {
+                $query['project_id'] = $selectedProjectId;
+            }
+        }
+
         $page = $this->positiveInt($query['page'] ?? 1, 1);
         $perPage = ListTableHelper::perPage();
 
@@ -464,16 +520,11 @@ class TaskController extends Controller
         if (!$task) {
             Helper::setFlash('danger', 'Công việc không tồn tại.');
             Response::redirect(URLROOT . '/tasks');
+            return;
         }
 
-        $this->requireCanViewTask($task);
-
-        View::render('tasks/detail', [
-            'task' => $task,
-            'canUpdateTask' => $this->canUpdateTask($task),
-            'canDeleteTask' => $this->canDeleteTask($task),
-            'pageTitle' => 'Chi tiết công việc'
-        ]);
+        Response::redirect(URLROOT . '/tasks/' . (int) $task['id'] . '/edit');
+        return;
     }
 
     /**
@@ -497,6 +548,7 @@ class TaskController extends Controller
         }
 
         $this->requireCanUpdateTask($task);
+        $task['assigned_to'] = $this->taskModel->getActiveAssigneeId((int) $id);
         $projectOptions = array_values(array_filter([$this->projectModel->find((int) $task['project_id'])]));
 
         View::render('tasks/create', [
@@ -508,6 +560,7 @@ class TaskController extends Controller
             'pageTitle' => 'Chỉnh sửa công việc',
             'action_url' => URLROOT . '/tasks/' . $id . '/edit',
             'old' => $task,
+            'canDeleteTask' => $this->canDeleteTask($task),
         ]);
     }
 
@@ -580,6 +633,7 @@ class TaskController extends Controller
                 'old' => array_merge($body, ['project_id' => $originalProjectId]),
                 'pageTitle' => 'Chỉnh sửa công việc',
                 'action_url' => URLROOT . '/tasks/' . $id . '/edit',
+                'canDeleteTask' => $this->canDeleteTask($task),
             ]);
         }
 
@@ -592,8 +646,8 @@ class TaskController extends Controller
         try {
             $this->taskModel->beginTransaction();
 
-            // Cập nhật thông tin cơ bản của task
-            $this->taskModel->update($id, $data);
+            // Cập nhật thông tin cơ bản của task và ghi lịch sử nếu đổi trạng thái.
+            $this->taskModel->updateWithStatusHistory((int) $id, $data, $this->currentUserId());
 
             // Cập nhật người phụ trách (Xóa cũ, thêm mới nếu có)
             $this->taskModel->removeAssignments($id);
@@ -604,7 +658,7 @@ class TaskController extends Controller
 
             $this->taskModel->commit();
             Helper::setFlash('success', 'Cập nhật công việc thành công!');
-            Response::redirect(URLROOT . '/tasks/' . $id);
+            Response::redirect(URLROOT . "/tasks/{$id}/edit");
         } catch (\Throwable $e) {
             $this->taskModel->rollBack();
             Helper::setFlash('danger', 'Lỗi: ' . $e->getMessage());
@@ -660,6 +714,8 @@ class TaskController extends Controller
             Helper::setFlash('danger', 'Dự án không tồn tại.');
             Response::redirect(URLROOT . '/tasks');
         }
+        $this->requireCanViewProjectTasks((int) $id);
+        $this->rememberSelectedProject((int) $id);
         $statusTask = $this->statusModel->getList($id);
 
         // Lấy dữ liệu từ Model dựa trên bộ lọc và phân trang
@@ -713,8 +769,16 @@ class TaskController extends Controller
 
         $projectId = (int) $id;
         $this->requireCanViewProjectTasks($projectId);
+        $this->rememberSelectedProject($projectId);
         $statuses = $this->statusModel->getList($id);
-        $tasks = $this->taskModel->getTaskByIdProject($id);
+        $query = $this->request->getQuery();
+        $filters = [
+            'search'      => $query['search'] ?? null,
+            'project_id'  => $projectId,
+            'assigned_to' => $query['assigned_to'] ?? null,
+        ];
+        $filters = array_merge($filters, $this->taskVisibilityFilters());
+        $tasks = $this->taskModel->getAllTasks($filters);
         foreach ($tasks as &$task) {
             $task['can_update'] = $this->canUpdateTask($task);
             $task['can_delete'] = $this->canDeleteTask($task);
@@ -735,7 +799,9 @@ class TaskController extends Controller
         View::render('tasks/kanban', [
             'project'      => $project,
             'projects'     => $this->projectOptionsForTaskList(),
+            'users'        => $this->userModel->getAllUsers(),
             'statuses'     => $statuses,
+            'filters'      => $filters,
             'groupedTasks' => $groupedTasks,
             'canCreateTask' => $this->canCreateTaskInProject($projectId),
             'canUpdateProjectTasks' => $canUpdateProjectTasks,
@@ -766,7 +832,15 @@ class TaskController extends Controller
                 return Response::error('Trạng thái không thuộc dự án của công việc.', [], 422);
             }
 
-            $this->taskModel->update((int) $taskId, ['status_id' => (int) $statusId]);
+            try {
+                $this->taskModel->beginTransaction();
+                $this->taskModel->updateWithStatusHistory((int) $taskId, ['status_id' => (int) $statusId], $this->currentUserId());
+                $this->taskModel->commit();
+            } catch (\Throwable $e) {
+                $this->taskModel->rollBack();
+                return Response::error('Không thể cập nhật trạng thái công việc.', [], 500);
+            }
+
             return Response::success([], 'Cập nhật trạng thái thành công');
         }
 
@@ -901,6 +975,7 @@ class TaskController extends Controller
             if ($taskId < 1) {
                 throw new \RuntimeException('Không lấy được ID công việc sau khi lưu.');
             }
+            $this->taskModel->recordStatusHistory($taskId, null, (int) $data['status_id'], $this->currentUserId());
             if ($assigneeId) {
                 $this->taskModel->assignUserToTask($taskId, $assigneeId, $this->currentUserId());
             }
@@ -1024,5 +1099,16 @@ class TaskController extends Controller
         }
 
         return URLROOT . '/tasks';
+    }
+
+    public function selectedKanban()
+    {
+        $selectedProjectId = $this->getSelectedProjectId();
+
+        if ($selectedProjectId !== null) {
+            Response::redirect(URLROOT . "/tasks/{$selectedProjectId}/kanban");
+        }
+
+        Response::redirect(URLROOT . '/tasks');
     }
 }

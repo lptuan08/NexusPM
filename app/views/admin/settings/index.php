@@ -26,9 +26,9 @@ $canViewSettingsHub = \App\helpers\AuthHelper::can('settings.view.all');
     }
 
     .setting-card-link:hover .ui-card {
-        box-shadow: var(--google-shadow-card);
-        border-color: var(--primary-200);
-        background-color: #fff;
+        box-shadow: none;
+        border-color: transparent;
+        background-color: var(--md-content-surface-strong);
     }
 
     .setting-card-link:hover h6 {
@@ -48,8 +48,8 @@ $canViewSettingsHub = \App\helpers\AuthHelper::can('settings.view.all');
         justify-content: center;
         margin-bottom: 1.5rem;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        border: 1px solid rgba(0,0,0,0.03);
+        box-shadow: none;
+        border: 0;
     }
 
     .setting-card-link:hover .setting-icon-wrapper {

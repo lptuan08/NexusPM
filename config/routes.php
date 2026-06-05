@@ -120,6 +120,28 @@ return [
                 ]]
             ]
         ],
+        '/projects/{id}/members/create' => [
+            'controller' => 'ProjectController',
+            'action'     => 'createMember',
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'projects.update.joined',
+                    'projects.update.all'
+                ]]
+            ]
+        ],
+        '/projects/{id}/members/{userId}/edit' => [
+            'controller' => 'ProjectController',
+            'action'     => 'editMember',
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'projects.update.joined',
+                    'projects.update.all'
+                ]]
+            ]
+        ],
 
         // --- API Routes ---
         // '/api/projects' => [
@@ -162,6 +184,18 @@ return [
                 ]]
             ]
         ],
+        '/tasks/kanban' => [
+            'controller' => 'TaskController',
+            'action'     => 'selectedKanban',
+            'middleware' => [
+                'AuthMiddleware',
+                ['PermissionMiddleware', [
+                    'tasks.project',
+                    'tasks.view.own',
+                    'tasks.view.all'
+                ]]
+            ]
+        ],
         '/tasks/create' => [
             'controller' => 'TaskController',
             'action'     => 'create',
@@ -192,8 +226,8 @@ return [
                 'AuthMiddleware',
                 ['PermissionMiddleware', [
                     'tasks.project',
-                    'tasks.view.own',
-                    'tasks.view.all'
+                    'tasks.update.own',
+                    'tasks.update.all'
                 ]]
             ]
         ],
@@ -357,6 +391,30 @@ return [
         '/projects/{id}/edit' => [
             'controller' => 'ProjectController',
             'action'     => 'update',
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', [
+                    'projects.update.joined',
+                    'projects.update.all'
+                ]]
+            ]
+        ],
+        '/projects/{id}/members/create' => [
+            'controller' => 'ProjectController',
+            'action'     => 'storeMember',
+            'middleware' => [
+                'AuthMiddleware',
+                'VerifyCsrfToken',
+                ['PermissionMiddleware', [
+                    'projects.update.joined',
+                    'projects.update.all'
+                ]]
+            ]
+        ],
+        '/projects/{id}/members/{userId}/edit' => [
+            'controller' => 'ProjectController',
+            'action'     => 'updateMember',
             'middleware' => [
                 'AuthMiddleware',
                 'VerifyCsrfToken',

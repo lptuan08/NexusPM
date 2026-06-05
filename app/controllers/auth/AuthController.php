@@ -1,10 +1,13 @@
 <?php
+
 namespace App\controllers\auth;
+
 use App\core\Controller;
 use App\core\View;
 use App\core\Session;
 use App\core\Response;
 use App\helpers\SecurityHelper;
+
 /**
  * Controller Auth - Xử lý đăng nhập và xác thực
  */
@@ -107,7 +110,7 @@ class AuthController extends Controller
      */
     public function initSession($user)
     {
-        
+
         // 1. Xóa sạch dữ liệu session cũ (guest data) nếu có
         // Session::destroy();
 
@@ -130,11 +133,15 @@ class AuthController extends Controller
             'permissions' => $permissions
         ]);
         Session::set('is_logged_in', true);
+        // lưu thời điểm đăng nhập
+        $now = time();
+        Session::set('login_at', $now);
+        Session::set('last_activity', $now);
 
         // 4. Khởi tạo CSRF Token mới tinh cho phiên đăng nhập này
         // Sử dụng SecurityHelper mà chúng ta đã build ở trên
         SecurityHelper::generateToken();
-    
+
         // 5. Điều hướng về trang đầu tiên user có quyền truy cập
         Response::redirect(URLROOT . $this->resolveHomePath($permissions));
         return; // Đảm bảo không có code nào được thực thi sau khi chuyển hướng

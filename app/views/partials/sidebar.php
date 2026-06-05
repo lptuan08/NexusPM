@@ -25,7 +25,6 @@
     ]);
     $canViewSettings = \App\helpers\AuthHelper::canAny([
         'settings.view.all',
-        'users.view.all',
         'job_titles.view.all',
         'project_statuses.view.all',
         'task_statuses.view.all',
@@ -38,11 +37,19 @@
             $homeUrl = URLROOT . '/projects';
         } elseif ($canViewTasks) {
             $homeUrl = URLROOT . '/tasks';
+        } elseif ($canViewUsers) {
+            $homeUrl = URLROOT . '/users';
         } elseif ($canViewSettings) {
             $homeUrl = URLROOT . '/settings';
         } else {
             $homeUrl = URLROOT . '/account/password';
         }
+    }
+
+    $tasksUrl = URLROOT . '/tasks';
+    $selectedTaskProjectId = (int) \App\core\Session::get('selected_project_id', 0);
+    if ($selectedTaskProjectId > 0) {
+        $tasksUrl = URLROOT . '/tasks/kanban';
     }
     ?>
     <!-- KÊNH SIDEBAR -->
@@ -75,26 +82,26 @@
                 <?php endif; ?>
 
                 <?php if ($canViewTasks): ?>
-                <a href="<?= URLROOT ?>/tasks" class="nav-link-custom <?= str_contains($currentUri, '/tasks') ? 'active' : '' ?>" title="Công việc">
+                <a href="<?= $tasksUrl ?>" class="nav-link-custom <?= str_contains($currentUri, '/tasks') ? 'active' : '' ?>" title="Công việc">
                     <i data-lucide="check-square"></i>
                     <span class="nav-text">Công việc</span>
                 </a>
                 <?php endif; ?>
 
+                <?php if ($canViewUsers): ?>
+                <a href="<?= URLROOT ?>/users" class="nav-link-custom <?= str_contains($currentUri, '/users') ? 'active' : '' ?>" title="Nhân viên">
+                    <i data-lucide="users"></i>
+                    <span class="nav-text">Nhân viên</span>
+                </a>
+                <?php endif; ?>
+
                 <?php if ($canViewSettings): ?>
-                    <!-- NHÓM NHÂN SỰ -->
+                    <!-- NHÓM HỆ THỐNG -->
                     <div class="sidebar-section-title mt-3 text-xs text-slate-400">
                         <a href="<?= URLROOT ?>/settings" class="text-decoration-none text-slate-400 hover-text-primary" title="Hệ thống">
                             Hệ thống
                         </a>
                     </div>
-
-                    <?php if ($canViewUsers): ?>
-                    <a href="<?= URLROOT ?>/users" class="nav-link-custom <?= str_contains($currentUri, '/users') ? 'active' : '' ?>" title="Nhân viên">
-                        <i data-lucide="users"></i>
-                        <span class="nav-text">Nhân viên</span>
-                    </a>
-                    <?php endif; ?>
 
                     <?php if ($canViewJobTitles): ?>
                     <a href="<?= URLROOT ?>/settings/job" class="nav-link-custom <?= $currentUri === '/settings/job' ? 'active' : '' ?>" title="Chức danh nhân viên">

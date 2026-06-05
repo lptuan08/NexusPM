@@ -33,6 +33,16 @@ class ProjectModel extends Model
      */
     private function applyProjectFilters(string &$sql, array &$params, array $filters, string $alias = 'p'): void
     {
+        if (!empty($filters['search'])) {
+            $sql .= " AND ({$alias}.name LIKE :project_search OR {$alias}.project_code LIKE :project_search)";
+            $params['project_search'] = '%' . trim((string) $filters['search']) . '%';
+        }
+
+        if (!empty($filters['owner_id'])) {
+            $sql .= " AND {$alias}.owner_id = :owner_id";
+            $params['owner_id'] = (int) $filters['owner_id'];
+        }
+
         if (!empty($filters['status_id']) && is_array($filters['status_id'])) {
             $placeholders = [];
             foreach (array_values($filters['status_id']) as $index => $statusId) {
@@ -79,7 +89,8 @@ class ProjectModel extends Model
         $offset = ($page - 1) * $perPage;
 
         $sql = "SELECT p.*, 
-                       u.name AS manager_name, 
+                       u.name AS owner_name,
+                       u.name AS manager_name,
                        u.email AS owner_email, 
                        ps.name as status_name, 
                        ps.color as status_color, 
@@ -159,9 +170,21 @@ class ProjectModel extends Model
      */
     public function find($id)
     {
-        $sql = "SELECT p.*, u.name AS owner_name, u.email AS owner_email, u.avatar AS owner_avatar, ps.name as status_name, ps.color as status_color, ps.slug as status_slug
+        $sql = "SELECT p.*,
+                       u.name AS owner_name,
+                       u.email AS owner_email,
+                       u.avatar AS owner_avatar,
+                       created_user.name AS created_by_name,
+                       created_user.email AS created_by_email,
+                       updated_user.name AS updated_by_name,
+                       updated_user.email AS updated_by_email,
+                       ps.name as status_name,
+                       ps.color as status_color,
+                       ps.slug as status_slug
                 FROM {$this->table} p
                 LEFT JOIN users u ON p.owner_id = u.id
+                LEFT JOIN users created_user ON p.created_by = created_user.id
+                LEFT JOIN users updated_user ON p.updated_by = updated_user.id
                 LEFT JOIN project_statuses ps ON p.status_id = ps.id
                 WHERE p.id = :id AND p.deleted_at IS NULL";
 
@@ -187,12 +210,51 @@ class ProjectModel extends Model
      */
     public function getProjectMembers($projectId)
     {
-        $sql = "SELECT u.id, u.name, u.avatar, u.email, pm.role, pm.joined_at, pm.is_active, pm.left_at 
+        $sql = "SELECT u.id, u.employee_code, u.name, u.avatar, u.email, jt.name AS job_title, pm.role, pm.joined_at, pm.is_active, pm.left_at
                 FROM project_members pm
                 JOIN users u ON pm.user_id = u.id
+                LEFT JOIN job_titles jt ON jt.id = u.job_title_id
                 WHERE pm.project_id = :project_id AND u.deleted_at IS NULL";
 
         return $this->db->query($sql, ['project_id' => (int) $projectId])->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Lấy thông tin một thành viên trong dự án.
+     *
+     * @param int|string $projectId ID dự án.
+     * @param int|string $userId ID nhân viên.
+     * @return array<string, mixed>|false Thông tin thành viên hoặc false nếu không tồn tại.
+     */
+    public function getProjectMember($projectId, $userId)
+    {
+        $sql = "SELECT pm.project_id,
+                       pm.user_id,
+                       pm.role,
+                       pm.joined_at,
+                       pm.is_active,
+                       pm.left_at,
+                       u.id,
+                       u.employee_code,
+                       u.name,
+                       u.email,
+                       u.avatar,
+                       jt.name AS job_title,
+                       r.name AS role_name,
+                       r.slug AS role_slug
+                FROM {$this->tableProjectMember} pm
+                JOIN users u ON pm.user_id = u.id
+                LEFT JOIN job_titles jt ON jt.id = u.job_title_id
+                LEFT JOIN roles r ON r.id = u.role_id
+                WHERE pm.project_id = :project_id
+                  AND pm.user_id = :user_id
+                  AND u.deleted_at IS NULL
+                LIMIT 1";
+
+        return $this->db->query($sql, [
+            'project_id' => (int) $projectId,
+            'user_id' => (int) $userId,
+        ])->fetch(PDO::FETCH_ASSOC);
     }
 
     /**
@@ -265,8 +327,8 @@ class ProjectModel extends Model
             $this->db->beginTransaction();
 
             // 1. Chèn thông tin dự án cơ bản
-            $sql = "INSERT INTO {$this->table} (name, description, status_id, owner_id, start_date, due_date) 
-                    VALUES (:name, :description, :status_id, :owner_id, :start_date, :due_date)";
+            $sql = "INSERT INTO {$this->table} (name, description, status_id, owner_id, start_date, due_date, created_by, updated_by)
+                    VALUES (:name, :description, :status_id, :owner_id, :start_date, :due_date, :created_by, :updated_by)";
 
             $this->db->query($sql, [
                 'name'        => $data['name'],
@@ -274,7 +336,9 @@ class ProjectModel extends Model
                 'status_id'      => $data['status_id'],
                 'owner_id'    => $data['owner_id'],
                 'start_date' => $data['start_date'],
-                'due_date' => $data['due_date']
+                'due_date' => $data['due_date'],
+                'created_by' => !empty($data['created_by']) ? (int) $data['created_by'] : null,
+                'updated_by' => !empty($data['updated_by']) ? (int) $data['updated_by'] : (!empty($data['created_by']) ? (int) $data['created_by'] : null),
             ]);
 
             $projectId = $this->db->lastInsertId();
@@ -317,6 +381,7 @@ class ProjectModel extends Model
                 owner_id = :owner_id,
                 start_date = :start_date, 
                 due_date = :due_date,
+                updated_by = :updated_by,
                 updated_at = CURRENT_TIMESTAMP
                 WHERE id = :id";
 
@@ -327,6 +392,7 @@ class ProjectModel extends Model
             'owner_id'    => $data['owner_id'],
             'start_date'  => $data['start_date'],
             'due_date'    => $data['due_date'],
+            'updated_by'  => !empty($data['updated_by']) ? (int) $data['updated_by'] : null,
             'id'          => (int) $id
         ];
         return $this->db->query($sql, $params);
@@ -340,17 +406,52 @@ class ProjectModel extends Model
      * @param string $role Vai tro thanh vien trong du an.
      * @return mixed Ket qua truy van insert tu database layer.
      */
-    public function addMember($projectId, $userId, $role)
+    public function addMember($projectId, $userId, $role, ?string $joinedAt = null, int $isActive = 1, ?string $leftAt = null)
     {
-        $role = in_array((string) $role, ['manager', 'member', 'viewer'], true) ? (string) $role : 'member';
+        $role = strtolower(trim((string) $role));
+        $role = in_array($role, ['manager', 'member', 'viewer'], true) ? $role : 'member';
 
-        $sql = "INSERT INTO project_members (project_id, user_id, role, joined_at) 
-                VALUES (:project_id, :user_id, :role, CURRENT_TIMESTAMP)";
+        $sql = "INSERT INTO {$this->tableProjectMember} (project_id, user_id, role, joined_at, is_active, left_at)
+                VALUES (:project_id, :user_id, :role, :joined_at, :is_active, :left_at)";
 
         return $this->db->query($sql, [
             'project_id' => (int) $projectId,
             'user_id'    => (int) $userId,
-            'role'       => $role
+            'role'       => $role,
+            'joined_at'  => $joinedAt ?: date('Y-m-d H:i:s'),
+            'is_active'  => $isActive === 1 ? 1 : 0,
+            'left_at'    => $leftAt,
+        ]);
+    }
+
+    /**
+     * Cập nhật vai trò và trạng thái tham gia của thành viên dự án.
+     *
+     * @param int|string $projectId ID dự án.
+     * @param int|string $userId ID nhân viên.
+     * @param array<string, mixed> $data Dữ liệu thành viên đã chuẩn hóa.
+     * @return mixed Kết quả truy vấn update từ database layer.
+     */
+    public function updateProjectMember($projectId, $userId, array $data)
+    {
+        $role = strtolower(trim((string) ($data['role'] ?? 'member')));
+        $role = in_array($role, ['manager', 'member', 'viewer'], true) ? $role : 'member';
+
+        $sql = "UPDATE {$this->tableProjectMember}
+                SET role = :role,
+                    joined_at = :joined_at,
+                    is_active = :is_active,
+                    left_at = :left_at
+                WHERE project_id = :project_id
+                  AND user_id = :user_id";
+
+        return $this->db->query($sql, [
+            'role' => $role,
+            'joined_at' => $data['joined_at'] ?? date('Y-m-d H:i:s'),
+            'is_active' => !empty($data['is_active']) ? 1 : 0,
+            'left_at' => $data['left_at'] ?? null,
+            'project_id' => (int) $projectId,
+            'user_id' => (int) $userId,
         ]);
     }
 
@@ -406,6 +507,87 @@ class ProjectModel extends Model
     }
 
     /**
+     * Áp dụng phạm vi xem dự án cho các truy vấn Dashboard.
+     *
+     * =============================================================
+     * NHOM DASHBOARD
+     * =============================================================
+     *
+     * @param string $sql SQL đang được xây dựng.
+     * @param array<string, mixed> $params Tham số bind.
+     * @param array<string, mixed> $filters Bộ lọc quyền xem dự án.
+     * @param string $alias Alias bảng projects.
+     * @return void
+     */
+    private function applyDashboardProjectVisibility(string &$sql, array &$params, array $filters, string $alias = 'p'): void
+    {
+        if (empty($filters['visibility_user_id'])) {
+            return;
+        }
+
+        $sql .= " AND (
+            {$alias}.owner_id = :dashboard_project_owner_id
+            OR EXISTS (
+                SELECT 1
+                FROM {$this->tableProjectMember} pm_dashboard
+                WHERE pm_dashboard.project_id = {$alias}.id
+                  AND pm_dashboard.user_id = :dashboard_project_member_id
+                  AND pm_dashboard.is_active = 1
+                  AND pm_dashboard.left_at IS NULL
+            )
+        )";
+
+        $params['dashboard_project_owner_id'] = (int) $filters['visibility_user_id'];
+        $params['dashboard_project_member_id'] = (int) $filters['visibility_user_id'];
+    }
+
+    /**
+     * Lấy số liệu dự án cho các thẻ thống kê trên Dashboard.
+     *
+     * Hàm này chỉ phục vụ Dashboard: đếm dự án chưa hoàn thành và dự án cần chú ý
+     * theo phạm vi quyền xem dự án của user hiện tại.
+     *
+     * @param array<string, mixed> $filters Bộ lọc quyền xem dự án.
+     * @param \DateTimeInterface $today Ngày hiện tại theo timezone Dashboard.
+     * @return array<string, int> Số liệu tổng hợp dự án.
+     */
+    public function getDashboardProjectSummary(array $filters, \DateTimeInterface $today): array
+    {
+        $sql = "SELECT
+                    COUNT(*) AS total_projects,
+                    SUM(CASE
+                        WHEN COALESCE(ps.slug, '') <> 'completed'
+                        THEN 1 ELSE 0
+                    END) AS active_projects,
+                    SUM(CASE
+                        WHEN COALESCE(ps.slug, '') IN ('at_risk', 'on_hold')
+                          OR (
+                              p.due_date IS NOT NULL
+                              AND p.due_date < :today
+                              AND COALESCE(ps.slug, '') <> 'completed'
+                          )
+                        THEN 1 ELSE 0
+                    END) AS attention_projects
+                FROM {$this->table} p
+                LEFT JOIN project_statuses ps ON p.status_id = ps.id
+                WHERE p.deleted_at IS NULL";
+
+        $params = [
+            'today' => $today->format('Y-m-d'),
+        ];
+
+        $this->applyDashboardProjectVisibility($sql, $params, $filters);
+
+        $row = $this->db->query($sql, $params)->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        return [
+            'total_projects' => (int) ($row['total_projects'] ?? 0),
+            'active_projects' => (int) ($row['active_projects'] ?? 0),
+            'attention_projects' => (int) ($row['attention_projects'] ?? 0),
+        ];
+    }
+
+    /**
      * Đếm số dự án đang hoạt động thỏa bộ lọc.
      *
      * =============================================================
@@ -439,7 +621,8 @@ class ProjectModel extends Model
         $offset = ($page - 1) * $perPage;
 
         $sql = "SELECT p.*, 
-                       u.name AS manager_name, 
+                       u.name AS owner_name,
+                       u.name AS manager_name,
                        u.email AS owner_email, 
                        ps.name as status_name, 
                        ps.color as status_color, 
@@ -534,13 +717,21 @@ class ProjectModel extends Model
             return [];
         }
 
+        $restrictToMemberRoles = is_array($memberRoles);
+        if ($restrictToMemberRoles && $memberRoles === []) {
+            return [];
+        }
+
         $params = [
-            'owner_user_id' => $userId,
             'member_user_id' => $userId,
         ];
+        if (!$restrictToMemberRoles) {
+            $params['owner_user_id'] = $userId;
+        }
         $roleSql = '';
+        $ownerVisibilitySql = !$restrictToMemberRoles ? 'p.owner_id = :owner_user_id OR' : '';
 
-        if (is_array($memberRoles) && $memberRoles !== []) {
+        if ($restrictToMemberRoles) {
             $rolePlaceholders = [];
             foreach (array_values($memberRoles) as $index => $role) {
                 $key = "member_role_{$index}";
@@ -561,8 +752,8 @@ class ProjectModel extends Model
                 LEFT JOIN project_statuses ps ON p.status_id = ps.id
                 WHERE p.deleted_at IS NULL
                 AND (
-                    p.owner_id = :owner_user_id
-                    OR EXISTS (
+                    {$ownerVisibilitySql}
+                    EXISTS (
                         SELECT 1
                         FROM {$this->tableProjectMember} pm
                         WHERE pm.project_id = p.id
@@ -580,8 +771,7 @@ class ProjectModel extends Model
     /**
      * Lấy vai trò của user trong một dự án.
      *
-     * Owner của dự án luôn được quy về manager. Nếu user là thành viên active
-     * trong project_members thì trả về role được lưu trong bảng; ngược lại trả về null.
+     * Chỉ trả về role được lưu trong project_members; Project Sponsor không tự động là manager.
      *
      * @param int|string $projectId ID dự án cần kiểm tra.
      * @param int|string $userId ID user cần kiểm tra.
@@ -593,13 +783,8 @@ class ProjectModel extends Model
             return null;
         }
 
-        $project = $this->find($projectId);
-        if (!$project) {
+        if (!$this->find($projectId)) {
             return null;
-        }
-        // Owner_id của project luôn được xem là manager
-        if ((int) $project['owner_id'] === (int) $userId) {
-            return 'manager';
         }
 
         $sql = "SELECT role
